@@ -2,6 +2,8 @@
 
 # download fw file
 wget https://content.mellanox.com/firmware/fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin.zip &&
-unzip fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin.zip &&
+unzip fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin.zip
+
+# Burn and restart
 mstflint -d 02:00.0 -i fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin burn &&
 reboot now
