@@ -5,7 +5,7 @@ Lab setup pro 100Gbps clustering
 1. FW instalaction
 
 ```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/mlnx_fw_update.sh%20 | sudo bash
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/mlnx_fw_update.sh | sudo bash
 ```
 
 2. Driver installation
