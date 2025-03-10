@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# Prompt the user for the IP address
-read -p "Enter IP: " IP
+# Check if an IP address is provided as an argument
+if [ -z "$1" ]; then
+  echo "Usage: $0 <IP_ADDRESS>"
+  exit 1
+fi
+
+IP=$1
 
 # Create the configuration file with the defined content
 sudo tee /etc/sysconfig/network-scripts/ifcfg-ibs1 > /dev/null <<EOF
