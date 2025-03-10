@@ -9,8 +9,7 @@ fi
 IP=$1
 
 # Create the configuration file with the defined content
-#sudo tee /etc/sysconfig/network-scripts/ifcfg-ibs1 > /dev/null <<EOF
-sudo tee ./ifcfg-ibs1 > /dev/null <<EOF
+sudo tee /etc/sysconfig/network-scripts/ifcfg-ibs1 > /dev/null <<EOF
 TYPE=InfiniBand
 BOOTPROTO=none
 NAME=ibs1
