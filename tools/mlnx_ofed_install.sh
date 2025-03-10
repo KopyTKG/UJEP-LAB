@@ -40,7 +40,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Install drivers
-yes | "$TEMP_DIR/MLNX_OFED_LINUX-24.10-2.1.8.0-rhel9.5-x86_64/mlnxofedinstall"
+yes | "$TEMP_DIR/MLNX_OFED_LINUX-24.10-2.1.8.0-rhel9.5-x86_64/mlnxofedinstall --without-fw-update"
 if [ $? -ne 0 ]; then
   echo "Failed to install the drivers."
   exit 1
