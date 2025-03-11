@@ -6,7 +6,7 @@ cleanup() {
 }
 
 # Trap to ensure cleanup on script exit
-#trap cleanup EXIT
+trap cleanup EXIT
 
 # Update the system
 yes | dnf update -y
@@ -39,8 +39,22 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Verify the extraction directory
+EXTRACT_DIR="$TEMP_DIR/MLNX_OFED_LINUX-24.10-2.1.8.0-rhel9.5-x86_64"
+if [ ! -d "$EXTRACT_DIR" ]; then
+  echo "Extraction directory does not exist: $EXTRACT_DIR"
+  exit 1
+fi
+
+# Verify the installation script exists
+INSTALL_SCRIPT="$EXTRACT_DIR/mlnxofedinstall"
+if [ ! -x "$INSTALL_SCRIPT" ]; then
+  echo "Installation script does not exist or is not executable: $INSTALL_SCRIPT"
+  exit 1
+fi
+
 # Install drivers
-yes | "$TEMP_DIR/MLNX_OFED_LINUX-24.10-2.1.8.0-rhel9.5-x86_64/mlnxofedinstall --without-fw-update"
+"$INSTALL_SCRIPT" --without-fw-update
 if [ $? -ne 0 ]; then
   echo "Failed to install the drivers."
   exit 1
