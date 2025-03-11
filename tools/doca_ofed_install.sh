@@ -16,11 +16,11 @@ if [ $? -ne 0 ]; then
 fi
 
 # Install dependencies
-yes | dnf install -y cpan gcc-gfortran tk
-if [ $? -ne 0 ]; then
-  echo "Failed to install dependencies."
-  exit 1
-fi
+#yes | dnf install -y cpan gcc-gfortran tk
+#if [ $? -ne 0 ]; then
+#  echo "Failed to install dependencies."
+#  exit 1
+#fi
 
 # Create a temporary directory for downloads
 TEMP_DIR=$(mktemp -d)
