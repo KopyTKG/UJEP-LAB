@@ -26,7 +26,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Burn the firmware and restart
-mstflint -d 02:00.0 -i "$TEMP_DIR/fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin" burn
+yes | mstflint -d 02:00.0 -i "$TEMP_DIR/fw-ConnectX5-rel-16_35_4030-MCX555A-ECA_Ax_Bx-UEFI-14.29.15-FlexBoot-3.6.902.bin" burn
 if [ $? -ne 0 ]; then
   echo "Failed to burn the firmware."
   exit 1
