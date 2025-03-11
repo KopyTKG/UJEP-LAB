@@ -10,7 +10,7 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 
 2. Driver installation
 ```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/mlnx_ofed_install.sh | sudo bash
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/doca_ofed_install.sh | sudo bash
 ```
 
 3. Static ip on IBS1 link 
