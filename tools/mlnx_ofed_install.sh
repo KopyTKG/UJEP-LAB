@@ -6,7 +6,7 @@ cleanup() {
 }
 
 # Trap to ensure cleanup on script exit
-trap cleanup EXIT
+#trap cleanup EXIT
 
 # Update the system
 yes | dnf update -y
