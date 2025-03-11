@@ -1,5 +1,5 @@
 # UJEP-LAB
-Lab setup pro 100Gbps clustering
+Lab setup for 100Gbps IPoIB clustering with Mellanox CX555A
 
 ## Usage
 1. FW instalaction
