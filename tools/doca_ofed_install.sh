@@ -47,7 +47,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Installing DOCA-OFED
-yes | dnf install doca-ofed --skip-broken
+yes | dnf install -y doca-ofed --skip-broken
 if [ $? -ne 0 ]; then
   echo "Failed to install ofed drivers."
   exit 1
