@@ -19,3 +19,9 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ipoib_static.sh | sudo bash -s 10.0.0.x
 ```
 
+4. Virtualization and clustering 
+```bash
+# install all deps + packages for virt 
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/virt_insall.sh | sudo bash
+```
+
