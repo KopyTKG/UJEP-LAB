@@ -53,4 +53,15 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Installing opensm
+yes | dnf install -y opensm
+if [ $? -ne 0 ]; then
+  echo "Failed to install opensm."
+  exit 1
+fi
 
+systemctl enable --now opensm
+if [ $? -ne 0 ]; then
+	echo "Failed to activate opensm."
+	exit 1
+fi
