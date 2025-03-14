@@ -16,7 +16,7 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 3. Static ip on IBS1 link 
 ```bash
 # change ibs1
-sudo nmtcli
+sudo nmtui
 ```
 
 4. Virtualization and clustering 
