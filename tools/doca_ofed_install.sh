@@ -60,7 +60,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-systemctl enable --now opensm
+systemctl enable --now opensmd.service
 if [ $? -ne 0 ]; then
 	echo "Failed to activate opensm."
 	exit 1
