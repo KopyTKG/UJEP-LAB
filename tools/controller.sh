@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -fsSl https://stack.thekrew.app/openstack | sudo bash
+
+
 yes | dnf install mariadb mariadb-server python3-PyMySQL -y
 yes | dnf install rabbitmq-server -y
 

@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# installing virtualization
-yes | dnf update -y
-yes | dnf install -y qemu-kvm qemu-img libvirt libvirt-client libguestfs-tools python3-libvirt
-
-
 # prep for openstack
 yes | dnf install -y chrony
 
