@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# prep for openstack
 yes | dnf install -y chrony
 
 systemctl enable chronyd.service --now
@@ -23,10 +22,3 @@ firewall-cmd --permanent --add-service=ntp
 firewall-cmd --reload
 
 systemctl restart chronyd.service
-
-yes | dnf install dnf-plugins-core -y
-yes | dnf config-manager --set-enabled crb -y
-yes | dnf install centos-release-openstack-dalmatian -y
-yes | dnf upgrade -y
-yes | dnf install python3-openstackclient -y
-yes | dnf install openstack-selinux -y

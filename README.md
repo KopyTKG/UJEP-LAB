@@ -18,8 +18,7 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 sudo nmtui
 ```
 
-4. Virtualization and clustering 
+4. NTP server setup
 ```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/virt_install.sh | sudo bash
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
 ```
-
