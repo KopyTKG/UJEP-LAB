@@ -16,7 +16,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-yes | dnf install -y mariadb-server galera
+yes | dnf install -y mariadb-server galera-4
 if [ $? -ne 0 ]; then
   echo "Failed to install mariadb-server or galera."
   exit 1
