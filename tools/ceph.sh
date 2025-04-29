@@ -27,3 +27,6 @@ gpgkey=https://download.ceph.com/keys/release.asc
 EOF
 
 yes | dnf install -y cephadm
+
+firewall-cmd --add-port={8443,3000,9095,9093,9094,9100,9283}/tcp
+firewall-cmd --reload
