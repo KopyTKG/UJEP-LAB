@@ -1,5 +1,7 @@
 #!/bin/bash
 
+curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+
 # Update the system
 yes | dnf update -y
 if [ $? -ne 0 ]; then
