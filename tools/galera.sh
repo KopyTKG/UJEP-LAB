@@ -1,6 +1,13 @@
 #!/bin/bash
 
-curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+tee /etc/yum.repos.d/MariaDB.repo > /dev/null <<EOF
+[mariadb]
+name = MariaDB
+baseurl = https://rpm.mariadb.org/10.6/rhel/\$releasever/\$basearch
+gpgkey = https://rpm.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck = 1
+EOF
+
 
 # Update the system
 yes | dnf update -y
