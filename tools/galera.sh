@@ -16,9 +16,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-yes | dnf install -y mariadb-server galera-4
+yes | dnf install -y mariadb-server
 if [ $? -ne 0 ]; then
-  echo "Failed to install mariadb-server or galera."
+  echo "Failed to install mariadb-server."
   exit 1
 fi
 
@@ -27,7 +27,6 @@ if [ $? -ne 0 ]; then
 	echo "Failed to activate mariadb."
 	exit 1
 fi
-
 
 
 firewall-cmd --permanent --add-port=3306/tcp
