@@ -15,5 +15,4 @@ tee /etc/hosts > /dev/null << EOF
 10.0.0.8  node8
 
 10.0.1.1  controller1
-10.0.1.2  controller2
 EOF
