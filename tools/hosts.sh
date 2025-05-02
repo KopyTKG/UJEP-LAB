@@ -25,3 +25,5 @@ tee /etc/hosts > /dev/null << EOF
 
 10.0.1.1  controller
 EOF
+
+ssh-keygen -t ed25519 -C "root@$(hostname)" -f /root/.ssh/id_ed25519
