@@ -13,14 +13,14 @@ tee /etc/hosts > /dev/null << EOF
 10.0.0.7  node7
 10.0.0.8  node8
 
-192.168.1.51  Eth-node1
-192.168.1.52  Eth-node2
-192.168.1.53  Eth-node3
-192.168.1.54  Eth-node4
-192.168.1.55  Eth-node5
-192.168.1.56  Eth-node6
-192.168.1.57  Eth-node7
-192.168.1.58  Eth-node8
+192.168.1.201  Eth-node1
+192.168.1.202  Eth-node2
+192.168.1.203  Eth-node3
+192.168.1.204  Eth-node4
+192.168.1.205  Eth-node5
+192.168.1.206  Eth-node6
+192.168.1.207  Eth-node7
+192.168.1.208  Eth-node8
 
 10.0.1.1  controller
 EOF
