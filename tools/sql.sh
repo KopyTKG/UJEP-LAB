@@ -1,5 +1,12 @@
 #!/bin/bash
 
+yes | dnf update
+if [ $? -ne 0 ]; then
+  echo "Failed to update."
+  exit 1
+fi
+
+
 yes | dnf install -y mariadb-server
 if [ $? -ne 0 ]; then
   echo "Failed to install mariadb-server."
