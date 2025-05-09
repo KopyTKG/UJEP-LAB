@@ -12,4 +12,7 @@ EOT
 yes | yum makecache -y
 
 yes | yum -y install opennebula-node-kvm
-systemctl restart libvirtd
+systemctl enable libvirtd.service --now
+
+firewall-cmd --add-port=5900-5999/tcp --permanent
+firewall-cmd --reload
