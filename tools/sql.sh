@@ -1,14 +1,5 @@
 #!/bin/bash
 
-tee /etc/yum.repos.d/MariaDB.repo > /dev/null <<EOF
-[mariadb]
-name = MariaDB
-baseurl = https://rpm.mariadb.org/10.6/rhel/\$releasever/\$basearch
-gpgkey = https://rpm.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck = 1
-EOF
-
-
 # Update the system
 yes | dnf update -y
 if [ $? -ne 0 ]; then
@@ -30,7 +21,4 @@ fi
 
 
 firewall-cmd --permanent --add-port=3306/tcp
-firewall-cmd --permanent --add-port=4567/tcp
-firewall-cmd --permanent --add-port=4568/tcp
-firewall-cmd --permanent --add-port=4444/tcp
 firewall-cmd --reload
