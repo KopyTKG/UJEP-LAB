@@ -13,4 +13,9 @@ yes | yum makecache -y
 
 yes | yum -y install opennebula opennebula-fireedge opennebula-gate opennebula-flow opennebula-provision
 
+firewall-cmd --add-port=2616/tcp
+firewall-cmd --reload
 
+echo 'oneadmin:heslo' > /var/lib/one/.one/one_auth
+
+chown oneadmin:oneadmin /var/lib/one/.one/one_auth
