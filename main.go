@@ -54,7 +54,7 @@ func mainLogic() {
 
 	pkgs := []dnf.Package{"chrony", "centos-release-ceph-reef", "cephadm", "epel-release", "ceph-common", "opennebula", "opennebula-fireedge", "opennebula-gate", "opennebula-flow", "opennebula-provision", "mariadb-server"}
 
-	usedport := []firewalld.Port{"8443/tcp", "3000/tcp", "9095/tcp", "9093/tcp", "9100/tcp", "9283/tcp", "123/udp", "2616/tcp", "9869/tcp", "4124/tcp", "4125/tcp", "3306/tcp", "2633/tcp", "2474/tcp", "5030/tcp"}
+	usedport := []firewalld.Port{"8443/tcp", "3000/tcp", "9095/tcp", "9093/tcp", "9100/tcp", "9283/tcp", "123/udp", "2616/tcp", "9869/tcp", "4124/tcp", "4124/udp", "4125/tcp", "3306/tcp", "2633/tcp", "2474/tcp", "5030/tcp", "29876/tcp"}
 
 	daemons := []systemctl.Daemon{"chronyd.service", "mariadb.service"}
 
@@ -79,6 +79,17 @@ func mainLogic() {
 
 	mariadb.SecureInstall()
 	nebula.Init()
+
+	nebulaDaemons := []systemctl.Daemon{"opennebula", "opennebula-fireedge", "opennebula-gate", "opennebula-flow"}
+
+	for _, daemon := range nebulaDaemons {
+		systemctl.Start(daemon)
+	}
+
+	for _, daemon := range nebulaDaemons {
+		systemctl.Enable(daemon)
+	}
+
 	password.DumpCreds("passwords")
 }
 
