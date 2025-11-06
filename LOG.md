@@ -66,15 +66,6 @@ sudo nmtui # set static ip on ib interface in 10.0.0.x subnet (x = node number)
 curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
 ```
 
-> [!INFO]
-> bash looping for easy setup on all nodes
-
-```sh
-for i in {1..8}; do
-  ssh user@192.168.1.20$i "curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash"
-done
-```
-
 5. Install ceph
 
 ```sh
@@ -85,7 +76,17 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 > bash looping for easy setup on all nodes
 
 ```sh
+export MY_PASS='your_sudo_password_here'
+```
+
+```sh
 for i in {1..8}; do
-  ssh user@192.168.1.20$i "curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | sudo bash"
+  ssh user@192.168.1.20$i "curl -fsSL https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/Live/tools/chrony.sh | echo '$MY_PASS' | sudo -S bash"
+done
+```
+
+```sh
+for i in {1..8}; do
+  ssh user@192.168.1.20$i "curl -fsSL  https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | echo '$MY_PASS' | sudo -S bash"
 done
 ```
