@@ -62,7 +62,7 @@ sudo nmtui # set static ip on ib interface in 10.0.0.x subnet (x = node number)
 
 4. Install chrony ntp
 
-````sh
+```sh
 curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
 ```
 
