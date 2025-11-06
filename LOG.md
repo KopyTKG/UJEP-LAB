@@ -104,3 +104,11 @@ sudo ceph orch host add Rocky-OKD-Host-8
 
 > [!IMPORTANT]
 > Ceph is on https://controller:8443 (192.168.1.200 as for this lab setup)
+
+### Next steps
+
+1. Setup OSDs on all nodes
+
+- `ll /dev/disk/by-id/wwn-*` to find disks
+- `wipefs -a /dev/sdX` to clean disks
+- `sudo ceph orch daemon add osd Rocky-OKD-Host-X:/dev/disk/by-id/wwn-XXXX` to add OSD
