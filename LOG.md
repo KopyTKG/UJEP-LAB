@@ -52,3 +52,22 @@ add lines:
 sudo dnf install opensm -y
 sudo systemctl enable --now opensm
 ```
+
+```sh
+sudo nmtui # set static ip on ib interface in 10.0.0.x subnet (x = node number)
+```
+
+> [!IMPORTANT]
+> Install ceph-squid
+
+4. Install chrony ntp
+
+````sh
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
+```
+
+5. Install ceph
+
+```sh
+curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | sudo bash
+````
