@@ -12,4 +12,4 @@ firewall-cmd --reload
 yes | dnf install -y epel-release
 yes | dnf config-manager --set-enabled crb
 yes | dnf makecache
-yes | dnf install -y ceph-common
+yes | dnf install -y ceph-common python3-jinja2
