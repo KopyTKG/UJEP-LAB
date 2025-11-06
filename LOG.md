@@ -43,7 +43,7 @@ add lines:
 10.0.0.254 controller
 ```
 
-[!IMPORTANT](Only on controller node)
+[!WARNING](ON ALL NODES)
 
 3. install opensm module
 
