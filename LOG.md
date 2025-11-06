@@ -72,21 +72,35 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | sudo bash
 ```
 
-> [!NOTE]
-> bash looping for easy setup on all nodes
+> [!CAUTION]
+> Bootstrap only on controller node
 
 ```sh
-export MY_PASS='your_sudo_password_here'
+sudo cephadm bootstrap --mon-ip 192.168.1.200
 ```
 
-```sh
-for i in {1..8}; do
-  ssh user@192.168.1.20$i "curl -fsSL https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/Live/tools/chrony.sh | echo '$MY_PASS' | sudo -S bash"
-done
-```
+then install ssh keys on all nodes
 
 ```sh
-for i in {1..8}; do
-  ssh user@192.168.1.20$i "curl -fsSL  https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | echo '$MY_PASS' | sudo -S bash"
-done
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@Rocky-OKD-Host-*
 ```
+
+> [!IMPORTANT]
+> Root password login is disabled on all nodes
+> So you need to copy ssh key manually first time
+
+then on controller node run
+
+```sh
+sudo ceph orch host add Rocky-OKD-Host-1
+sudo ceph orch host add Rocky-OKD-Host-2
+sudo ceph orch host add Rocky-OKD-Host-3
+sudo ceph orch host add Rocky-OKD-Host-4
+sudo ceph orch host add Rocky-OKD-Host-5
+sudo ceph orch host add Rocky-OKD-Host-6
+sudo ceph orch host add Rocky-OKD-Host-7
+sudo ceph orch host add Rocky-OKD-Host-8
+```
+
+> [!IMPORTANT]
+> Ceph is on https://controller:8443 (192.168.1.200 as for this lab setup)
