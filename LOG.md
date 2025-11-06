@@ -72,7 +72,7 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/ceph.sh | sudo bash
 ```
 
-> [!INFO]
+> [!NOTE]
 > bash looping for easy setup on all nodes
 
 ```sh
