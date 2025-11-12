@@ -157,3 +157,89 @@ rados bench -p benchmark 10 seq
 ```sh
 ceph osd pool rm benchmark benchmark --yes-i-really-really-mean-it
 ```
+
+## Speeds on all HDD
+
+> [!IMPORTANT]
+> During test a big issue has been found that disks are heavily limited by IOPS on ceph cluster
+
+**Write**
+
+```sh
+rados bench -p benchmark 10 write --no-cleanup --block-size 4194304
+hints = 1
+Maintaining 16 concurrent writes of 4194304 bytes to objects of size 4194304 for up to 10 seconds or 0 objects
+Object prefix: benchmark_data_controller_115538
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       0         0         0         0         0           -           0
+    1      16        63        47    187.92       188     0.14866    0.280023
+    2      16       116       100   199.923       212    0.205767    0.277006
+    3      16       169       153   203.924       212    0.183315    0.294263
+    4      16       230       214   213.923       244   0.0772566    0.288087
+    5      16       272       256   204.727       168    0.396065    0.293771
+    6      16       326       310   206.593       216    0.314677    0.300614
+    7      16       384       368   210.211       232    0.350264    0.294811
+    8      16       440       424   211.924       224    0.314712    0.295449
+    9      16       495       479   212.817       220    0.278219    0.295796
+   10      16       544       528   211.128       196    0.166084    0.295981
+Total time run:         10.32
+Total writes made:      544
+Write size:             4194304
+Object size:            4194304
+Bandwidth (MB/sec):     210.854
+Stddev Bandwidth:       22.1349
+Max bandwidth (MB/sec): 244
+Min bandwidth (MB/sec): 168
+Average IOPS:           52
+Stddev IOPS:            5.53373
+Max IOPS:               61
+Min IOPS:               42
+Average Latency(s):     0.300001
+Stddev Latency(s):      0.161065
+Max latency(s):         0.862328
+Min latency(s):         0.063151
+```
+
+**Read**
+
+```sh
+rados bench -p benchmark 10 seq
+hints = 1
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       2         2         0         0         0           -           0
+    1      16       154       138   551.777       552   0.0613755    0.098897
+    2      16       320       304   607.793       664    0.127268    0.101212
+    3      16       492       476   634.404       688   0.0647372   0.0976329
+Total time run:       3.5181
+Total reads made:     544
+Read size:            4194304
+Object size:          4194304
+Bandwidth (MB/sec):   618.516
+Average IOPS:         154
+Stddev IOPS:          18.1475
+Max IOPS:             172
+Min IOPS:             138
+Average Latency(s):   0.0995232
+Max latency(s):       0.780926
+Min latency(s):       0.014887
+```
+
+```sh
+rados bench -p benchmark 100 seq
+hints = 1
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       2         2         0         0         0           -           0
+    1      16       276       260   1039.83      1040  0.00621783   0.0570613
+Total time run:       1.80244
+Total reads made:     544
+Read size:            4194304
+Object size:          4194304
+Bandwidth (MB/sec):   1207.25
+Average IOPS:         301
+Stddev IOPS:          0
+Max IOPS:             260
+Min IOPS:             260
+Average Latency(s):   0.047933
+Max latency(s):       0.541004
+Min latency(s):       0.00232347
+```
