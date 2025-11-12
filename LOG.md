@@ -139,7 +139,7 @@ sudo ceph orch host add Rocky-OKD-Host-8
 ```sh
 ceph osd pool create benchmark 64 64
 ceph config set mon mon_allow_pool_size_one true
-ceph osd pool set benchmark size 1
+ceph osd pool set benchmark size 1 --yes-i-really-mean-it
 ceph osd pool set benchmark min_size 1
 ```
 
