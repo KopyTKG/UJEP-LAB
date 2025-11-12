@@ -155,7 +155,9 @@ rados bench -p benchmark 10 seq
 **Cleanup**
 
 ```sh
+ceph config set mon mon_allow_pool_delete true
 ceph osd pool rm benchmark benchmark --yes-i-really-really-mean-it
+ceph config set mon mon_allow_pool_delete false
 ```
 
 ## Speeds on all HDD
