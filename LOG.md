@@ -355,3 +355,166 @@ Average Latency(s):   0.0259646
 Max latency(s):       0.143849
 Min latency(s):       0.0114364
 ```
+
+## Speeds on 16x SSD
+
+**Write**
+
+```sh
+rados bench -p benchmark 10 write --no-cleanup --block-size 4194304
+hints = 1
+Maintaining 16 concurrent writes of 4194304 bytes to objects of size 4194304 for up to 10 seconds or 0 objects
+Object prefix: benchmark_data_controller_719811
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       0         0         0         0         0           -           0
+    1      16       193       177    707.79       708     0.10247   0.0858451
+    2      16       381       365   729.837       752   0.0260299   0.0813987
+    3      16       562       546    727.87       724   0.0465956   0.0852349
+    4      16       735       719   718.889       692   0.0544374   0.0878668
+    5      16       907       891   712.669       688   0.0227168    0.087699
+    6      16      1062      1046   697.204       620   0.0289681   0.0905541
+    7      16      1218      1202   686.714       624    0.108092   0.0926435
+    8      16      1368      1352   675.865       600   0.0277595   0.0933331
+    9      16      1553      1537   682.977       740     0.03988   0.0933854
+   10      16      1720      1704   681.456       668   0.0867428   0.0933901
+Total time run:         10.0932
+Total writes made:      1720
+Write size:             4194304
+Object size:            4194304
+Bandwidth (MB/sec):     681.644
+Stddev Bandwidth:       52.6692
+Max bandwidth (MB/sec): 752
+Min bandwidth (MB/sec): 600
+Average IOPS:           170
+Stddev IOPS:            13.1673
+Max IOPS:               188
+Min IOPS:               150
+Average Latency(s):     0.0934786
+Stddev Latency(s):      0.0676944
+Max latency(s):         0.360712
+Min latency(s):         0.0183195
+```
+
+**Read**
+
+```sh
+rados bench -p benchmark 10 seq
+hints = 1
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       2         2         0         0         0           -           0
+    1      15       435       420   1677.75      1680   0.0199348   0.0368424
+    2      15      1088      1073   2142.09      2612   0.0163509   0.0286436
+Total time run:       2.97427
+Total reads made:     1720
+Read size:            4194304
+Object size:          4194304
+Bandwidth (MB/sec):   2313.18
+Average IOPS:         578
+Stddev IOPS:          164.756
+Max IOPS:             653
+Min IOPS:             420
+Average Latency(s):   0.0264774
+Max latency(s):       0.413696
+Min latency(s):       0.0112923
+```
+
+# Switching to new controller node
+
+- New controller: Another supermicro node
+- Rocky linux 10.0
+- Ceph installed
+
+> [!WARNING]
+> Ceph webUI is borked after migration - needs to be fixed
+
+## Speed
+
+**Write**
+
+> [!IMPORTANT]
+> speed is still limited by something on ceph side
+
+```sh
+rados bench -p benchmark 30 write -t 128 --no-cleanup --block-size 4194304
+hints = 1
+Maintaining 128 concurrent writes of 4194304 bytes to objects of size 4194304 for up to 30 seconds or 0 objects
+Object prefix: benchmark_data_controller_4579
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       0         0         0         0         0           -           0
+    1     127       163        36    143.97       144      0.8524    0.854785
+    2     127       327       200   399.926       656    0.702558    0.790627
+    3     127       505       378   503.917       712    0.743736    0.752519
+    4     127       659       532   531.916       616    0.738608    0.777479
+    5     127       832       705   563.912       692    0.760133    0.770203
+    6     127      1019       892   594.571       748    0.679004    0.752213
+    7     127      1184      1057   603.903       660    0.785429    0.753554
+    8     127      1344      1217   608.404       640    0.688776    0.759256
+    9     127      1494      1367    607.46       600     0.84685    0.763473
+   10     127      1658      1531   612.304       656     0.75611    0.768159
+   11     127      1832      1705   619.902       696    0.763541    0.767127
+   12     127      1910      1783   594.239       312     1.29339    0.772635
+   13     127      2013      1886   580.214       412     1.48654    0.810121
+   14     127      2063      1936   553.055       200      1.6721    0.835135
+   15     127      2123      1996   532.183       240      2.1358    0.862522
+   16     127      2220      2093   523.167       388     1.58862    0.903525
+   17     127      2286      2159   507.919       264     1.63754    0.930474
+   18     127      2343      2216   492.367       228      2.3052    0.963188
+   19     127      2368      2241   471.715       100     1.54693    0.974117
+2025-11-12T17:26:04.352451+0100 min lat: 0.592842 max lat: 2.64281 avg lat: 1.02079
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+   20     127      2440      2313   462.526       288     2.18952     1.02079
+   21     127      2494      2367   450.785       216      2.7979     1.05856
+   22     127      2566      2439   443.382       288     1.90611     1.08266
+   23     127      2671      2544   442.362       420     1.52277     1.10427
+   24     127      2743      2616   435.928       288     1.49777     1.11686
+   25     127      2820      2693   430.809       308     1.30215     1.13112
+   26     127      2873      2746   422.392       212     1.97305     1.14348
+   27     127      2944      2817   417.265       284     2.04418     1.16821
+   28     127      3010      2883   411.789       264     1.50085     1.18591
+   29     127      3072      2945    406.14       248     2.02269     1.20044
+   30     127      3106      2979   397.135       136     2.01827     1.20871
+Total time run:         30.2861
+Total writes made:      3107
+Write size:             4194304
+Object size:            4194304
+Bandwidth (MB/sec):     410.354
+Stddev Bandwidth:       207.756
+Max bandwidth (MB/sec): 748
+Min bandwidth (MB/sec): 100
+Average IOPS:           102
+Stddev IOPS:            51.9391
+Max IOPS:               187
+Min IOPS:               25
+Average Latency(s):     1.22731
+Stddev Latency(s):      0.58742
+Max latency(s):         2.8389
+Min latency(s):         0.592842
+```
+
+**Read**
+
+> [!Note]
+> Read speed is fine
+
+```sh
+rados bench -p benchmark 30 seq -t 128
+hints = 1
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       0         0         0         0         0           -           0
+    1     127       726       599   2393.85      2396    0.179036    0.171497
+    2     127      1480      1353   2704.59      3016    0.142302    0.172407
+    3     127      2309      2182   2907.68      3316    0.158925    0.164781
+    4      48      3107      3059   3027.53      3508   0.0931286    0.162635
+Total time run:       4.06387
+Total reads made:     3107
+Read size:            4194304
+Object size:          4194304
+Bandwidth (MB/sec):   3058.17
+Average IOPS:         764
+Stddev IOPS:          121.541
+Max IOPS:             877
+Min IOPS:             599
+Average Latency(s):   0.161357
+Max latency(s):       0.324929
+Min latency(s):       0.0650831
+```
