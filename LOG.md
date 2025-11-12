@@ -133,3 +133,27 @@ sudo ceph orch host add Rocky-OKD-Host-8
 - `ll /dev/disk/by-id/wwn-*` to find disks
 - `wipefs -a /dev/sdX` to clean disks
 - `sudo ceph orch daemon add osd Rocky-OKD-Host-X:/dev/disk/by-id/wwn-XXXX` to add OSD
+
+### Testing the speed of the ceph cluster
+
+```sh
+ceph osd pool create benchmark 64 64
+```
+
+**Write test**
+
+```sh
+rados bench -p benchmark 10 write --block-size 4194304
+```
+
+**Read test**
+
+```sh
+rados bench -p benchmark 10 seq
+```
+
+**Cleanup**
+
+```sh
+ceph osd pool rm benchmark benchmark --yes-i-really-really-mean-it
+```
