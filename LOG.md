@@ -76,7 +76,28 @@ curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/to
 > Bootstrap only on controller node
 
 ```sh
-sudo cephadm bootstrap --mon-ip 192.168.1.200
+sudo cephadm bootstrap --mon-ip 10.0.0.254 # Needs to be on the IPoIB network for the ceph cluster to use 100gbps
+```
+
+> [!NOTE]
+> For easier setup it is recommended to create root ssh key on controller node and share the .pub to all nodes
+
+generate ssh key on controller node
+
+```sh
+ssh-keygen
+```
+
+then show public key
+
+```sh
+cat ~/.ssh/id_ed25519.pub
+```
+
+create copy cmd
+
+```sh
+echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICv..." >> ~/.ssh/authorized_keys
 ```
 
 then install ssh keys on all nodes
