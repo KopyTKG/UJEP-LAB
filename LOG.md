@@ -926,3 +926,24 @@ Stddev Latency(s):      0.187443
 Max latency(s):         3.139
 Min latency(s):         0.0816921
 ```
+
+# New testing (POWER PROFILES)
+
+isntall `tuned-adm`
+
+```sh
+dnf install -y tuned
+```
+
+start tuned service
+
+```sh
+systemctl enable --now tuned
+```
+
+GO NUTS
+
+```sh
+tuned-adm profile latency-performance
+tuned-adm active
+```
