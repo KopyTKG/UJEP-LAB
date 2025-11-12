@@ -143,7 +143,7 @@ ceph osd pool create benchmark 64 64
 **Write test**
 
 ```sh
-rados bench -p benchmark 10 write --block-size 4194304
+rados bench -p benchmark 10 write --no-cleanup --block-size 4194304
 ```
 
 **Read test**
