@@ -160,7 +160,7 @@ ceph osd pool rm benchmark benchmark --yes-i-really-really-mean-it
 ceph config set mon mon_allow_pool_delete false
 ```
 
-## Speeds on all HDD
+## Speeds on 16x HDD
 
 > [!IMPORTANT]
 > During test a big issue has been found that disks are heavily limited by IOPS on ceph cluster
@@ -292,4 +292,66 @@ Min IOPS:             58
 Average Latency(s):   0.137252
 Max latency(s):       1.09661
 Min latency(s):       0.0124099
+```
+
+## Speeds on 8x SSD
+
+**Write**
+
+```sh
+rados bench -p benchmark 10 write --no-cleanup --block-size 4194304
+hints = 1
+Maintaining 16 concurrent writes of 4194304 bytes to objects of size 4194304 for up to 10 seconds or 0 objects
+Object prefix: benchmark_data_controller_551593
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       0         0         0         0         0           -           0
+    1      16       199       183   731.852       732    0.115359    0.086507
+    2      16       369       353   705.836       680    0.106589    0.088858
+    3      16       554       538   717.176       740    0.028232   0.0872118
+    4      16       722       706   705.852       672   0.0679121   0.0890508
+    5      16       912       896   716.661       760   0.0674792    0.088181
+    6      16      1095      1079   719.191       732   0.0673337   0.0883982
+    7      16      1258      1242   709.586       652   0.0250188   0.0873679
+    8      16      1341      1325   662.387       332   0.0759401   0.0956633
+    9      16      1435      1419   630.563       376   0.0549779      0.1002
+   10      16      1467      1451   580.309       128   0.0324324    0.106636
+Total time run:         10.4422
+Total writes made:      1467
+Write size:             4194304
+Object size:            4194304
+Bandwidth (MB/sec):     561.949
+Stddev Bandwidth:       219.919
+Max bandwidth (MB/sec): 760
+Min bandwidth (MB/sec): 128
+Average IOPS:           140
+Stddev IOPS:            54.9797
+Max IOPS:               190
+Min IOPS:               32
+Average Latency(s):     0.113563
+Stddev Latency(s):      0.115491
+Max latency(s):         0.84022
+Min latency(s):         0.0218058
+```
+
+**Read**
+
+```sh
+rados bench -p benchmark 10 seq
+hints = 1
+  sec Cur ops   started  finished  avg MB/s  cur MB/s last lat(s)  avg lat(s)
+    0       2         2         0         0         0           -           0
+    1      16       558       542    2167.7      2168   0.0319355   0.0282696
+    2      15      1181      1166   2331.73      2496   0.0238033   0.0263439
+Total time run:       2.4862
+Total reads made:     1467
+Read size:            4194304
+Object size:          4194304
+Bandwidth (MB/sec):   2360.23
+Average IOPS:         590
+Stddev IOPS:          57.9828
+Max IOPS:             624
+Min IOPS:             542
+Average Latency(s):   0.0259646
+Max latency(s):       0.143849
+Min latency(s):       0.0114364
 ```
