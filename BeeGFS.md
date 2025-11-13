@@ -51,7 +51,10 @@ Set `TLS-disable = true`
 firewall-cmd --add-port=8008/tcp --permanent
 firewall-cmd --add-port=8008/udp --permanent
 firewall-cmd --add-port=8010/tcp --permanent
-firewall-cmd --add-port=8010/udp --permanent
+firewall-cmd --add-port=8005/tcp --permanent
+firewall-cmd --add-port=8005/udp --permanent
+firewall-cmd --add-port=8004/tcp --permanent
+firewall-cmd --add-port=8004/udp --permanent
 firewall-cmd --reload
 ```
 
