@@ -85,10 +85,20 @@ mount -a # might need (systemctl daemon-reload) first
 /opt/beegfs/sbin/beegfs-setup-meta -p /mnt/beegfs_meta/beegfs_metadata -i 99 -m controller -f
 ```
 
-####
+#### Start metadata service
 
 ```bash
 systemctl enable --now beegfs-meta
+```
+
+#### Setting up BeeGFS monitor service
+
+TBD
+
+#### Setting up BeeGFS client
+
+```bash
+/opt/beegfs/sbin/beegfs-setup-client -m controller
 ```
 
 ### Storage node
