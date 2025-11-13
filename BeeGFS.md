@@ -22,5 +22,5 @@ sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-
 ### Storage node
 
 ```sh
-sudo yum install beegfs-storage beegfs-tools beegfs-utils beegfs-client  # libbeegfs-ib - if RDMA is needed
+sudo yum install -y beegfs-storage beegfs-tools beegfs-utils beegfs-client  # libbeegfs-ib - if RDMA is needed
 ```
