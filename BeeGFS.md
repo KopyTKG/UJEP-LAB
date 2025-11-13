@@ -16,7 +16,7 @@ sudo dnf update
 ### Controller node
 
 ```sh
-sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-meta  # libbeegfs-ib - if RDMA is needed
+sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-meta beegfs-admon # libbeegfs-ib - if RDMA is needed
 ```
 
 ### Storage node
