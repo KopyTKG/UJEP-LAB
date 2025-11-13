@@ -1,3 +1,10 @@
+# CEPH journey
+
+- Start: 30-10-2025
+
+> [!NOTE]
+> CEPH has not been proper for the lab usage due to low IOPS speeds and high latency causing issues with low Raw speed.
+
 #### 30-10-2025
 
 - Reinstalling all systems to Rocky linux 10.0
