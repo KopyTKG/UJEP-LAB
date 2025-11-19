@@ -137,3 +137,56 @@ mount -a # might need (systemctl daemon-reload) first
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid1/beegfs_storage -s X -i X01 -m controller -f
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid2/beegfs_storage -s X -i X02
 ```
+
+## Testing BeeGFS
+
+**Write benchmark**
+
+```bash
+beegfs benchmark start --block-size=1MiB --size=5GiB --num-tasks=48 --watch=1s
+```
+
+**Cleanup benchmark data**
+
+```bash
+beegfs benchmark cleanup
+```
+
+### Speed on 16x SSD
+
+> [!IMPORTANT]
+> New bottle neck found: Some SSDs have limited cache size, when the cache is full, the write speed drops significantly.
+> Speeds start around 10GiB/s ,but in first 5 seconds the cache fills up and speed drops to around 1GiB/s
+
+```bash
++-----------------------------------------------------------------------------------------------------+
+|                                       Overall Benchmark Status                                      |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+| UNINITIALIZED | INITIALIZED | ERROR | RUNNING | STOPPING | STOPPED | FINISHING | FINISHED | UNKNOWN |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+|             0 |           0 |     7 |       0 |        0 |       0 |         0 |        0 |       0 |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
++--------------------------------------------------------------------+
+|                      Benchmark Status by Node                      |
++---------+----------------+--------+--------+-----------------------+
+| NODE ID | NODE ALIAS     | STATUS | ACTION |            ERROR CODE |
++---------+----------------+--------+--------+-----------------------+
+| s:1     | node_storage_1 |  error | status | I/O error from worker |
+| s:2     | node_storage_2 |  error | status | I/O error from worker |
+| s:4     | node_storage_4 |  error | status | I/O error from worker |
+| s:5     | node_storage_5 |  error | status | I/O error from worker |
+| s:6     | node_storage_6 |  error | status | I/O error from worker |
+| s:7     | node_storage_7 |  error | status | I/O error from worker |
+| s:8     | node_storage_8 |  error | status | I/O error from worker |
++---------+----------------+--------+--------+-----------------------+
++----------------------------------------------------------------------------+
+|                             WRITE Test Summary                             |
++-----------+-------------+-----------+---------------------+----------------+
+| METRIC    | THROUGHPUT  | TARGET ID | TARGET ALIAS        | ON NODE        |
++-----------+-------------+-----------+---------------------+----------------+
+| Minimum   |  27.84MiB/s | s:802     | target_1-69160369-8 | node_storage_8 |
+| Maximum   | 205.83MiB/s | s:101     | target_0-6916013C-1 | node_storage_1 |
+| Average   |  84.93MiB/s | -         | -                   |                |
+| Aggregate |   1.16GiB/s | -         | -                   |                |
++-----------+-------------+-----------+---------------------+----------------+
+```
