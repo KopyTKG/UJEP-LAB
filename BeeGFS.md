@@ -60,6 +60,14 @@ sudo systemctl enable --now opensm
 sudo nmtui # set static ip on ib interface in 10.0.0.x subnet (x = node number)
 ```
 
+or via nmcli:
+
+```sh
+# set the port ibs1 to manual ip with ip 10.0.0.x/24 (where x is the node number)
+sudo nmcli con mod ibs1 ipv4.addresses 10.0.0.x/24 ipv4.method manual
+sudo nmcli con up ibs1
+```
+
 ### Install chrony ntp
 
 ```sh
