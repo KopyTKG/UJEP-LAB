@@ -121,14 +121,28 @@ parted /dev/sdX mklabel gpt
 
 sudo mkfs.xfs -f /dev/sdX
 
-mkdir myraid1
-mkdir myraid2
+mkdir /mnt/myraid1
+mkdir mnt/ myraid2
 
 blkid
 
-vim /etc/fstab # add entries for mounting
 
-mount -a # might need (systemctl daemon-reload) first
+
+vim /etc/fstab # add entries for mounting
+```
+
+Add the following lines: _(Change `xxxxxx` and `yyyyyy` to the UUID found in `blkid`)_
+
+```bash
+UUID=xxxxxx  /mnt/myraid1  xfs  defaults  0  0
+UUID=yyyyyy  /mnt/myraid2  xfs  defaults  0
+```
+
+Make sure the mount points exist:
+
+```bash
+systemctl daemon-reload
+mount -a
 ```
 
 #### Setting up BeeGFS storage device
