@@ -207,7 +207,7 @@ Add the following lines: _(Change `xxxxxx` and `yyyyyy` to the UUID found in `bl
 
 ```bash
 UUID=xxxxxx  /mnt/myraid1  xfs  defaults  0  0
-UUID=yyyyyy  /mnt/myraid2  xfs  defaults  0
+UUID=yyyyyy  /mnt/myraid2  xfs  defaults  0  0
 ```
 
 Make sure the mount points exist:
@@ -222,6 +222,12 @@ mount -a
 ```bash
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid1/beegfs_storage -s X -i X01 -m controller -f
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid2/beegfs_storage -s X -i X02
+```
+
+#### Start storage service
+
+```bash
+systemctl enable --now beegfs-storage
 ```
 
 ## Testing BeeGFS
