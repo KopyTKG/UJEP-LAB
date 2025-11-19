@@ -18,6 +18,13 @@ add line:
 ib_ipoib
 ```
 
+> [!NOTE]
+> Reboot is not needed, you can load the module with:
+
+```sh
+sudo modprobe ib_ipoib
+```
+
 ### add hosts on ib network (10.0.0.0/24)
 
 ```sh
