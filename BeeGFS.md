@@ -142,7 +142,7 @@ sudo dnf update
 
 <details>
 
-<summary>Installing Controller Node</summary>
+<summary><h2>Installing Controller Node</h2></summary>
 
 ```bash
 sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-meta beegfs-mon # libbeegfs-ib - if RDMA is needed
@@ -276,7 +276,7 @@ sudo /opt/beegfs/sbin/beegfs-setup-client -m controller
 </details>
 
 <details>
-<summary>Installing Storage (`Compute`) Node</summary>
+<summary><h2>Installing Storage (`Compute`) Node </h2></summary>
 
 ```bash
 sudo yum install -y beegfs-storage beegfs-tools beegfs-utils beegfs-client  # libbeegfs-ib - if RDMA is needed
@@ -382,6 +382,8 @@ sudo beegfs benchmark start --block-size=1MiB --size=5GiB --num-tasks=48 --watch
 ```bash
 sudo beegfs benchmark cleanup
 ```
+
+</details>
 
 ### Speed on 16x SSD
 
