@@ -369,6 +369,8 @@ sudo firewall-cmd --reload
 sudo systemctl enable --now beegfs-storage
 ```
 
+</details>
+
 ## Testing BeeGFS
 
 **Write benchmark**
@@ -382,8 +384,6 @@ sudo beegfs benchmark start --block-size=1MiB --size=5GiB --num-tasks=48 --watch
 ```bash
 sudo beegfs benchmark cleanup
 ```
-
-</details>
 
 ### Speed on 16x SSD
 
