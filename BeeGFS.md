@@ -1,39 +1,83 @@
-# BeeGFS journey
+# Initial setup of the node
 
-- Start: 13-11-2025
+## Prerequisites
 
-## Initial setup of the node
+### Install Chrony NTP
 
-### Needed setup commands
+> [!NOTE]
+> Because i am setting this up in Czech republic, i am using tik.cesnet.cz and tak.cesnet.cz as NTP servers, change them to your local NTP servers
 
-### add ib_ipoib module to /etc/modules-load.d/ib_ipoib.conf
+1. Install chrony
 
-```sh
-sudo vim /etc/modules-load.d/ib_ipoib.conf
+```bash
+sudo dnf install -y chrony
 ```
 
-add line:
+2. Configure chrony (i'll use tee for easy copy paste)
 
-```sh
+```bash
+tee /etc/chrony.conf > /dev/null <<EOF
+server tik.cesnet.cz iburst
+server tak.cesnet.cz iburst
+
+sourcedir /run/chrony-dhcp
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+keyfile /etc/chrony.keys
+ntsdumpdir /var/lib/chrony
+leapsectz right/UTC
+logdir /var/log/chrony
+EOF
+```
+
+3. Open firewall for NTP
+
+```bash
+sudo firewall-cmd --add-service=ntp --permanent
+sudo firewall-cmd --reload
+```
+
+4. Enable and start chrony
+
+```bash
+sudo systemctl enable --now chronyd
+```
+
+### Enable InfiniBand IP over IB (ib_ipoib) module to load at boot
+
+> [!NOTE]
+> Rocky Linux 10 (RHEL 10) does not load the `ib_ipoib` module by default, so we need to enable it to load at boot.
+
+1. Create load module config file with content to load `ib_ipoib` module
+
+```bash
+sudo tee /etc/modules-load.d/ib_ipoib.conf > /dev/null <<EOF
 ib_ipoib
+EOF
 ```
+
+2. _Reboot the system to apply changes (or skip to step 3 to load module without reboot)_
+
+```bash
+sudo reboot
+```
+
+3. Load the `ib_ipoib` module immediately
 
 > [!NOTE]
 > Reboot is not needed, you can load the module with:
 
-```sh
+```bash
 sudo modprobe ib_ipoib
 ```
 
-### add hosts on ib network (10.0.0.0/24)
+### Setup /etc/hosts file so hostnames resolve correctly over IB
 
-```sh
+```bash
 sudo vim /etc/hosts
-```
 
-add lines:
-
-```sh
+sudo tee -a /etc/hosts > /dev/null <<EOF
 10.0.0.1 Rocky-OKD-Host-1
 10.0.0.2 Rocky-OKD-Host-2
 10.0.0.3 Rocky-OKD-Host-3
@@ -44,34 +88,29 @@ add lines:
 10.0.0.8 Rocky-OKD-Host-8
 
 10.0.0.254 controller
+EOF
 ```
 
-> [!IMPORTANT]
-> ON ALL NODES
+### Install OpenSM on all nodes (required for IB subnet management)
 
-### install opensm module
+1. Install OpenSM and enable it to start at boot
 
-```sh
+```bash
 sudo dnf install opensm -y
 sudo systemctl enable --now opensm
 ```
 
-```sh
-sudo nmtui # set static ip on ib interface in 10.0.0.x subnet (x = node number)
+2. Add ip to the IB interface manually via nmtui: (_can be also done via nmcli, see below_)
+
+```bash
+sudo nmtui
 ```
 
-or via nmcli:
+3. Add ip to the IB interface automatically via cli command
 
-```sh
-# set the port ibs1 to manual ip with ip 10.0.0.x/24 (where x is the node number)
+```bash
 sudo nmcli con mod ibs1 ipv4.addresses 10.0.0.x/24 ipv4.method manual
 sudo nmcli con up ibs1
-```
-
-### Install chrony ntp
-
-```sh
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
 ```
 
 ## Adding repository and installing BeeGFS
@@ -95,9 +134,9 @@ sudo dnf install -y kernel-devel gcc make
 #### Setup conn password
 
 ```bash
-dd if=/dev/random of=/etc/beegfs/conn.auth bs=128 count=1
-chown root:root /etc/beegfs/conn.auth
-chmod 400 /etc/beegfs/conn.auth
+sudo dd if=/dev/random of=/etc/beegfs/conn.auth bs=128 count=1
+sudo chown root:root /etc/beegfs/conn.auth
+sudo chmod 400 /etc/beegfs/conn.auth
 
 sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-1:/etc/beegfs/conn.auth
 sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-2:/etc/beegfs/conn.auth
@@ -112,7 +151,7 @@ sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-8:/etc/beegfs/conn.auth
 #### Disable TLS
 
 ```bash
-vim /etc/beegfs/beegfs-mgmtd.toml
+sudo vim /etc/beegfs/beegfs-mgmtd.toml
 ```
 
 Set `TLS-disable = true`
@@ -120,50 +159,90 @@ Set `TLS-disable = true`
 #### Initialize management service
 
 ```bash
-firewall-cmd --add-port=8008/tcp --permanent
-firewall-cmd --add-port=8008/udp --permanent
-firewall-cmd --add-port=8010/tcp --permanent
-firewall-cmd --add-port=8005/tcp --permanent
-firewall-cmd --add-port=8005/udp --permanent
-firewall-cmd --add-port=8004/tcp --permanent
-firewall-cmd --add-port=8004/udp --permanent
-firewall-cmd --reload
+sudo firewall-cmd --add-port=8008/tcp --permanent
+sudo firewall-cmd --add-port=8008/udp --permanent
+sudo firewall-cmd --add-port=8010/tcp --permanent
+sudo firewall-cmd --add-port=8005/tcp --permanent
+sudo firewall-cmd --add-port=8005/udp --permanent
+sudo firewall-cmd --add-port=8004/tcp --permanent
+sudo firewall-cmd --add-port=8004/udp --permanent
+sudo firewall-cmd --reload
 ```
 
 ```bash
-systemctl enable --now beegfs-mgmtd
+sudo systemctl enable --now beegfs-mgmtd
 ```
 
 #### Setup metadata device
 
+1. locate drives for metadata (meta can be create only on single device so to have more space use LVM)
+
 ```bash
-fdisk -l
+sudo fdisk -l
+```
 
-wipefs -a /dev/sdX  # replace sdX with the actual device name
-wipefs -a /dev/sdY  # replace sdY with the actual device name
+2. clean the drives
 
-pvcreate /dev/sdX /dev/sdY
-vgcreate beegfs_meta_vg /dev/sdX /dev/sdY
-lvcreate -l 100%FREE -n beegfs_meta_lv beegfs_meta_vg
-mkfs.ext4 /dev/beegfs_meta_vg/beegfs_meta_lv
+```bash
+sudo wipefs -a /dev/sdX  # replace sdX with the actual device name
+sudo wipefs -a /dev/sdY  # replace sdY with the actual device name
+```
 
-mkdir /mnt/beegfs_meta
+3. create LVM on the drives
 
-blkid
-vim /etc/fstab # add entry for mounting
-mount -a # might need (systemctl daemon-reload) first
+```bash
+sudo pvcreate /dev/sdX /dev/sdY
+sudo vgcreate beegfs_meta_vg /dev/sdX /dev/sdY
+sudo lvcreate -l 100%FREE -n beegfs_meta_lv beegfs_meta_vg
+```
+
+4. create filesystem on the LVM logical volume (BeeGFS metadata requires `ext4` filesystem)
+
+```bash
+sudo mkfs.ext4 /dev/beegfs_meta_vg/beegfs_meta_lv
+```
+
+5. create mount point
+
+```bash
+sudo mkdir /mnt/beegfs_meta
+```
+
+6. get UUID of the new filesystem
+
+```bash
+sudo blkid
+```
+
+7. add entry to `/etc/fstab` to mount the filesystem at boot
+
+```bash
+sudo vim /etc/fstab
+```
+
+Add the following line: \_(Change `xxxxxx` to the UUID found in `blkid`)
+
+```bash
+UUID=xxxxxx  /mnt/beegfs_meta  ext4  defaults  0  0
+```
+
+8. mount the filesystem
+
+```bash
+sudo systemctl daemon-reload
+sudo mount -a # might need (systemctl daemon-reload) first
 ```
 
 #### Setting up BeeGFS metadata device
 
 ```bash
-/opt/beegfs/sbin/beegfs-setup-meta -p /mnt/beegfs_meta/beegfs_metadata -i 99 -m controller -f
+sudo /opt/beegfs/sbin/beegfs-setup-meta -p /mnt/beegfs_meta/beegfs_metadata -i 99 -m controller -f
 ```
 
 #### Start metadata service
 
 ```bash
-systemctl enable --now beegfs-meta
+sudo systemctl enable --now beegfs-meta
 ```
 
 #### Setting up BeeGFS monitor service
@@ -173,7 +252,7 @@ TBD
 #### Setting up BeeGFS client
 
 ```bash
-/opt/beegfs/sbin/beegfs-setup-client -m controller
+sudo /opt/beegfs/sbin/beegfs-setup-client -m controller
 ```
 
 ### Storage node
@@ -185,22 +264,41 @@ sudo dnf install -y kernel-devel gcc make
 
 #### Prepare storage
 
+1. locate drives for storage (need at least 1 drive per storage node)
+
 ```bash
-fdisk -l
+sudo fdisk -l
+```
 
-wipefs -a /dev/sdX  # replace sdX with the actual device name
-parted /dev/sdX mklabel gpt
+2. clean the drives
 
+```bash
+sudo wipefs -a /dev/sdX  # replace sdX with the actual device name
+sudo parted /dev/sdX mklabel gpt
+```
+
+3. create filesystem on the drives (BeeGFS storage requires `xfs` filesystem)
+
+```bash
 sudo mkfs.xfs -f /dev/sdX
+```
 
-mkdir /mnt/myraid1
-mkdir mnt/ myraid2
+4. create mount points
 
-blkid
+```bash
+sudo mkdir /mnt/myraid1
+```
 
+5. get UUID of the new filesystem
 
+```bash
+sudo blkid
+```
 
-vim /etc/fstab # add entries for mounting
+6. add entry to `/etc/fstab` to mount the filesystem at boot
+
+```bash
+sudo vim /etc/fstab # add entries for mounting
 ```
 
 Add the following lines: _(Change `xxxxxx` and `yyyyyy` to the UUID found in `blkid`)_
@@ -210,24 +308,34 @@ UUID=xxxxxx  /mnt/myraid1  xfs  defaults  0  0
 UUID=yyyyyy  /mnt/myraid2  xfs  defaults  0  0
 ```
 
-Make sure the mount points exist:
+7. mount the filesystem
 
 ```bash
-systemctl daemon-reload
-mount -a
+sudo systemctl daemon-reload
+sudo mount -a
 ```
 
 #### Setting up BeeGFS storage device
 
+> [!NOTE]
+> Only the first device needs to like to controller, the rest will copy the 1st device connection settings
+
+1. Adding first drive to storage pool X with id X01 as controller (where X is the ID of the node so like `1` - `101`)
+
 ```bash
-/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid1/beegfs_storage -s X -i X01 -m controller -f
-/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid2/beegfs_storage -s X -i X02
+sudo /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid1/beegfs_storage -s X -i X01 -m controller -f
+```
+
+2. Adding second drive to storage pool X with id X02 (where X is the ID of the node so like `1` - `102`)
+
+```bash
+sudo /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid2/beegfs_storage -s X -i X02
 ```
 
 #### Start storage service
 
 ```bash
-systemctl enable --now beegfs-storage
+sudo systemctl enable --now beegfs-storage
 ```
 
 ## Testing BeeGFS
@@ -235,13 +343,13 @@ systemctl enable --now beegfs-storage
 **Write benchmark**
 
 ```bash
-beegfs benchmark start --block-size=1MiB --size=5GiB --num-tasks=48 --watch=1s
+sudo beegfs benchmark start --block-size=1MiB --size=5GiB --num-tasks=48 --watch=1s
 ```
 
 **Cleanup benchmark data**
 
 ```bash
-beegfs benchmark cleanup
+sudo beegfs benchmark cleanup
 ```
 
 ### Speed on 16x SSD
