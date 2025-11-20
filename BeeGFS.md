@@ -124,7 +124,25 @@ sudo rpm --import https://www.beegfs.io/release/beegfs_8.2/gpg/GPG-KEY-beegfs
 sudo dnf update
 ```
 
-### Controller node
+### BeeGFS components
+
+- beeGFS Client - needed on all nodes that will access the BeeGFS filesystem
+- beeGFS Management Service - needed on single node (controller) to manage the BeeGFS cluster
+- beeGFS Metadata Service - needed on single node (controller) to store filesystem metadata (might cachen in future to have more speed + redundancy)
+- beeGFS Storage Service - needed on all storage nodes to store the actual data
+
+### Ports
+
+| Service           | TCP Ports  | UDP Ports |
+| ----------------- | ---------- | --------- |
+| beeGFS Management | 8008, 8010 | 8008      |
+| beeGFS Metadata   | 8005       | 8005      |
+| beeGFS Storage    | 8003       | 8003      |
+| beeGFS Client     | 8004       | 8004      |
+
+<details>
+
+<summary>Installing Controller Node</summary>
 
 ```bash
 sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-meta beegfs-mon # libbeegfs-ib - if RDMA is needed
@@ -255,7 +273,10 @@ TBD
 sudo /opt/beegfs/sbin/beegfs-setup-client -m controller
 ```
 
-### Storage node
+</details>
+
+<details>
+<summary>Installing Storage (`Compute`) Node</summary>
 
 ```bash
 sudo yum install -y beegfs-storage beegfs-tools beegfs-utils beegfs-client  # libbeegfs-ib - if RDMA is needed
@@ -333,6 +354,16 @@ sudo /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/myraid2/beegfs_storage -s X -
 ```
 
 #### Start storage service
+
+1. Add firewall rules
+
+```bash
+sudo firewall-cmd --add-port=8003/tcp --permanent
+sudo firewall-cmd --add-port=8003/udp --permanent
+sudo firewall-cmd --reload
+```
+
+2. Enable and start BeeGFS storage service
 
 ```bash
 sudo systemctl enable --now beegfs-storage
