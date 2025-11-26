@@ -75,19 +75,37 @@ sudo modprobe ib_ipoib
 ### Setup /etc/hosts file so hostnames resolve correctly over IB
 
 ```bash
-sudo vim /etc/hosts
-
 sudo tee -a /etc/hosts > /dev/null <<EOF
-10.0.0.1 Rocky-OKD-Host-1
-10.0.0.2 Rocky-OKD-Host-2
-10.0.0.3 Rocky-OKD-Host-3
-10.0.0.4 Rocky-OKD-Host-4
-10.0.0.5 Rocky-OKD-Host-5
-10.0.0.6 Rocky-OKD-Host-6
-10.0.0.7 Rocky-OKD-Host-7
-10.0.0.8 Rocky-OKD-Host-8
-
+# Ibs1
+10.0.0.1 Rocky-Compute-1
+10.0.0.2 Rocky-Compute-2
+10.0.0.3 Rocky-Compute-3
+10.0.0.4 Rocky-Compute-4
+10.0.0.5 Rocky-Compute-5
+10.0.0.6 Rocky-Compute-6
+10.0.0.7 Rocky-Compute-7
+10.0.0.8 Rocky-Compute-8
 10.0.0.254 controller
+# Eth 1
+192.168.1.101 Rocky-Eth1-1
+192.168.1.102 Rocky-Eth1-2
+192.168.1.103 Rocky-Eth1-3
+192.168.1.104 Rocky-Eth1-4
+192.168.1.105 Rocky-Eth1-5
+192.168.1.106 Rocky-Eth1-6
+192.168.1.107 Rocky-Eth1-7
+192.168.1.108 Rocky-Eth1-8
+192.168.1.100 Controller-Eth1
+# Eth 2
+192.168.2.101 Rocky-Eth2-1
+192.168.2.102 Rocky-Eth2-2
+192.168.2.103 Rocky-Eth2-3
+192.168.2.104 Rocky-Eth2-4
+192.168.2.105 Rocky-Eth2-5
+192.168.2.106 Rocky-Eth2-6
+192.168.2.107 Rocky-Eth2-7
+192.168.2.108 Rocky-Eth2-8
+192.168.2.100 Controller-Eth2
 EOF
 ```
 
