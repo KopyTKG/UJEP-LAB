@@ -133,6 +133,11 @@ sudo nmcli con up ibs1
 
 ## Adding repository and installing BeeGFS
 
+> [!NOTE]
+> Update the repo URL to the latest version from BeeGFS website if needed.
+
+Website: [https://www.beegfs.io/release/](https://www.beegfs.io/release/)
+
 ```bash
 sudo wget https://www.beegfs.io/release/beegfs_8.2/dists/beegfs-rhel10.repo -O /etc/yum.repos.d/beegfs-rhel10.repo
 sudo rpm --import https://www.beegfs.io/release/beegfs_8.2/gpg/GPG-KEY-beegfs
