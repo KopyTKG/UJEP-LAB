@@ -128,6 +128,7 @@ sudo nmtui
 
 ```bash
 sudo nmcli con mod ibs1 ipv4.addresses 10.0.0.x/24 ipv4.method manual
+sudo nmcli connection modify ibs1 connection.autoconnect yes
 sudo nmcli con up ibs1
 ```
 
@@ -476,3 +477,90 @@ sudo beegfs benchmark cleanup
 +-----------+-------------+-----------+---------------------+----------------+
 
 ```
+
+### Write Speed on 16x SSD (SAMSUNG MZ7TY256)
+
+> [!IMPORTANT]
+> During this benchmark, one of the storage nodes (node_storage_3) encountered an I/O error, which affected its ability to complete the benchmark successfully.
+> As a result, the overall benchmark status reflects this error, and the performance metrics are based on the remaining nodes that completed the benchmark without issues.
+> The reported speeds are calculated from the successful nodes only, excluding the one that faced I/O problems.
+
+```bash
++-----------------------------------------------------------------------------------------------------+
+|                                       Overall Benchmark Status                                      |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+| UNINITIALIZED | INITIALIZED | ERROR | RUNNING | STOPPING | STOPPED | FINISHING | FINISHED | UNKNOWN |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+|             0 |           0 |     1 |       0 |        0 |       0 |         0 |        7 |       0 |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
++--------------------------------------------------------------------------------------+
+|                               Benchmark Status by Node                               |
++---------+----------------+----------+--------+---------------------------------------+
+| NODE ID | NODE ALIAS     |   STATUS | ACTION |                            ERROR CODE |
++---------+----------------+----------+--------+---------------------------------------+
+| s:1     | node_storage_1 | finished | status | executed benchmark command (no error) |
+| s:2     | node_storage_2 | finished | status | executed benchmark command (no error) |
+| s:3     | node_storage_3 |    error | status |                 I/O error from worker |
+| s:4     | node_storage_4 | finished | status | executed benchmark command (no error) |
+| s:5     | node_storage_5 | finished | status | executed benchmark command (no error) |
+| s:6     | node_storage_6 | finished | status | executed benchmark command (no error) |
+| s:7     | node_storage_7 | finished | status | executed benchmark command (no error) |
+| s:8     | node_storage_8 | finished | status | executed benchmark command (no error) |
++---------+----------------+----------+--------+---------------------------------------+
++----------------------------------------------------------------------------+
+|                             WRITE Test Summary                             |
++-----------+-------------+-----------+---------------------+----------------+
+| METRIC    | THROUGHPUT  | TARGET ID | TARGET ALIAS        | ON NODE        |
++-----------+-------------+-----------+---------------------+----------------+
+| Minimum   | 156.82MiB/s | s:302     | target_1-69285D63-3 | node_storage_3 |
+| Maximum   | 345.08MiB/s | s:301     | target_0-69285D63-3 | node_storage_3 |
+| Average   | 263.45MiB/s | -         | -                   |                |
+| Aggregate |   4.12GiB/s | -         | -                   |                |
++-----------+-------------+-----------+---------------------+----------------+
+```
+
+Final aggregate speed: **~35.39Gb/s**
+
+### Read Speed on 16x SSD (SAMSUNG MZ7TY256)
+
+> [!IMPORTANT]
+> During this benchmark, one of the storage nodes (node_storage_3) encountered an issue where it had insufficient data available for the read benchmark due to previous errors.
+> This affected its ability to complete the benchmark successfully.
+> As a result, the overall benchmark status reflects this error, and the performance metrics are based on the remaining nodes that completed the benchmark without issues.
+> The reported speeds are calculated from the successful nodes only, excluding the one that faced data insufficiency problems.
+
+```bash
++-----------------------------------------------------------------------------------------------------+
+|                                       Overall Benchmark Status                                      |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+| UNINITIALIZED | INITIALIZED | ERROR | RUNNING | STOPPING | STOPPED | FINISHING | FINISHED | UNKNOWN |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
+|             0 |           0 |     1 |       0 |        0 |       0 |         0 |        7 |       0 |
++---------------+-------------+-------+---------+----------+---------+-----------+----------+---------+
++-----------------------------------------------------------------------------------------------+
+|                                    Benchmark Status by Node                                   |
++---------+----------------+----------+--------+------------------------------------------------+
+| NODE ID | NODE ALIAS     |   STATUS | ACTION |                                     ERROR CODE |
++---------+----------------+----------+--------+------------------------------------------------+
+| s:1     | node_storage_1 | finished | status |          executed benchmark command (no error) |
+| s:2     | node_storage_2 | finished | status |          executed benchmark command (no error) |
+| s:3     | node_storage_3 |    error | status | insufficient data available for read benchmark |
+| s:4     | node_storage_4 | finished | status |          executed benchmark command (no error) |
+| s:5     | node_storage_5 | finished | status |          executed benchmark command (no error) |
+| s:6     | node_storage_6 | finished | status |          executed benchmark command (no error) |
+| s:7     | node_storage_7 | finished | status |          executed benchmark command (no error) |
+| s:8     | node_storage_8 | finished | status |          executed benchmark command (no error) |
++---------+----------------+----------+--------+------------------------------------------------+
++----------------------------------------------------------------------------+
+|                              READ Test Summary                             |
++-----------+-------------+-----------+---------------------+----------------+
+| METRIC    | THROUGHPUT  | TARGET ID | TARGET ALIAS        | ON NODE        |
++-----------+-------------+-----------+---------------------+----------------+
+| Minimum   |     0.00B/s | s:301     | target_0-69285D63-3 | node_storage_3 |
+| Maximum   | 527.08MiB/s | s:801     | target_0-69285D6C-8 | node_storage_8 |
+| Average   | 457.48MiB/s | -         | -                   |                |
+| Aggregate |   7.15GiB/s | -         | -                   |                |
++-----------+-------------+-----------+---------------------+----------------+
+```
+
+Final aggregate speed: **~61.41Gb/s**
