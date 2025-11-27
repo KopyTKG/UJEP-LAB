@@ -283,7 +283,7 @@ sudo mount -a # might need (systemctl daemon-reload) first
 #### Setting up BeeGFS metadata device
 
 ```bash
-sudo /opt/beegfs/sbin/beegfs-setup-meta -p /mnt/beegfs_meta/beegfs_metadata -i 99 -m controller -f
+sudo /opt/beegfs/sbin/beegfs-setup-meta -p /mnt/beegfs_meta/beegfs_metadata -s 99 -m controller -f
 ```
 
 #### Start metadata service
