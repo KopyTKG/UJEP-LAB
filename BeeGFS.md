@@ -179,14 +179,14 @@ sudo dd if=/dev/random of=/etc/beegfs/conn.auth bs=128 count=1
 sudo chown root:root /etc/beegfs/conn.auth
 sudo chmod 400 /etc/beegfs/conn.auth
 
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-1:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-2:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-3:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-4:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-5:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-6:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-7:/etc/beegfs/conn.auth
-sudo scp /etc/beegfs/conn.auth root@Rocky-OKD-Host-8:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-1:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-2:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-3:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-4:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-5:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-6:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-7:/etc/beegfs/conn.auth
+sudo scp /etc/beegfs/conn.auth root@Rocky-Compute-8:/etc/beegfs/conn.auth
 ```
 
 #### Disable TLS
