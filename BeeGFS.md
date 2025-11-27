@@ -172,6 +172,12 @@ sudo yum install -y beegfs-client beegfs-tools beegfs-utils beegfs-mgmtd beegfs-
 sudo dnf install -y kernel-devel gcc make
 ```
 
+#### Initialize BeeGFS management configuration
+
+```bash
+sudo /opt/beegfs/sbin/beegfs-mgmtd --init
+```
+
 #### Setup conn password
 
 ```bash
