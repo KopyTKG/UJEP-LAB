@@ -1,0 +1,61 @@
+---
+- name: Cluster Basic Setup & Networking
+  hosts: all
+  become: yes
+
+  vars:
+    # Logic: If hostname is 'controller', use 254.
+    # Otherwise, grab the last digits from the hostname (e.g., 'Compute-1' -> '1')
+    ib_node_id: "{{ '254' if 'controller' in inventory_hostname|lower else inventory_hostname | regex_search('[0-9]+$') }}"
+
+  tasks:
+    # --- 1. FIREWALL & TIME ---
+    - name: Configure Firewall (Allow NTP)
+      ansible.posix.firewalld:
+        service: ntp
+        permanent: yes
+        state: enabled
+        immediate: yes # This reloads firewalld automatically
+
+    - name: Configure Chrony (CESNET servers)
+      copy:
+        dest: /etc/chrony.conf
+        content: |
+          server tik.cesnet.cz iburst
+          server tak.cesnet.cz iburst
+          sourcedir /run/chrony-dhcp
+          driftfile /var/lib/chrony/drift
+          makestep 1.0 3
+          rtcsync
+          logdir /var/log/chrony
+      notify: Restart chronyd
+
+    # --- 2. KERNEL MODULES ---
+    - name: Persist ib_ipoib kernel module
+      copy:
+        dest: /etc/modules-load.d/ib_ipoib.conf
+        content: "ib_ipoib\n"
+        mode: "0644"
+
+    - name: Load ib_ipoib module immediately
+      community.general.modprobe:
+        name: ib_ipoib
+        state: present
+
+    # --- 3. INFINIBAND NETWORKING ---
+    - name: Configure InfiniBand Interface (ibs1)
+      community.general.nmcli:
+        conn_name: ibs1
+        ifname: ibs1
+        type: infiniband
+        # Sets IP to 10.0.0.X/24 based on the ID logic in 'vars' above
+        ip4: "10.0.0.{{ ib_node_id }}/24"
+        method4: manual
+        autoconnect: yes
+        state: present
+
+  handlers:
+    - name: Restart chronyd
+      service:
+        name: chronyd
+        state: restarted
