@@ -1,29 +1,8 @@
 # UJEP-LAB
 
-Lab setup for 100Gbps IPoIB clustering with Mellanox CX555A
+## Progression
 
-## Usage
-
-1. FW instalaction
-
-```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/mlnx_fw_update.sh | sudo bash
-```
-
-2. Driver installation
-
-```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/doca_ofed_install.sh | sudo bash
-```
-
-3. Static ip on IBS1 link
-
-```bash
-sudo nmtui
-```
-
-4. NTP server setup
-
-```bash
-curl -fsSl https://raw.githubusercontent.com/KopyTKG/UJEP-LAB/refs/heads/Live/tools/chrony.sh | sudo bash
-```
+1. Testing Ceph -> [CEPH](Ceph.md)
+2. Testing Beegfs -> [BEEGFS](Beegfs.md)
+3. Setting up ansible -> [ANSIBLE](Ansible.md) `TBA`
+4. Testing luster -> [LUSTRE](Lustre.md) `TBA`
