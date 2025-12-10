@@ -12,7 +12,8 @@
    ```
 2. Install Ansible using pipx:
    ```bash
-   pipx install ansible
+   pipx install ansible # This installs ansible-comunity package, which is missing ansible binary
+   pipx inject ansible ansible-core --include-apps # This adds the ansible binary
    ```
 
 ## Setting up Ansible hosts
