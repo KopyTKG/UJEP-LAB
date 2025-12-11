@@ -1,0 +1,72 @@
+---
+- name: Join Secondary Node
+  hosts: Rocky-Head-2
+  become: yes
+  tasks:
+    # --- 1. PREP NODE 2 ---
+    - name: Enable HA Repos
+      command: dnf config-manager --set-enabled highavailability crb
+      changed_when: false
+
+    # --- REPLACE THE FAILING TASK WITH THESE TWO ---
+    - name: Generate Password Hash
+      command: "openssl passwd -6 {{ hacluster_password }}"
+      register: generated_hash
+      changed_when: false
+
+    - name: Set 'hacluster' Password
+      user:
+        name: hacluster
+        password: "{{ generated_hash.stdout }}"
+
+    - name: Install Stack
+      dnf:
+        name: [pcs, pacemaker, fence-agents-all, resource-agents]
+        state: present
+
+    - name: Download RAID Agent
+      get_url:
+        url: https://raw.githubusercontent.com/ClusterLabs/resource-agents/main/heartbeat/Raid1
+        dest: /usr/lib/ocf/resource.d/heartbeat/Raid1
+        mode: "0755"
+
+    - name: Start PCSD
+      service: name=pcsd state=started enabled=yes
+
+    # --- 2. GENERATE RAID CONFIG (SAFE VERSION) ---
+    - name: Generate mdadm.conf (Scan Disks)
+      shell: |
+        # 1. Assemble to read metadata (ignore busy OS errors with || true)
+        mdadm --assemble --scan || true
+
+        # 2. Start config file
+        echo "DEVICE partitions" > /etc/mdadm.conf
+
+        # 3. Write config BUT EXCLUDE the OS Mirror (md127 AND md/home)
+        # We filter out lines containing 'md127' OR 'md/home'
+        mdadm --detail --scan | grep -v -E "(md127|md/home)" >> /etc/mdadm.conf
+
+        # 4. Stop ONLY the new Storage Array
+        # We extract the specific device name from the config we just wrote
+        STORAGE_ARRAY=$(awk '/ARRAY/ {print $2}' /etc/mdadm.conf)
+
+        if [ -n "$STORAGE_ARRAY" ]; then
+            mdadm --stop $STORAGE_ARRAY
+        fi
+
+    # --- 3. JOIN CLUSTER (Delegate to Head 1) ---
+    - name: Authenticate New Node
+      command: "pcs host auth {{ inventory_hostname }} -u hacluster -p {{ hacluster_password }}"
+      delegate_to: Rocky-Head-1
+
+    - name: Add Node
+      command: "pcs cluster node add {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1
+
+    - name: Start Cluster on Node 2
+      command: "pcs cluster start {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1
+
+    - name: Enable Cluster on Node 2
+      command: "pcs cluster enable {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1

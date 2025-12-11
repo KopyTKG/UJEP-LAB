@@ -1,0 +1,79 @@
+---
+- name: Build and Mount RAID6 Storage (Shared Only)
+  hosts: Rocky-Head-1
+  become: yes
+  vars:
+    raid_device: "/dev/md0"
+    mount_point: "/storage"
+
+  tasks:
+    # --- STEP 0: KILL MULTIPATH ---
+    - name: Stop and Disable Multipathd
+      service:
+        name: multipathd
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    # --- STEP 1: DISCOVER SHARED DRIVES ONLY ---
+    # We purposefully IGNORE local SATA drives now.
+    - name: Find Remote iSCSI Drives (by-path)
+      shell: "ls /dev/disk/by-path/ip-10.0.0.*-iscsi-*-lun-*"
+      register: remote_drives_found
+      changed_when: false
+
+    - name: DEBUG - Show Drives Found
+      debug:
+        msg: "Found {{ remote_drives_found.stdout_lines | length }} remote drives."
+
+    - name: Fail if drive count is incorrect
+      fail:
+        # We now expect exactly 16 drives (8 nodes * 2 drives)
+        msg: "CRITICAL ERROR: Expected 16 remote drives, found {{ remote_drives_found.stdout_lines | length }}."
+      when: remote_drives_found.stdout_lines | length != 16
+
+    # --- STEP 1.5: WIPE REMOTE DRIVES ---
+    - name: Wipe Remote Drives
+      command: "wipefs -a {{ item }}"
+      loop: "{{ remote_drives_found.stdout_lines }}"
+      ignore_errors: yes
+
+    # --- STEP 2: CREATE RAID ARRAY ---
+    - name: Create RAID6 Array (MDADM)
+      shell: >
+        yes | mdadm --create {{ raid_device }} 
+        --verbose 
+        --level=6 
+        --raid-devices=16 
+        {{ remote_drives_found.stdout_lines | join(' ') }}
+      args:
+        creates: "{{ raid_device }}"
+      register: mdadm_output
+
+    - name: DEBUG - MDADM Output
+      debug:
+        var: mdadm_output.stderr_lines
+      when: mdadm_output.changed
+
+    # --- STEP 3: FORMAT AND MOUNT ---
+    - name: Format Array with XFS
+      community.general.filesystem:
+        fstype: xfs
+        dev: "{{ raid_device }}"
+        opts: "-f"
+
+    - name: Mount Storage at {{ mount_point }}
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: "{{ raid_device }}"
+        fstype: xfs
+        state: mounted
+        opts: defaults
+
+    - name: Refresh NFS Exports
+      command: exportfs -r
+      changed_when: false
+
+    - name: FINAL STATUS
+      debug:
+        msg: "SUCCESS: HA-Ready Storage is mounted. Local drives were excluded."

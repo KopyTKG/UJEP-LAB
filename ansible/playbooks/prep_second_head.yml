@@ -1,0 +1,87 @@
+---
+- name: Prepare Secondary Node (Software Only)
+  hosts: Rocky-Head-2
+  become: yes
+  # vars removed (Using Vault)
+
+  tasks:
+    # --- 1. REPOS & PACKAGES ---
+    - name: Enable High Availability & CRB Repos
+      command: dnf config-manager --set-enabled highavailability crb
+      changed_when: false
+
+    - name: Install HA Stack
+      dnf:
+        # We removed 'opensm' because Core Install handles it
+        name: [pcs, pacemaker, fence-agents-all, resource-agents]
+        state: present
+
+    # --- 2. CRITICAL: RAID AGENT (Rocky 10 Fix) ---
+    - name: Download Raid1 Resource Agent
+      get_url:
+        url: https://raw.githubusercontent.com/ClusterLabs/resource-agents/main/heartbeat/Raid1
+        dest: /usr/lib/ocf/resource.d/heartbeat/Raid1
+        mode: "0755"
+        owner: root
+        group: root
+
+    # --- 2.5 FIREWALL ---
+    - name: Allow HA Cluster Traffic (Firewall)
+      firewalld:
+        service: high-availability
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    # --- 3. AUTHENTICATION ---
+    - name: Generate Password Hash
+      command: "openssl passwd -6 {{ hacluster_password }}"
+      register: root_pass_hash
+      changed_when: false
+
+    - name: Set 'hacluster' password
+      user:
+        name: hacluster
+        password: "{{ root_pass_hash.stdout }}"
+
+    - name: Start and Enable PCSD
+      service:
+        name: pcsd
+        state: started
+        enabled: yes
+
+    - name: Ensure Hostname resolves to Localhost
+      lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1   {{ inventory_hostname }}"
+        state: present
+
+    # --- 4. JOIN THE CLUSTER (Executed on Primary) ---
+    # We delegate these steps to Rocky-Head-1 because
+    # the "Invite" must come from inside the existing cluster.
+
+    - name: Authenticate New Node
+      command: >
+        pcs host auth {{ inventory_hostname }} 
+        -u hacluster -p {{ hacluster_password }}
+      delegate_to: Rocky-Head-1
+      changed_when: false
+
+    - name: Add New Node to Cluster Ring
+      command: "pcs cluster node add {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1
+      register: node_add
+      # Don't fail if already added
+      failed_when:
+        - node_add.rc != 0
+        - "'already exists' not in node_add.stderr"
+
+    - name: Start Cluster Services on New Node
+      command: "pcs cluster start {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1
+      ignore_errors: yes
+
+    - name: Enable Cluster Services on Boot
+      command: "pcs cluster enable {{ inventory_hostname }}"
+      delegate_to: Rocky-Head-1
+      ignore_errors: yes

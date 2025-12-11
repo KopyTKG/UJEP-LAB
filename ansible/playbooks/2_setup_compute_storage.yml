@@ -1,0 +1,113 @@
+---
+- name: Prepare and Export Storage Drives
+  hosts: compute
+  become: yes
+  vars:
+    storage_drives: []
+
+  tasks:
+    # --- STEP 1: IDENTIFY THE DRIVES ---
+    - name: Identify Boot Device
+      set_fact:
+        boot_partition: "{{ item.device }}"
+      loop: "{{ ansible_mounts }}"
+      when: item.mount == '/boot'
+
+    - name: Fail if boot device not found
+      fail:
+        msg: "Could not find /boot partition to identify OS disk."
+      when: boot_partition is not defined
+
+    - name: Find non-OS disks
+      set_fact:
+        storage_drives: "{{ storage_drives + ['/dev/' + item.key] }}"
+      loop: "{{ ansible_devices | dict2items }}"
+      when:
+        - item.value.sectors != "0"
+        - item.key is search('sd[a-z]+|nvme[0-9]n[0-9]')
+        - not boot_partition.startswith('/dev/' + item.key)
+
+    - name: Show drives to be exported
+      debug:
+        msg: "Exporting: {{ item }} on {{ inventory_hostname | lower }}"
+      loop: "{{ storage_drives }}"
+
+    # --- STEP 2: CLEAN THE DRIVES ---
+    - name: Unmount all partitions on storage drives
+      mount:
+        path: "{{ item.mount }}"
+        state: unmounted
+      loop: "{{ ansible_mounts }}"
+      when: "item.device is search(storage_drives | join('|'))"
+      ignore_errors: yes
+
+    - name: Wipe filesystem signatures
+      command: "wipefs -a {{ item }} --force"
+      loop: "{{ storage_drives }}"
+      ignore_errors: yes
+
+    # --- STEP 3: EXPORT VIA iSER ---
+    - name: Install TargetCLI
+      dnf:
+        name: targetcli
+        state: present
+
+    - name: Load iSER Target Module
+      modprobe:
+        name: ib_isert
+        state: present
+
+    - name: Create Backstores (Physical Disks)
+      shell: |
+        # Use find to locate the persistent disk ID
+        DISK_ID=$(find /dev/disk/by-id/ -lname "*{{ item | basename }}" | grep -v "wwn" | head -n 1)
+
+        # Try to create backstore, ignore if it exists (|| true)
+        targetcli /backstores/block create name=disk{{ index }} dev=$DISK_ID || true
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: index
+
+    - name: Create iSCSI Target
+      shell: |
+        # Force lowercase hostname for IQN
+        targetcli /iscsi create wwn=iqn.2025-12.com.cluster:{{ inventory_hostname | lower }} || true
+
+    - name: Configure iSER Portal (Enable RDMA)
+      shell: |
+        # Configure portal using lowercase hostname
+        targetcli /iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/portals create 0.0.0.0 3260 || true
+        targetcli /iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/portals/0.0.0.0:3260 enable_iser true
+      ignore_errors: yes
+
+    - name: Map LUNs to Backstores
+      shell: |
+        # Map drive to LUN
+        targetcli /iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/luns create /backstores/block/disk{{ index }} || true
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: index
+
+    # --- UPDATED TASK: Disable ACLs AND Write Protection ---
+    - name: Configure Target Attributes (ACLs and Write Access)
+      shell: |
+        # Allow any initiator to connect (Demo Mode)
+        targetcli /iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1 set attribute generate_node_acls=1
+
+        # FIXED: Disable Write Protection so Controller can format the drives
+        targetcli /iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1 set attribute demo_mode_write_protect=0
+
+        targetcli saveconfig
+
+    - name: Open Firewall
+      ansible.posix.firewalld:
+        port: 3260/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure target service is enabled and started
+      service:
+        name: target
+        state: started
+        enabled: yes

@@ -1,0 +1,76 @@
+---
+- name: Distributed Storage Benchmark
+  hosts: compute
+  become: yes
+  vars:
+    # UPDATED: Matches your mount path
+    fio_target_dir: "/shared_data"
+    test_size: "4G"
+    block_size: "1M"
+    iodepth: 16
+    numjobs: 4
+
+  tasks:
+    - name: Install FIO
+      dnf:
+        name: fio
+        state: present
+
+    # Ensure the directory is writable before running (just in case)
+    - name: Ensure permission to write
+      file:
+        path: "{{ fio_target_dir }}"
+        state: directory
+        mode: "0777"
+
+    - name: Run Write Bandwidth Test (Parallel)
+      shell: >
+        fio --name=write_test 
+        --filename={{ fio_target_dir }}/fio_test_{{ inventory_hostname }} 
+        --size={{ test_size }} 
+        --rw=write 
+        --bs={{ block_size }} 
+        --direct=1 
+        --numjobs={{ numjobs }} 
+        --ioengine=libaio 
+        --iodepth={{ iodepth }} 
+        --group_reporting
+        --output-format=json
+      register: fio_write
+      ignore_errors: no
+
+    - name: Parse Write Results
+      set_fact:
+        write_bw_kb: "{{ (fio_write.stdout | from_json).jobs[0].write.bw }}"
+
+    - name: Show Write Bandwidth (MB/s)
+      debug:
+        msg: "Host {{ inventory_hostname }} Write Speed: {{ write_bw_kb | int / 1024 }} MB/s"
+
+    - name: Run Read Bandwidth Test (Parallel)
+      shell: >
+        fio --name=read_test 
+        --filename={{ fio_target_dir }}/fio_test_{{ inventory_hostname }} 
+        --size={{ test_size }} 
+        --rw=read 
+        --bs={{ block_size }} 
+        --direct=1 
+        --numjobs={{ numjobs }} 
+        --ioengine=libaio 
+        --iodepth={{ iodepth }} 
+        --group_reporting
+        --output-format=json
+      register: fio_read
+
+    - name: Parse Read Results
+      set_fact:
+        read_bw_kb: "{{ (fio_read.stdout | from_json).jobs[0].read.bw }}"
+
+    - name: Show Read Bandwidth (MB/s)
+      debug:
+        msg: "Host {{ inventory_hostname }} Read Speed: {{ read_bw_kb | int / 1024 }} MB/s"
+
+    - name: Cleanup Test Files
+      file:
+        path: "{{ fio_target_dir }}/fio_test_{{ inventory_hostname }}"
+        state: absent

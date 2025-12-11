@@ -1,0 +1,54 @@
+---
+- name: Rescue Cluster Configuration (Re-Define on New Node)
+  hosts: Rocky-Head-2
+  become: yes
+  vars:
+    virtual_ip: "10.0.0.254"
+    cidr_netmask: "24"
+    raid_device: "/dev/md0"
+
+  tasks:
+    - name: Force Quorum Policy (Allow Single Node)
+      command: pcs property set no-quorum-policy=ignore
+      ignore_errors: yes
+
+    - name: Disable STONITH
+      command: pcs property set stonith-enabled=false
+      ignore_errors: yes
+
+    # --- RE-CREATE RESOURCES (Data Safe) ---
+    - name: "Resource 1: Floating IP"
+      command: >
+        pcs resource create ClusterIP ocf:heartbeat:IPaddr2 
+        ip={{ virtual_ip }} cidr_netmask={{ cidr_netmask }} 
+        nic=ibs1 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 2: RAID Array"
+      # This finds the existing array UUID automatically
+      command: >
+        pcs resource create RaidArray ocf:heartbeat:Raid1 
+        raidconf="/etc/mdadm.conf" 
+        raiddev="{{ raid_device }}" 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 3: Filesystem"
+      command: >
+        pcs resource create StorageFS ocf:heartbeat:Filesystem 
+        device="{{ raid_device }}" 
+        directory="/storage" 
+        fstype="xfs" 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 4: NFS Server"
+      command: >
+        pcs resource create NFSServer systemd:nfs-server 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: Refresh NFS Exports
+      command: exportfs -r
+      ignore_errors: yes

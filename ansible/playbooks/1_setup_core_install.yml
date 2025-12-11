@@ -1,0 +1,106 @@
+---
+- name: Cluster Basic Setup & Networking
+  hosts: all
+  become: yes
+
+  vars:
+    # UPDATED LOGIC:
+    # Automatically grab the last octet of the IP defined in your hosts.ini
+    # Example: If ansible_host=192.168.100.251 -> ib_node_id becomes '251'
+    ib_node_id: >-
+      {{ 
+        ansible_host.split('.')[-1] 
+        if 'controller' in group_names 
+        else inventory_hostname | regex_search('[0-9]+$') 
+      }}
+
+  tasks:
+    # --- 1. FIREWALL & TIME ---
+    - name: Configure Firewall (Allow NTP)
+      ansible.posix.firewalld:
+        service: ntp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Configure Chrony (CESNET servers)
+      copy:
+        dest: /etc/chrony.conf
+        content: |
+          server tik.cesnet.cz iburst
+          server tak.cesnet.cz iburst
+          sourcedir /run/chrony-dhcp
+          driftfile /var/lib/chrony/drift
+          makestep 1.0 3
+          rtcsync
+          logdir /var/log/chrony
+      notify: Restart chronyd
+
+    # --- 2. KERNEL MODULES ---
+    - name: Persist ib_ipoib kernel module
+      copy:
+        dest: /etc/modules-load.d/ib_ipoib.conf
+        content: "ib_ipoib\n"
+        mode: "0644"
+
+    - name: Load ib_ipoib module immediately
+      community.general.modprobe:
+        name: ib_ipoib
+        state: present
+
+    # --- 3. INFINIBAND NETWORKING ---
+    - name: Configure InfiniBand Interface (ibs1)
+      community.general.nmcli:
+        conn_name: ibs1
+        ifname: ibs1
+        type: infiniband
+        # Automatically sets 10.0.0.251 / 10.0.0.252 based on 'vars' logic above
+        ip4: "10.0.0.{{ ib_node_id }}/24"
+        method4: manual
+        autoconnect: yes
+        state: present
+
+    - name: Install opensm package
+      dnf:
+        name: opensm
+        state: present
+
+    - name: Ensure opensm service is enabled and started
+      service:
+        name: opensm
+        state: started
+        enabled: yes
+
+    # --- 1. RESET HOSTS FILE (SAFE WIPE) ---
+    - name: Reset /etc/hosts to minimal default
+      copy:
+        dest: /etc/hosts
+        content: |
+          127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+          ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+          # --- ANSIBLE MANAGED BLOCK BELOW ---
+
+    # --- 2. POPULATE WITH CLUSTER INVENTORY ---
+    - name: Populate /etc/hosts with InfiniBand IPs
+      lineinfile:
+        path: /etc/hosts
+        # LOGIC:
+        # Check if 'item' is inside the 'controllers' group list
+        # IF YES: Grab the last octet of the IP (e.g. 251)
+        # IF NO:  Regex grab the number from the hostname (e.g. 1)
+        line: >-
+          10.0.0.{{ 
+            hostvars[item].ansible_host.split('.')[-1] 
+            if item in groups['controller'] 
+            else item | regex_search('[0-9]+$') 
+          }}   {{ item }}
+        state: present
+      loop: "{{ groups['all'] }}"
+      when: hostvars[item].ansible_host is defined
+
+  handlers:
+    - name: Restart chronyd
+      service:
+        name: chronyd
+        state: restarted

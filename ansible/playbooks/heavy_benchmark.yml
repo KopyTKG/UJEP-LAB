@@ -1,0 +1,49 @@
+---
+- name: Distributed Storage Benchmark
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Install FIO
+      dnf:
+        name: fio
+        state: present
+
+    - name: Run 100% Write Bandwidth Test (Parallel)
+      shell: >
+        fio --name=write_test 
+        --filename=/mnt/shared/fio_test_{{ inventory_hostname }} 
+        --size=4G 
+        --rw=write 
+        --bs=1M 
+        --direct=1 
+        --numjobs=4 
+        --ioengine=libaio 
+        --iodepth=16 
+        --group_reporting
+      register: fio_write
+
+    - name: Show Write Results
+      debug:
+        msg: "{{ fio_write.stdout_lines | select('search', 'WRITE:') | list }}"
+
+    - name: Run 100% Read Bandwidth Test (Parallel)
+      shell: >
+        fio --name=read_test 
+        --filename=/mnt/shared/fio_test_{{ inventory_hostname }} 
+        --rw=read 
+        --bs=1M 
+        --direct=1 
+        --numjobs=4 
+        --ioengine=libaio 
+        --iodepth=16 
+        --group_reporting
+      register: fio_read
+
+    - name: Show Read Results
+      debug:
+        msg: "{{ fio_read.stdout_lines | select('search', 'READ:') | list }}"
+
+    - name: Cleanup Test Files
+      file:
+        path: "/mnt/shared/fio_test_{{ inventory_hostname }}"
+        state: absent

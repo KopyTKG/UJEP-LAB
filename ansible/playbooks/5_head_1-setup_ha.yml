@@ -1,0 +1,132 @@
+---
+- name: Setup High Availability Storage Cluster
+  hosts: Rocky-Head-1
+  become: yes
+  vars:
+    virtual_ip: "10.0.0.254"
+    cidr_netmask: "24"
+    raid_device: "/dev/md0"
+    # hacluster_password comes from the vault
+
+  tasks:
+    # --- STEP 0: PRE-REQ ---
+    - name: Enable High Availability Repository
+      command: dnf config-manager --set-enabled highavailability
+      changed_when: false
+
+    - name: Enable CRB Repository
+      command: dnf config-manager --set-enabled crb
+      changed_when: false
+
+    - name: Generate HA Cluster Password Hash
+      command: "openssl passwd -6 {{ hacluster_password }}"
+      register: root_pass_hash
+      changed_when: false
+
+    # --- STEP 1: INSTALL & CONFIGURE ---
+    - name: Install Pacemaker, Corosync, and PCS
+      dnf:
+        name:
+          - pcs
+          - pacemaker
+          - fence-agents-all
+          - resource-agents
+          # 'resource-agents-extra' is gone in EL10, so we removed it
+        state: present
+
+    # --- FIX FOR ROCKY 10: MANUALLY INSTALL RAID AGENT ---
+    - name: Download missing Raid1 Resource Agent
+      get_url:
+        url: https://raw.githubusercontent.com/ClusterLabs/resource-agents/main/heartbeat/Raid1
+        dest: /usr/lib/ocf/resource.d/heartbeat/Raid1
+        mode: "0755"
+        owner: root
+        group: root
+
+    - name: Set 'hacluster' user password
+      user:
+        name: hacluster
+        password: "{{ root_pass_hash.stdout }}"
+
+    - name: Ensure Hostname is in /etc/hosts (Fix communication error)
+      lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1   {{ inventory_hostname }}"
+        state: present
+
+    - name: Restart PCSD to pick up new password
+      service:
+        name: pcsd
+        state: restarted
+        enabled: yes
+
+    # --- STEP 2: CONFIGURE RAID CONF ---
+    - name: Ensure mdadm.conf exists for the Cluster to read
+      shell: |
+        mdadm --detail --scan > /etc/mdadm.conf
+      ignore_errors: yes
+
+    # --- STEP 3: CLUSTER SETUP ---
+    - name: Authenticate Cluster Node
+      shell: |
+        sleep 5
+        pcs host auth {{ inventory_hostname }} -u hacluster -p '{{ hacluster_password }}'
+      register: auth_result
+      ignore_errors: yes
+
+    - name: Create Cluster 'ha_storage'
+      command: >
+        pcs cluster setup ha_storage {{ inventory_hostname }} --force
+      args:
+        creates: /etc/corosync/corosync.conf
+
+    - name: Start Cluster
+      command: pcs cluster start
+      ignore_errors: yes
+
+    - name: Enable Cluster on Boot
+      command: pcs cluster enable
+      ignore_errors: yes
+
+    # --- STEP 4: CONFIGURE RESOURCES ---
+    - name: Disable STONITH (PoC Only)
+      command: pcs property set stonith-enabled=false
+      ignore_errors: yes
+
+    # Note: Group creates automatically when resources are added
+
+    - name: "Resource 1: Floating IP"
+      command: >
+        pcs resource create ClusterIP ocf:heartbeat:IPaddr2 
+        ip={{ virtual_ip }} cidr_netmask={{ cidr_netmask }}
+        nic=ibs1
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 2: RAID Array"
+      # Now works because we downloaded the script manually above
+      command: >
+        pcs resource create RaidArray ocf:heartbeat:Raid1 
+        raidconf="/etc/mdadm.conf" 
+        raiddev="{{ raid_device }}" 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 3: Filesystem"
+      command: >
+        pcs resource create StorageFS ocf:heartbeat:Filesystem 
+        device="{{ raid_device }}" 
+        directory="/storage" 
+        fstype="xfs" 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: "Resource 4: NFS Server"
+      command: >
+        pcs resource create NFSServer systemd:nfs-server 
+        --group storage_stack
+      ignore_errors: yes
+
+    - name: Refresh NFS Exports
+      command: exportfs -r
+      ignore_errors: yes

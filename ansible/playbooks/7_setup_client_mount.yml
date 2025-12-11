@@ -1,0 +1,23 @@
+---
+- name: Mount Shared Storage on Compute Cluster
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Install NFS Utils
+      dnf:
+        name: nfs-utils
+        state: present
+
+    - name: Create Mount Point
+      file:
+        path: /shared_data
+        state: directory
+        mode: "0777"
+
+    - name: Mount the HA Storage (Floating IP)
+      mount:
+        path: /shared_data
+        src: 10.0.0.254:/storage
+        fstype: nfs
+        opts: defaults,noatime,_netdev
+        state: mounted

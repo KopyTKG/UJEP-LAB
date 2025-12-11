@@ -1,0 +1,56 @@
+---
+- name: Connect Controllers to Remote Storage
+  hosts: controller
+  become: yes
+  tasks:
+    # --- 1. INSTALL TOOLS ---
+    - name: Install Storage Stack
+      dnf:
+        name: [iscsi-initiator-utils, nfs-utils, xfsprogs, mdadm, lsscsi]
+        state: present
+
+    # --- 2. CONFIGURE iSER (RDMA) ---
+    - name: Load iSER Module
+      modprobe: name=ib_iser state=present
+
+    - name: Configure iscsid.conf for iSER
+      lineinfile:
+        path: /etc/iscsi/iscsid.conf
+        regexp: "^node.transport_name"
+        line: "node.transport_name = iser"
+
+    - name: Enable iSCSI Service
+      service: name=iscsid state=restarted enabled=yes
+
+    # --- 3. CONNECT TO TARGETS ---
+    - name: Discover Targets (Compute Nodes 1-8)
+      command: "iscsiadm -m discovery -t st -p 10.0.0.{{ item }}"
+      loop: [1, 2, 3, 4, 5, 6, 7, 8]
+      ignore_errors: yes
+
+    - name: Login to All Targets
+      command: "iscsiadm -m node -l"
+      ignore_errors: yes
+
+    # --- 4. PREPARE NFS CONFIG (No Service Start yet) ---
+    - name: Enable NFS RDMA
+      community.general.ini_file:
+        path: /etc/nfs.conf
+        section: nfsd
+        option: rdma
+        value: "y"
+
+    - name: Set NFS RDMA Port
+      community.general.ini_file:
+        path: /etc/nfs.conf
+        section: nfsd
+        option: rdma-port
+        value: "20049"
+
+    - name: Create /storage Directory
+      file: path=/storage state=directory mode=0755
+
+    - name: Configure Exports
+      copy:
+        dest: /etc/exports
+        content: "/storage 10.0.0.0/24(rw,async,no_root_squash,no_subtree_check,insecure)"
