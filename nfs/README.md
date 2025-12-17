@@ -116,6 +116,22 @@ ansible all -m ping
 # Next Steps
 
 > [!NOTE]
+> All steps are done via Ansible playbooks located in the `playbooks/` directory.
+
+1. `1_setup_core_install.yml` - Installs crony, opensm and enables IB, ntp services.
+2. `2_setup_compute_storage.yml` - Configures storage on compute nodes. That includes wiping disks and setting up targetcli LUNs.
+3. `3_setup_controller_aggregation.yml` - Configures NFS server with Pacemaker on Head 1.
+4. `4_head_1-setup_raid.yml` - Sets up software RAID6 exported LUNs.
+5. `5_head_1-setup_ha.yml` - Sets up Pacemaker resources for NFS and TargetCLI.
+6. `6_head_2-join_ha.yml` - Joins Head 2 to the Pacemaker cluster.
+7. `7_setup_client_mount.yml` - Sets up NFS mounts on compute nodes.
+
+**Common Tools**
+
+- `common/startup.yml` - Startup sequence for all nodes.
+- `common/shutdown.yml` - Shutdown sequence for all nodes.
+- `benchmark.yml` - Runs FIO benchmark on all compute nodes.
+- `heavy_benchmark.yml` - Runs a more intensive FIO benchmark on all compute nodes.
 
 ## SPEED TEST
 
@@ -291,5 +307,5 @@ Agregate results:
   - Rocky-Compute-7: 2552.42
   - Rocky-Compute-8: 2660.60
 
-- Total Write Speed across all nodes: 11,835.69 MB/s (11.56 GB/s)
-- Total Read Speed across all nodes: 19,678.58 MB/s (19.21 GB/s)
+- Total Write Speed across all nodes: 11,835.69 MB/s (94.68 Gbit/s)
+- Total Read Speed across all nodes: 19,678.58 MB/s (157.43 Gbit/s)
