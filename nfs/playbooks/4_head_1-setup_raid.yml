@@ -60,7 +60,13 @@
       community.general.filesystem:
         fstype: xfs
         dev: "{{ raid_device }}"
+        # CRITICAL FIX: Force overwrite of existing signatures
+        force: yes
         opts: "-f"
+
+    # Add a settling pause to let the kernel register the new UUID
+    - name: Wait for device to settle
+      command: udevadm settle
 
     - name: Mount Storage at {{ mount_point }}
       ansible.posix.mount:

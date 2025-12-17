@@ -111,3 +111,6 @@
         name: target
         state: started
         enabled: yes
+
+    - name: Save Configuration (Persist on Reboot)
+      shell: targetcli saveconfig

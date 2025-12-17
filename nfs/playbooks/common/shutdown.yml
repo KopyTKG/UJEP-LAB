@@ -1,0 +1,35 @@
+---
+# -------------------------------------------------------
+# PHASE 1: Shutdown Head Nodes (Controllers)
+# -------------------------------------------------------
+- name: Shutdown Head Nodes First
+  hosts: controller
+  become: yes
+  tasks:
+    - name: Issue Shutdown Command
+      community.general.shutdown:
+        delay: 0
+
+# -------------------------------------------------------
+# PHASE 2: Buffer Time
+# -------------------------------------------------------
+- name: Wait for Heads to Power Off
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Wait 2 minutes for Heads to finish writing to storage
+      pause:
+        minutes: 2
+        prompt: "Waiting for Head Nodes to release the storage..."
+
+# -------------------------------------------------------
+# PHASE 3: Shutdown Compute Nodes (Storage)
+# -------------------------------------------------------
+- name: Shutdown Compute Nodes
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Issue Shutdown Command
+      community.general.shutdown:
+        delay: 0

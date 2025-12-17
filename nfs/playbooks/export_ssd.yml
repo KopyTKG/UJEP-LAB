@@ -1,0 +1,91 @@
+---
+- name: Export Samsung 256GB SSDs (Persistent IDs)
+  hosts: compute
+  become: yes
+  vars:
+    target_model_string: "MZ7TY256"
+    storage_drives: []
+
+  tasks:
+    # --- STEP 1: FIND DRIVES & MAP TO PERSISTENT IDs ---
+    - name: Find Samsung 256GB SSDs (By-ID)
+      set_fact:
+        # We look for the link that starts with 'ata-' to get the Model+Serial ID
+        storage_drives: "{{ storage_drives + ['/dev/disk/by-id/' + (item.value.links.ids | select('match', '^ata-') | first)] }}"
+      loop: "{{ ansible_devices | dict2items }}"
+      when:
+        # Safe Model Check
+        - target_model_string in (item.value.model | default('') | string)
+        # Ensure links exist
+        - item.value.links.ids is defined
+        - (item.value.links.ids | select('match', '^ata-') | list | length) > 0
+
+    - name: Verify Persistent Drives Found
+      debug:
+        msg: "Found Persistent SSDs on {{ inventory_hostname }}: {{ storage_drives }}"
+      failed_when: storage_drives | length == 0
+
+    # --- STEP 2: INSTALL & PREPARE ---
+    - name: Install TargetCLI
+      dnf:
+        name: targetcli
+        state: present
+
+    - name: Load iSER Module (RDMA)
+      modprobe:
+        name: ib_isert
+        state: present
+
+    # --- STEP 3: WIPE & EXPORT ---
+    # Wipe using the persistent path to be absolutely sure
+    - name: Wipe Partition Tables
+      command: "wipefs -a {{ item }} --force"
+      loop: "{{ storage_drives }}"
+
+    - name: Create Block Backstores
+      shell: >
+        targetcli backstores/block create name=ssd_{{ index }} dev={{ item }} || true
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: index
+
+    - name: Create iSCSI Target
+      shell: >
+        targetcli iscsi/ create wwn=iqn.2025-12.com.cluster:{{ inventory_hostname | lower }} || true
+
+    - name: Create Portal
+      shell: >
+        targetcli iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/portals create 0.0.0.0 3260 || true
+
+    - name: Enable iSER (RDMA)
+      shell: >
+        targetcli iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/portals/0.0.0.0:3260 enable_iser true
+      ignore_errors: yes
+
+    - name: Map SSDs to LUNs
+      shell: >
+        targetcli iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1/luns create /backstores/block/ssd_{{ index }} || true
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: index
+
+    # --- STEP 4: PERMISSIONS & SAVE ---
+    - name: Open Access Rights
+      shell: |
+        targetcli iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1 set attribute generate_node_acls=1
+        targetcli iscsi/iqn.2025-12.com.cluster:{{ inventory_hostname | lower }}/tpg1 set attribute demo_mode_write_protect=0
+        # This writes to /etc/target/saveconfig.json
+        targetcli saveconfig
+
+    - name: Open Firewall
+      firewalld:
+        port: 3260/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure Target Service is Enabled
+      service:
+        name: target
+        state: started
+        enabled: yes

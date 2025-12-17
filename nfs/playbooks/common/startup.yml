@@ -1,0 +1,37 @@
+---
+- name: Power On Lab Cluster (Sequenced)
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: no
+
+  tasks:
+    # -------------------------------------------------------
+    # PHASE 1: Start Compute Nodes
+    # -------------------------------------------------------
+    - name: Power on Compute Nodes
+      community.general.ipmi_power:
+        name: "{{ hostvars[item].ipmi_host }}"
+        user: "{{ hostvars[item].ipmi_user }}"
+        password: "{{ ipmi_pass }}"
+        state: on
+      loop: "{{ groups['compute'] }}"
+
+    # -------------------------------------------------------
+    # PHASE 2: Wait for Stabilization
+    # -------------------------------------------------------
+    - name: Wait 2 minutes for Compute initialization
+      pause:
+        minutes: 2
+        prompt: "Waiting for compute nodes to spin up..."
+
+    # -------------------------------------------------------
+    # PHASE 3: Start Head Nodes (Controllers)
+    # -------------------------------------------------------
+    - name: Power on Head Nodes
+      community.general.ipmi_power:
+        name: "{{ hostvars[item].ipmi_host }}"
+        user: "{{ hostvars[item].ipmi_user }}"
+        password: "{{ ipmi_pass }}"
+        state: on
+      loop: "{{ groups['controller'] }}"
