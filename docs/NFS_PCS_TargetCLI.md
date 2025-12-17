@@ -3,4 +3,4 @@
 > [!NOTE]
 > Whole setup is done via Ansible, you can find the playbook in the Ansible folder.
 
-::include(../NFS/README.md)
+::include{file=../NFS/README.md}
