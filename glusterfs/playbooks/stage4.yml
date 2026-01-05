@@ -1,0 +1,28 @@
+---
+- name: Better network
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install infiniband-diags package
+      dnf:
+        name: infiniband-diags
+        state: present
+
+- name: Fix InfiniBand Partitions Cluster-Wide
+  hosts: all
+  become: yes
+  tasks:
+    # 1. Overwrite the partition config on EVERY node
+    - name: Configure partitions.conf (Allow Connected Mode)
+      copy:
+        dest: /etc/rdma/partitions.conf
+        content: |
+          Default=0x7fff, ipoib : ALL=full
+        mode: "0644"
+      notify: Restart OpenSM
+
+  handlers:
+    - name: Restart OpenSM
+      service:
+        name: opensm
+        state: restarted

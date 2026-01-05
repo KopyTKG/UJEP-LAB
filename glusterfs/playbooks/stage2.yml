@@ -1,0 +1,102 @@
+---
+- name: Setup GlusterFS on Compute Nodes
+  hosts: compute
+  become: yes
+  vars:
+    gluster_version: "11"
+  tasks:
+    - name: Install GlusterFS repository
+      dnf:
+        name: centos-release-gluster{{ gluster_version }}
+        state: present
+
+    - name: Install GlusterFS packages
+      dnf:
+        name:
+          - glusterfs
+          - glusterfs-libs
+          - glusterfs-server
+        state: present
+
+    - name: Ensure firewall ports for GlusterFS are open
+      firewalld:
+        service: glusterfs
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure glusterd service is enabled and started
+      service:
+        name: glusterd
+        state: started
+        enabled: yes
+
+    - name: Ensure glusterfsd service is enabled and started
+      service:
+        name: glusterfsd
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart glusterd service
+      service:
+        name: glusterd
+        state: restarted
+
+    - name: Restart glusterfsd service
+      service:
+        name: glusterfsd
+        state: restarted
+
+- name: Setup glusterfs cluster
+  hosts: Rocky-Compute-1
+  become: yes
+  vars:
+    target_folder: "/data/glusterfs"
+    brick_folder: "{{ target_folder }}/volume_"
+    volume_name: "gv0"
+  tasks:
+    # --- 1. CONNECT PEERS ---
+    - name: Probe other compute nodes
+      shell: |
+        for host in {{ groups['compute'] | join(' ') }}; do
+          if [ "$host" != "{{ inventory_hostname }}" ]; then
+            gluster peer probe $host
+          fi
+        done
+      register: probe_result
+      changed_when: "'peer probe: success' in probe_result.stdout"
+
+    # --- 2. CREATE VOLUME ---
+    - name: Create GlusterFS volume (Shell Fallback)
+      command: >
+        gluster volume create {{ volume_name }} replica 2 transport tcp
+        Rocky-Compute-1:/data/glusterfs/volume_0
+        Rocky-Compute-2:/data/glusterfs/volume_0
+        Rocky-Compute-3:/data/glusterfs/volume_0
+        Rocky-Compute-4:/data/glusterfs/volume_0
+        Rocky-Compute-5:/data/glusterfs/volume_0
+        Rocky-Compute-6:/data/glusterfs/volume_0
+        Rocky-Compute-7:/data/glusterfs/volume_0
+        Rocky-Compute-8:/data/glusterfs/volume_0
+        Rocky-Compute-1:/data/glusterfs/volume_1
+        Rocky-Compute-2:/data/glusterfs/volume_1
+        Rocky-Compute-3:/data/glusterfs/volume_1
+        Rocky-Compute-4:/data/glusterfs/volume_1
+        Rocky-Compute-5:/data/glusterfs/volume_1
+        Rocky-Compute-6:/data/glusterfs/volume_1
+        Rocky-Compute-7:/data/glusterfs/volume_1
+        Rocky-Compute-8:/data/glusterfs/volume_1
+        force
+      register: gluster_create
+      changed_when: "'success' in gluster_create.stdout"
+      failed_when: "'success' not in gluster_create.stdout and 'already exists' not in gluster_create.stderr"
+      run_once: true
+
+    # --- 3. START VOLUME ---
+    - name: Start GlusterFS volume
+      command: "gluster volume start {{ volume_name }}"
+      register: gluster_start
+      changed_when: "'success' in gluster_start.stdout"
+      failed_when: "'success' not in gluster_start.stdout and 'already started' not in gluster_start.stderr"
+      run_once: true

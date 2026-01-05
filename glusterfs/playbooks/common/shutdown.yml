@@ -1,0 +1,9 @@
+---
+- name: Gracefully Shutdown Cluster
+  hosts: cluster
+  become: yes
+
+  tasks:
+    - name: Shutdown the node
+      community.general.shutdown:
+        delay: 1

@@ -1,0 +1,52 @@
+---
+- name: Install glusterfs client on all nodes with glusterfs mounts
+  hosts: cluster
+  become: yes
+  vars:
+    gluster_version: "11"
+    mount_point: "/mnt/glusterfs"
+  tasks:
+    - name: Install GlusterFS repository
+      dnf:
+        name: centos-release-gluster{{ gluster_version }}
+        state: present
+
+    - name: Install GlusterFS packages
+      dnf:
+        name:
+          - glusterfs-client
+        state: present
+
+    - name: Create Mount Point
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: "0755"
+
+- name: Mount the GlusterFS Volume
+  hosts: compute
+  become: yes
+  vars:
+    mount_point: "/mnt/gluster"
+  tasks:
+    - name: Mount GlusterFS volume
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: "localhost:/gv0"
+        fstype: glusterfs
+        opts: "defaults,_netdev"
+        state: mounted
+
+- name: Mount the GlusterFS Volume on Controller
+  hosts: controller
+  become: yes
+  vars:
+    mount_point: "/mnt/gluster"
+  tasks:
+    - name: Mount GlusterFS volume
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: "Rocky-Compute-1:/gv0"
+        fstype: glusterfs
+        opts: "defaults,_netdev"
+        state: mounted

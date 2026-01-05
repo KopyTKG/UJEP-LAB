@@ -1,0 +1,11 @@
+---
+- name: Gracefully Reboot Cluster
+  hosts: cluster
+  become: yes
+
+  tasks:
+    - name: Reboot the node
+      ansible.builtin.reboot:
+        pre_reboot_delay: 2 # Give the task a moment to finish before cutting connection
+        post_reboot_delay: 10 # Wait 10s after ping succeeds to allow services to start
+        reboot_timeout: 600 # Wait up to 10 mins for the node to return
