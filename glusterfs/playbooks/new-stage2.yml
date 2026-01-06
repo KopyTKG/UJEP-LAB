@@ -1,0 +1,241 @@
+---
+- name: Setup GlusterFS on Compute Nodes
+  hosts: compute
+  become: yes
+  vars:
+    gluster_version: "11"
+  tasks:
+    - name: Install GlusterFS repository
+      dnf:
+        name: centos-release-gluster{{ gluster_version }}
+        state: present
+
+    - name: Install GlusterFS packages (including RDMA support)
+      dnf:
+        name:
+          - glusterfs
+          - glusterfs-libs
+          - glusterfs-server
+          - glusterfs-rdma # ← ADD THIS for RDMA support
+        state: present
+
+    - name: Load RDMA kernel modules
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - rdma_cm
+        - ib_umad
+        - ib_ipoib
+        - mlx5_ib
+      ignore_errors: yes
+
+    - name: Ensure RDMA modules load on boot
+      lineinfile:
+        path: /etc/modules-load.d/rdma.conf
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - rdma_cm
+        - ib_umad
+        - ib_ipoib
+        - mlx5_ib
+
+    - name: Ensure firewall ports for GlusterFS are open
+      firewalld:
+        service: glusterfs
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Open RDMA ports for GlusterFS
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - 24007-24008/tcp
+        - 49152-49664/tcp
+        - 24007-24008/udp
+
+    - name: Ensure glusterd service is enabled and started
+      service:
+        name: glusterd
+        state: started
+        enabled: yes
+
+    # Note: glusterfsd is started automatically by glusterd, no need to manage separately
+
+  handlers:
+    - name: Restart glusterd service
+      service:
+        name: glusterd
+        state: restarted
+
+- name: Setup glusterfs cluster with RDMA
+  hosts: Rocky-Compute-1
+  become: yes
+  vars:
+    target_folder: "/data/glusterfs"
+    brick_folder: "{{ target_folder }}/volume_"
+    volume_name: "gv0"
+  tasks:
+    # --- 1. CONNECT PEERS ---
+    - name: Probe other compute nodes
+      shell: |
+        for host in {{ groups['compute'] | join(' ') }}; do
+          if [ "$host" != "{{ inventory_hostname }}" ]; then
+            gluster peer probe $host
+          fi
+        done
+      register: probe_result
+      changed_when: "'peer probe: success' in probe_result.stdout"
+
+    - name: Wait for peer probe to complete
+      pause:
+        seconds: 5
+
+    - name: Check peer status
+      command: gluster peer status
+      register: peer_status
+      changed_when: false
+
+    - name: Display peer status
+      debug:
+        var: peer_status.stdout_lines
+
+    # --- 2. CREATE VOLUME WITH RDMA ---
+    - name: Check if volume already exists
+      command: "gluster volume info {{ volume_name }}"
+      register: volume_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create GlusterFS volume with RDMA transport
+      command: >
+        gluster volume create {{ volume_name }} replica 2 transport rdma,tcp
+        Rocky-Compute-1:/data/glusterfs/volume_0
+        Rocky-Compute-2:/data/glusterfs/volume_0
+        Rocky-Compute-3:/data/glusterfs/volume_0
+        Rocky-Compute-4:/data/glusterfs/volume_0
+        Rocky-Compute-5:/data/glusterfs/volume_0
+        Rocky-Compute-6:/data/glusterfs/volume_0
+        Rocky-Compute-7:/data/glusterfs/volume_0
+        Rocky-Compute-8:/data/glusterfs/volume_0
+        Rocky-Compute-1:/data/glusterfs/volume_1
+        Rocky-Compute-2:/data/glusterfs/volume_1
+        Rocky-Compute-3:/data/glusterfs/volume_1
+        Rocky-Compute-4:/data/glusterfs/volume_1
+        Rocky-Compute-5:/data/glusterfs/volume_1
+        Rocky-Compute-6:/data/glusterfs/volume_1
+        Rocky-Compute-7:/data/glusterfs/volume_1
+        Rocky-Compute-8:/data/glusterfs/volume_1
+        force
+      when: volume_check.rc != 0
+      register: gluster_create
+
+    # --- 3. START VOLUME ---
+    - name: Start GlusterFS volume
+      command: "gluster volume start {{ volume_name }}"
+      register: gluster_start
+      changed_when: "'success' in gluster_start.stdout"
+      failed_when: "'success' not in gluster_start.stdout and 'already started' not in gluster_start.stderr"
+      when: volume_check.rc != 0
+
+    # --- 4. PERFORMANCE TUNING ---
+    - name: Apply performance tuning for SSD backend
+      command: "gluster volume set {{ volume_name }} {{ item.key }} {{ item.value }}"
+      loop:
+        # Cache settings
+        - { key: "performance.cache-size", value: "1GB" }
+        - { key: "performance.io-cache", value: "on" }
+        - { key: "performance.read-ahead", value: "on" }
+        - { key: "performance.write-behind", value: "on" }
+        - { key: "performance.write-behind-window-size", value: "4MB" }
+        - { key: "performance.flush-behind", value: "on" }
+
+        # Threading
+        - { key: "performance.io-thread-count", value: "32" }
+        - { key: "performance.client-io-threads", value: "on" }
+
+        # Network settings
+        - { key: "network.ping-timeout", value: "10" }
+        - { key: "network.remote-dio", value: "enable" }
+
+        # SSD optimizations
+        - { key: "performance.strict-o-direct", value: "on" }
+        - { key: "performance.quick-read", value: "off" }
+
+        # Reduce metadata overhead
+        - { key: "features.cache-invalidation", value: "on" }
+        - { key: "performance.stat-prefetch", value: "on" }
+        - { key: "performance.md-cache-timeout", value: "600" }
+      register: tuning_result
+      changed_when: "'success' in tuning_result.stdout"
+      failed_when: "'success' not in tuning_result.stdout and 'already set' not in tuning_result.stderr"
+      ignore_errors: yes
+
+    # --- 5. VERIFY RDMA IS ENABLED ---
+    - name: Check volume configuration
+      command: "gluster volume info {{ volume_name }}"
+      register: volume_info
+      changed_when: false
+
+    - name: Display volume info
+      debug:
+        var: volume_info.stdout_lines
+
+    - name: Verify RDMA transport is enabled
+      assert:
+        that:
+          - "'rdma' in volume_info.stdout"
+        fail_msg: "RDMA transport not enabled! Check glusterfs-rdma package installation."
+        success_msg: "RDMA transport successfully enabled!"
+
+    # --- 6. STATUS CHECK ---
+    - name: Get volume status
+      command: "gluster volume status {{ volume_name }}"
+      register: volume_status
+      changed_when: false
+
+    - name: Display volume status
+      debug:
+        var: volume_status.stdout_lines
+
+- name: Mount GlusterFS on all compute nodes
+  hosts: compute
+  become: yes
+  vars:
+    volume_name: "gv0"
+    mount_point: "/shared_data"
+  tasks:
+    - name: Create mount point
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install GlusterFS client
+      dnf:
+        name:
+          - glusterfs-client
+          - glusterfs-fuse
+        state: present
+
+    - name: Mount GlusterFS volume with RDMA transport
+      mount:
+        path: "{{ mount_point }}"
+        src: "{{ groups['compute'][0] }}:/{{ volume_name }}"
+        fstype: glusterfs
+        opts: "defaults,_netdev,transport=rdma,backup-volfile-servers={{ groups['compute'][1:] | join(':') }}"
+        state: mounted
+
+    - name: Verify mount
+      command: "df -h {{ mount_point }}"
+      register: mount_check
+      changed_when: false
+
+    - name: Display mount info
+      debug:
+        var: mount_check.stdout_lines
