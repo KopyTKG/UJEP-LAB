@@ -1,0 +1,46 @@
+---
+- name: Check Current GlusterFS Configuration
+  hosts: compute
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Check current mount
+      shell: mount | grep gluster
+      register: current_mount
+      ignore_errors: yes
+
+    - name: Check /etc/hosts for hostname resolution
+      shell: cat /etc/hosts | grep -E "10.0.0|Rocky-Compute"
+      register: hosts_file
+      ignore_errors: yes
+
+    - name: Check DNS resolution over IB
+      shell: |
+        for host in Rocky-Compute-{1..8}; do
+          echo -n "$host: "
+          getent hosts $host | awk '{print $1}'
+        done
+      register: dns_check
+      ignore_errors: yes
+
+    - name: Display current configuration
+      debug:
+        msg:
+          - "=== {{ inventory_hostname }} ==="
+          - "Current mount: {{ current_mount.stdout }}"
+          - "Hosts file entries: {{ hosts_file.stdout_lines }}"
+          - "DNS resolution: {{ dns_check.stdout_lines }}"
+
+- name: Check GlusterFS volume configuration
+  hosts: compute[0]
+  become: yes
+
+  tasks:
+    - name: Get volume info
+      shell: gluster volume info gv0
+      register: vol_info
+
+    - name: Display volume info
+      debug:
+        msg: "{{ vol_info.stdout_lines }}"

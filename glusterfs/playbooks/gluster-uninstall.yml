@@ -1,0 +1,393 @@
+---
+# GlusterFS Complete Cleanup Playbook
+# WARNING: This will DESTROY all GlusterFS data and configuration
+# Make sure you have backups before running this!
+
+- name: Confirm Cleanup Action
+  hosts: localhost
+  gather_facts: no
+  vars_prompt:
+    - name: confirm_cleanup
+      prompt: "WARNING: This will DELETE all GlusterFS volumes and data! Type 'DELETE' to continue"
+      private: no
+  tasks:
+    - name: Verify confirmation
+      fail:
+        msg: "Cleanup cancelled - confirmation not received"
+      when: confirm_cleanup != "DELETE"
+
+    - name: Display warning
+      debug:
+        msg:
+          - "=========================================="
+          - "STARTING GLUSTERFS CLEANUP"
+          - "This will remove:"
+          - "  - All GlusterFS volumes"
+          - "  - All GlusterFS data"
+          - "  - All GlusterFS configuration"
+          - "  - GlusterFS packages (optional)"
+          - "=========================================="
+
+- name: Stop VMs and Services (if applicable)
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Get list of running VMs
+      shell: virsh list --name
+      register: running_vms
+      changed_when: false
+      failed_when: false
+
+    - name: Shutdown VMs gracefully
+      shell: virsh shutdown {{ item }}
+      loop: "{{ running_vms.stdout_lines }}"
+      when:
+        - running_vms.stdout_lines | length > 0
+        - item != ""
+      ignore_errors: yes
+
+    - name: Wait for VMs to shutdown (60 seconds)
+      pause:
+        seconds: 60
+      when: running_vms.stdout_lines | length > 0
+
+    - name: Force destroy any remaining VMs
+      shell: virsh destroy {{ item }}
+      loop: "{{ running_vms.stdout_lines }}"
+      when:
+        - running_vms.stdout_lines | length > 0
+        - item != ""
+      ignore_errors: yes
+
+- name: Unmount GlusterFS on All Clients
+  hosts: cluster
+  become: yes
+  vars:
+    mount_points:
+      - /mnt/gluster
+      - /mnt/glusterfs
+      - /shared_data
+  tasks:
+    - name: Get all GlusterFS mounts
+      shell: mount | grep glusterfs | awk '{print $3}'
+      register: gluster_mounts
+      changed_when: false
+      failed_when: false
+
+    - name: Display current mounts
+      debug:
+        var: gluster_mounts.stdout_lines
+      when: gluster_mounts.stdout != ""
+
+    - name: Kill any processes using GlusterFS mounts
+      shell: |
+        for mount in {{ gluster_mounts.stdout_lines | join(' ') }}; do
+          fuser -km $mount 2>/dev/null || true
+        done
+      when: gluster_mounts.stdout != ""
+      ignore_errors: yes
+
+    - name: Force unmount all GlusterFS mounts
+      shell: umount -f {{ item }}
+      loop: "{{ gluster_mounts.stdout_lines }}"
+      when:
+        - gluster_mounts.stdout != ""
+        - item != ""
+      ignore_errors: yes
+
+    - name: Lazy unmount if force failed
+      shell: umount -l {{ item }}
+      loop: "{{ gluster_mounts.stdout_lines }}"
+      when:
+        - gluster_mounts.stdout != ""
+        - item != ""
+      ignore_errors: yes
+
+    - name: Remove mount points from /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: ".*glusterfs.*|.*gluster.*"
+        state: absent
+
+    - name: Verify all GlusterFS unmounted
+      shell: mount | grep glusterfs
+      register: remaining_mounts
+      changed_when: false
+      failed_when: false
+
+    - name: Display any remaining mounts
+      debug:
+        msg: "WARNING: These mounts could not be unmounted: {{ remaining_mounts.stdout_lines }}"
+      when: remaining_mounts.stdout != ""
+
+- name: Stop and Delete GlusterFS Volumes
+  hosts: Rocky-Compute-1
+  become: yes
+  tasks:
+    - name: Get list of GlusterFS volumes
+      shell: gluster volume list
+      register: gluster_volumes
+      changed_when: false
+      failed_when: false
+
+    - name: Display volumes to be deleted
+      debug:
+        msg: "Deleting volumes: {{ gluster_volumes.stdout_lines }}"
+      when: gluster_volumes.stdout != ""
+
+    - name: Stop all GlusterFS volumes
+      shell: gluster --mode=script volume stop {{ item }} force
+      loop: "{{ gluster_volumes.stdout_lines }}"
+      when:
+        - gluster_volumes.stdout != ""
+        - item != ""
+      ignore_errors: yes
+
+    - name: Delete all GlusterFS volumes
+      shell: gluster --mode=script volume delete {{ item }}
+      loop: "{{ gluster_volumes.stdout_lines }}"
+      when:
+        - gluster_volumes.stdout != ""
+        - item != ""
+      ignore_errors: yes
+
+    - name: Verify volumes deleted
+      shell: gluster volume list
+      register: remaining_volumes
+      changed_when: false
+      failed_when: false
+
+    - name: Display any remaining volumes
+      debug:
+        msg: "WARNING: These volumes remain: {{ remaining_volumes.stdout_lines }}"
+      when: remaining_volumes.stdout != ""
+
+- name: Detach Peers and Stop Services
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Get peer list
+      shell: gluster peer status | grep "Hostname:" | awk '{print $2}'
+      register: peers
+      changed_when: false
+      failed_when: false
+
+    - name: Detach all peers (run on one node only)
+      shell: gluster --mode=script peer detach {{ item }} force
+      loop: "{{ peers.stdout_lines }}"
+      when:
+        - inventory_hostname == groups['compute'][0]
+        - peers.stdout != ""
+        - item != ""
+      ignore_errors: yes
+
+    - name: Stop glusterfsd service
+      service:
+        name: glusterfsd
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop glusterd service
+      service:
+        name: glusterd
+        state: stopped
+
+    - name: Disable glusterfsd service
+      service:
+        name: glusterfsd
+        enabled: no
+      ignore_errors: yes
+
+    - name: Disable glusterd service
+      service:
+        name: glusterd
+        enabled: no
+
+- name: Clean GlusterFS Data and Configuration
+  hosts: compute
+  become: yes
+  vars:
+    brick_paths:
+      - /data/glusterfs
+  tasks:
+    - name: Kill any remaining GlusterFS processes
+      shell: |
+        pkill -9 glusterfsd || true
+        pkill -9 glusterd || true
+        pkill -9 glusterfs || true
+      ignore_errors: yes
+
+    - name: Remove GlusterFS attribute from bricks
+      shell: |
+        for brick in {{ brick_paths | join(' ') }}; do
+          if [ -d "$brick" ]; then
+            setfattr -x trusted.glusterfs.volume-id $brick 2>/dev/null || true
+            setfattr -x trusted.gfid $brick 2>/dev/null || true
+          fi
+        done
+      ignore_errors: yes
+
+    - name: Backup GlusterFS configuration (just in case)
+      archive:
+        path: /var/lib/glusterd
+        dest: /root/glusterd-backup-{{ ansible_date_time.epoch }}.tar.gz
+      ignore_errors: yes
+
+    - name: Remove GlusterFS configuration
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/glusterd
+        - /var/log/glusterfs
+        - /var/run/gluster
+        - /etc/glusterfs
+
+    - name: Clean GlusterFS data from bricks
+      shell: |
+        for brick in {{ brick_paths | join(' ') }}; do
+          if [ -d "$brick" ]; then
+            # Remove .glusterfs directories
+            find $brick -name ".glusterfs" -type d -exec rm -rf {} + 2>/dev/null || true
+            # Remove all data (DANGEROUS!)
+            find $brick -mindepth 1 -delete 2>/dev/null || true
+          fi
+        done
+      ignore_errors: yes
+
+    - name: Verify brick directories are empty
+      shell: |
+        for brick in {{ brick_paths | join(' ') }}; do
+          if [ -d "$brick" ]; then
+            ls -la $brick
+          fi
+        done
+      register: brick_contents
+      changed_when: false
+
+    - name: Display brick contents
+      debug:
+        var: brick_contents.stdout_lines
+
+- name: Remove GlusterFS Packages (Optional)
+  hosts: cluster
+  become: yes
+  vars_prompt:
+    - name: remove_packages
+      prompt: "Do you want to remove GlusterFS packages? (yes/no)"
+      private: no
+      default: "no"
+  tasks:
+    - name: Remove GlusterFS packages
+      dnf:
+        name:
+          - glusterfs-server
+          - glusterfs-client
+          - glusterfs
+          - glusterfs-libs
+          - glusterfs-fuse
+          - glusterfs-rdma
+          - centos-release-gluster*
+        state: absent
+        autoremove: yes
+      when: remove_packages == "yes"
+
+    - name: Remove GlusterFS repository
+      file:
+        path: /etc/yum.repos.d/CentOS-Gluster-*.repo
+        state: absent
+      when: remove_packages == "yes"
+
+    - name: Clean DNF cache
+      command: dnf clean all
+      when: remove_packages == "yes"
+
+- name: Optional - Unmount and Format Bricks
+  hosts: compute
+  become: yes
+  vars_prompt:
+    - name: format_disks
+      prompt: "Do you want to UNMOUNT and RE-FORMAT the brick disks? (yes/no)"
+      private: no
+      default: "no"
+  vars:
+    target_folder: "/data/glusterfs"
+  tasks:
+    - name: Get currently mounted bricks
+      shell: mount | grep "{{ target_folder }}" | awk '{print $3}'
+      register: mounted_bricks
+      changed_when: false
+      failed_when: false
+
+    - name: Unmount all brick volumes
+      mount:
+        path: "{{ item }}"
+        state: unmounted
+      loop: "{{ mounted_bricks.stdout_lines }}"
+      when:
+        - format_disks == "yes"
+        - mounted_bricks.stdout != ""
+        - item != ""
+
+    - name: Remove brick mount points from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: "{{ target_folder }}"
+        state: absent
+      when: format_disks == "yes"
+
+    - name: Find Samsung SSD devices
+      shell: |
+        lsblk -o NAME,MODEL | grep "MZ7TY256" | awk '{print $1}' | sed 's/[^a-z]//g'
+      register: ssd_devices
+      changed_when: false
+      when: format_disks == "yes"
+
+    - name: Display devices to be formatted
+      debug:
+        msg: "WARNING: Will format these devices: {{ ssd_devices.stdout_lines }}"
+      when:
+        - format_disks == "yes"
+        - ssd_devices.stdout != ""
+
+    - name: Format SSDs to XFS (DESTRUCTIVE!)
+      filesystem:
+        fstype: xfs
+        dev: "/dev/{{ item }}"
+        force: yes
+      loop: "{{ ssd_devices.stdout_lines }}"
+      when:
+        - format_disks == "yes"
+        - ssd_devices.stdout != ""
+        - item != ""
+
+    - name: Remove brick mount directories
+      file:
+        path: "{{ target_folder }}"
+        state: absent
+      when: format_disks == "yes"
+
+- name: Cleanup Summary
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Display cleanup summary
+      debug:
+        msg:
+          - "=========================================="
+          - "GLUSTERFS CLEANUP COMPLETE"
+          - "=========================================="
+          - "Completed actions:"
+          - "  ✓ VMs stopped"
+          - "  ✓ GlusterFS unmounted on all nodes"
+          - "  ✓ GlusterFS volumes deleted"
+          - "  ✓ GlusterFS services stopped"
+          - "  ✓ GlusterFS peers detached"
+          - "  ✓ GlusterFS data removed"
+          - "  ✓ GlusterFS configuration cleaned"
+          - ""
+          - "Next steps:"
+          - "  1. Verify cleanup: run 'gluster volume list'"
+          - "  2. Check mounts: run 'mount | grep gluster'"
+          - "  3. Ready for fresh install or Lustre migration"
+          - "=========================================="

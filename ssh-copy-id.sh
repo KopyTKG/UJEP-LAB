@@ -13,3 +13,12 @@ for I in $(seq 1 $NODES_COUNT); do
     echo "Copied SSH key to $NODE"
 done
 
+# Heads 
+HEAD_PREFIX="192.168.1.25"
+HEAD_COUNT=2
+for I in $(seq 1 $HEAD_COUNT); do
+    HEAD_NODE="${HEAD_PREFIX}${I}"
+    ssh-copy-id -i "$SSH_KEY_PATH" "user@$HEAD_NODE"
+    echo "Copied SSH key to $HEAD_NODE"
+done
+

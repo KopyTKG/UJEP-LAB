@@ -1,0 +1,129 @@
+---
+# Common base setup for all cluster nodes
+# This playbook handles: NTP, InfiniBand, OpenSM, hosts file, network routing
+# Can be included by any filesystem implementation (Lustre, GlusterFS, NFS, etc.)
+
+- name: Cluster Basic Setup & Networking
+  hosts: all
+  become: yes
+
+  vars:
+    ib_node_id: >-
+      {{
+        ansible_host.split('.')[-1]
+        if 'controller' in group_names
+        else inventory_hostname | regex_search('[0-9]+$')
+      }}
+
+  tasks:
+    # --- 1. FIREWALL & TIME ---
+    - name: Ensure firewalld is installed
+      command: dnf install -y firewalld
+      register: firewalld_install
+      changed_when: "'Nothing to do' not in firewalld_install.stdout"
+
+    - name: Start and enable firewalld
+      command: systemctl enable --now firewalld
+      register: firewalld_enable
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Configure Firewall (Allow NTP)
+      command: firewall-cmd --permanent --add-service=ntp
+      register: firewall_ntp
+      changed_when: "'ALREADY_ENABLED' not in firewall_ntp.stderr"
+      failed_when: false
+
+    - name: Reload firewall to apply changes
+      command: firewall-cmd --reload
+      when: firewall_ntp.changed
+
+    - name: Configure Chrony (CESNET servers)
+      copy:
+        dest: /etc/chrony.conf
+        content: |
+          server tik.cesnet.cz iburst
+          server tak.cesnet.cz iburst
+          sourcedir /run/chrony-dhcp
+          driftfile /var/lib/chrony/drift
+          makestep 1.0 3
+          rtcsync
+          logdir /var/log/chrony
+      notify: Restart chronyd
+
+    # --- 2. KERNEL MODULES ---
+    - name: Persist ib_ipoib kernel module
+      copy:
+        dest: /etc/modules-load.d/ib_ipoib.conf
+        content: "ib_ipoib\n"
+        mode: "0644"
+
+    - name: Load ib_ipoib module immediately
+      community.general.modprobe:
+        name: ib_ipoib
+        state: present
+
+    # --- 3. INFINIBAND NETWORKING ---
+    - name: Configure InfiniBand Interface (ibs1)
+      community.general.nmcli:
+        conn_name: ibs1
+        ifname: ibs1
+        type: infiniband
+        ip4: "10.0.0.{{ ib_node_id }}/24"
+        method4: manual
+        autoconnect: yes
+        state: present
+
+    - name: Install opensm package
+      command: dnf install -y opensm
+      register: opensm_install
+      changed_when: "'Nothing to do' not in opensm_install.stdout"
+
+    - name: Ensure opensm service is enabled and started
+      command: systemctl enable --now opensm
+      register: opensm_enable
+      changed_when: false
+      ignore_errors: yes
+
+    # --- 4. HOSTS FILE MANAGEMENT ---
+    - name: Reset /etc/hosts to minimal default
+      copy:
+        dest: /etc/hosts
+        content: |
+          127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+          ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+          # --- ANSIBLE MANAGED BLOCK BELOW ---
+
+    - name: Populate /etc/hosts with InfiniBand IPs
+      lineinfile:
+        path: /etc/hosts
+        line: >-
+          10.0.0.{{
+            hostvars[item].ansible_host.split('.')[-1]
+            if item in groups['controller']
+            else item | regex_search('[0-9]+$')
+          }}   {{ item }}
+        state: present
+      loop: "{{ groups['all'] }}"
+      when: hostvars[item].ansible_host is defined
+
+    # --- 5. NETWORK ROUTE PRIORITY ---
+    - name: Add higher metric to eno2 default route
+      ansible.builtin.command: nmcli connection modify eno2 ipv4.route-metric 200
+      notify: Restart NetworkManager
+
+    - name: Enable default route on eno2
+      ansible.builtin.command: nmcli connection modify eno2 ipv4.never-default no
+      notify: Restart NetworkManager
+
+  handlers:
+    - name: Restart chronyd
+      service:
+        name: chronyd
+        state: restarted
+
+    - name: Restart NetworkManager
+      service:
+        name: NetworkManager
+        state: restarted

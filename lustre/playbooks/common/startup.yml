@@ -1,0 +1,19 @@
+---
+- name: Power On Lab Cluster
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Ensure all nodes are powered on
+      community.general.ipmi_power:
+        name: "{{ hostvars[item].ipmi_host }}"
+        user: "{{ hostvars[item].ipmi_user }}"
+        password: "{{ ipmi_pass }}"
+        state: on
+      loop: "{{ groups['cluster'] }}"
+      register: ipmi_result
+
+    - name: Show results
+      debug:
+        msg: "Node {{ item.item }} ({{ hostvars[item.item].ipmi_host }}): {{ item.powerstate }}"
+      loop: "{{ ipmi_result.results }}"

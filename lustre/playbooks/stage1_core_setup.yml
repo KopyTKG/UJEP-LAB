@@ -1,0 +1,31 @@
+---
+# Lustre Stage 1: Core Setup
+# Imports shared base setup and configures Lustre-specific requirements
+
+# --- IMPORT SHARED BASE SETUP ---
+- import_playbook: ../../shared/playbooks/cluster_base_setup.yml
+
+# --- LUSTRE-SPECIFIC FIREWALL CONFIGURATION ---
+- name: Configure Lustre-specific Firewall Rules
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Configure Firewall (Allow Lustre ports)
+      command: firewall-cmd --permanent --add-port={{ item }}
+      register: firewall_lustre
+      changed_when: "'ALREADY_ENABLED' not in firewall_lustre.stderr"
+      loop:
+        - 988/tcp        # Lustre
+        - 988/udp        # Lustre
+        - 1021-1023/tcp  # Lustre services
+        - 1021-1023/udp  # Lustre services
+
+    - name: Reload firewall to apply Lustre rules
+      command: firewall-cmd --reload
+
+# --- PREPARE STORAGE FOR LUSTRE OSTs ---
+- import_playbook: ../../shared/playbooks/prepare_compute_storage.yml
+  vars:
+    target_folder: "/data/lustre"
+    mount_prefix: "ost"

@@ -1,0 +1,16 @@
+---
+- name: Reboot Lustre Cluster
+  hosts: cluster
+  become: yes
+  serial: 1
+
+  tasks:
+    - name: Reboot the node
+      reboot:
+        msg: "Rebooting node as part of cluster maintenance"
+        reboot_timeout: 600
+
+    - name: Wait for node to come back online
+      wait_for_connection:
+        delay: 30
+        timeout: 300

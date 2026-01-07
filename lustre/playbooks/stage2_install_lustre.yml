@@ -1,0 +1,228 @@
+---
+# Lustre Stage 2: Install Lustre Packages
+# Configures repositories and installs Lustre server on head/compute nodes and client on all nodes
+
+- name: Install Lustre Dependencies and Repositories
+  hosts: all
+  become: yes
+
+  tasks:
+    # --- 0. CLEANUP OLD REPOSITORY CONFIGURATIONS ---
+    - name: Remove old Lustre repository configurations
+      shell: rm -f /etc/yum.repos.d/lustre-*.repo /etc/yum.repos.d/e2fsprogs-*.repo
+      register: repo_cleanup
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Clear DNF cache to remove old repository metadata
+      command: dnf clean all
+      register: dnf_clean
+      changed_when: false
+      ignore_errors: yes
+
+    # --- 1. INSTALL EPEL REPOSITORY ---
+    - name: Install EPEL repository
+      command: dnf install -y epel-release
+      register: epel_install
+      changed_when: "'Nothing to do' not in epel_install.stdout"
+
+    - name: Update package cache
+      command: dnf makecache
+      register: makecache
+      changed_when: false
+
+    # --- 2. INSTALL DEVELOPMENT TOOLS ---
+    - name: Install kernel-devel and development tools
+      command: dnf install -y kernel-devel kernel-headers gcc make elfutils-libelf-devel
+      register: dev_tools_install
+      changed_when: "'Nothing to do' not in dev_tools_install.stdout"
+
+    # --- 3. INSTALL LUSTRE REPOSITORY ---
+    - name: Add Lustre server repository
+      yum_repository:
+        name: lustre-server
+        description: Lustre Server Repository for EL8
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el8.9/server/
+        gpgcheck: no
+        enabled: yes
+
+    - name: Add Lustre client repository
+      yum_repository:
+        name: lustre-client
+        description: Lustre Client Repository for EL8
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el8.9/client/
+        gpgcheck: no
+        enabled: yes
+
+    - name: Add e2fsprogs-wc repository (Lustre patched e2fsprogs)
+      yum_repository:
+        name: e2fsprogs-wc
+        description: e2fsprogs for Lustre
+        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el8/
+        gpgcheck: no
+        enabled: yes
+
+    - name: Update package cache after adding repositories
+      command: dnf makecache
+      register: makecache2
+      changed_when: false
+      ignore_errors: yes
+
+- name: Install Lustre Server on Head Nodes (MGS/MDS)
+  hosts: controller
+  become: yes
+
+  tasks:
+    - name: Install Lustre server packages for MGS/MDS
+      command: dnf install -y lustre lustre-osd-ldiskfs-mount e2fsprogs
+      register: lustre_server_head_install
+      changed_when: "'Nothing to do' not in lustre_server_head_install.stdout"
+      retries: 3
+      delay: 5
+      until: lustre_server_head_install.rc == 0
+
+    - name: Load Lustre kernel modules on head nodes
+      command: modprobe {{ item }}
+      loop:
+        - lustre
+        - lnet
+      ignore_errors: yes
+      register: modprobe_head
+      changed_when: false
+
+- name: Install Lustre Server on Compute Nodes (OSS)
+  hosts: compute
+  become: yes
+
+  tasks:
+    - name: Install Lustre server packages for OSS
+      command: dnf install -y lustre lustre-osd-ldiskfs-mount e2fsprogs
+      register: lustre_server_compute_install
+      changed_when: "'Nothing to do' not in lustre_server_compute_install.stdout"
+      retries: 3
+      delay: 5
+      until: lustre_server_compute_install.rc == 0
+
+    - name: Load Lustre kernel modules on compute nodes
+      command: modprobe {{ item }}
+      loop:
+        - lustre
+        - lnet
+      ignore_errors: yes
+      register: modprobe_compute
+      changed_when: false
+
+- name: Install Lustre Client on All Nodes
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Enable PowerTools repository for development packages
+      command: dnf config-manager --set-enabled powertools
+      register: powertools_enable
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Install Lustre client DKMS dependencies
+      command: dnf install -y libyaml-devel libmount-devel dkms
+      register: dkms_deps_install
+      changed_when: "'Nothing to do' not in dkms_deps_install.stdout"
+
+    - name: Install Lustre client DKMS (server nodes already have client functionality via lustre package)
+      command: dnf install -y lustre-client-dkms
+      register: lustre_client_dkms_install
+      changed_when: "'Nothing to do' not in lustre_client_dkms_install.stdout"
+      retries: 3
+      delay: 5
+      until: lustre_client_dkms_install.rc == 0
+
+    - name: Create Lustre client mount point
+      file:
+        path: /mnt/lustre
+        state: directory
+        mode: '0755'
+
+    - name: Load Lustre client kernel module
+      command: modprobe lustre
+      ignore_errors: yes
+      register: modprobe_client
+      changed_when: false
+
+    - name: Persist Lustre kernel modules
+      copy:
+        dest: /etc/modules-load.d/lustre.conf
+        content: |
+          lustre
+          lnet
+        mode: "0644"
+
+- name: Configure LNET for RDMA (o2ib)
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Create LNET configuration directory
+      file:
+        path: /etc/lnet
+        state: directory
+        mode: '0755'
+
+    - name: Configure LNET for InfiniBand RDMA (o2ib)
+      copy:
+        dest: /etc/modprobe.d/lnet.conf
+        content: |
+          options lnet networks=o2ib(ibs1)
+        mode: "0644"
+
+    - name: Load LNET module with o2ib configuration
+      shell: |
+        modprobe lnet
+        lctl network configure
+      ignore_errors: yes
+
+    - name: Verify LNET is configured
+      command: lctl list_nids
+      register: lnet_nids
+      ignore_errors: yes
+
+    - name: Display LNET NIDs
+      debug:
+        msg: "LNET configured on {{ inventory_hostname }}: {{ lnet_nids.stdout_lines }}"
+      when: lnet_nids.rc == 0
+
+- name: Verify Lustre Installation
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check Lustre version
+      command: lustre_rmmod -l
+      register: lustre_version_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Check loaded Lustre modules
+      command: lsmod | grep lustre
+      register: lustre_modules
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Display loaded modules
+      debug:
+        msg: "{{ lustre_modules.stdout_lines }}"
+      when: lustre_modules.rc == 0
+
+    - name: Verify RDMA/LNET configuration
+      command: lctl ping {{ hostvars[groups['controller'][0]].ib_ip }}@o2ib
+      register: lnet_ping
+      ignore_errors: yes
+      changed_when: false
+      when: inventory_hostname != groups['controller'][0]
+
+    - name: Display LNET ping result
+      debug:
+        msg: "LNET ping successful to controller"
+      when:
+        - lnet_ping is defined
+        - lnet_ping is not skipped
+        - lnet_ping.rc == 0

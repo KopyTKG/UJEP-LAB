@@ -1,0 +1,84 @@
+---
+# Common storage preparation for compute nodes
+# Discovers, formats, and mounts Samsung SSDs for distributed filesystem use
+# Can be included by any filesystem implementation with custom target_folder
+
+- name: Prepare Compute Nodes SSDs for Distributed Storage
+  hosts: compute
+  become: yes
+  vars:
+    target_model_string: "MZ7TY256"
+    target_folder: "/data/storage"  # Override this in your implementation
+    mount_prefix: "disk"             # Override this (e.g., "ost", "volume", "brick")
+
+  tasks:
+    # --- 1. DISCOVER THE DISK ID ---
+    - name: Find the stable disk ID for Samsung 256GB SSD
+      shell: "ls /dev/disk/by-id/ata-*{{ target_model_string }}* | grep -v part | head -n 1"
+      register: disk_lookup
+      changed_when: false
+      failed_when: disk_lookup.stdout == ""
+
+    - name: Set target_disk variable
+      set_fact:
+        target_disk: "{{ disk_lookup.stdout }}"
+
+    # --- 2. CLEAR DISK SIGNATURES ---
+    - name: Wipe filesystem signatures
+      command: wipefs -af {{ target_disk }}
+      ignore_errors: yes
+
+    # --- 3. CREATE DATA DIRECTORY ---
+    - name: Create storage data directory
+      ansible.builtin.file:
+        path: "{{ target_folder }}"
+        state: directory
+        mode: "0755"
+
+    # --- 4. FIND ALL MATCHING SSDs ---
+    - name: Initialize storage_drives list
+      set_fact:
+        storage_drives: []
+
+    - name: Find Samsung 256GB SSDs (By-ID)
+      set_fact:
+        storage_drives: "{{ storage_drives + ['/dev/disk/by-id/' + (item.value.links.ids | select('match', '^ata-') | first)] }}"
+      loop: "{{ ansible_devices | dict2items }}"
+      when:
+        - target_model_string in (item.value.model | default('') | string)
+        - item.value.links.ids is defined
+        - (item.value.links.ids | select('match', '^ata-') | list | length) > 0
+
+    # --- 5. FORMAT DRIVES AS XFS ---
+    - name: Create XFS filesystem on each drive
+      community.general.filesystem:
+        fstype: xfs
+        dev: "{{ item }}"
+        force: yes
+      loop: "{{ storage_drives }}"
+
+    # --- 6. CREATE MOUNT DIRECTORIES ---
+    - name: Create mount directories
+      ansible.builtin.file:
+        path: "{{ target_folder }}/{{ mount_prefix }}_{{ my_idx }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: my_idx
+
+    # --- 7. MOUNT FORMATTED DISKS ---
+    - name: Mount formatted disks
+      mount:
+        path: "{{ target_folder }}/{{ mount_prefix }}_{{ my_idx }}"
+        src: "{{ item }}"
+        fstype: xfs
+        opts: defaults,noatime
+        state: mounted
+      loop: "{{ storage_drives }}"
+      loop_control:
+        index_var: my_idx
+
+    - name: Display discovered drives
+      debug:
+        msg: "Found {{ storage_drives | length }} drive(s) on {{ inventory_hostname }}: {{ storage_drives }}"

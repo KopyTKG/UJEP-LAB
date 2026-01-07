@@ -1,0 +1,35 @@
+---
+# Stage 0: Bootstrap Python on fresh Rocky 8.10 install
+# This must be run first on newly installed systems
+
+- name: Bootstrap Python3 on all nodes
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Install Python 3.9 using raw command
+      raw: dnf install -y python39
+      register: python_install
+      changed_when: "'Nothing to do' not in python_install.stdout"
+
+    - name: Set Python 3.9 as default python3
+      raw: alternatives --set python3 /usr/bin/python3.9
+      register: python_set
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Install essential tools
+      raw: dnf install -y firewalld chrony
+      register: essential_tools
+      changed_when: "'Nothing to do' not in essential_tools.stdout"
+
+    - name: Verify Python3 installation
+      raw: python3 --version
+      register: python_version
+      changed_when: false
+
+    - name: Display Python version
+      debug:
+        msg: "{{ python_version.stdout }}"
+      when: python_version.stdout is defined

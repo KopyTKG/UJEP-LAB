@@ -1,0 +1,216 @@
+---
+# GlusterFS Optimization Playbook (Simplified)
+# Part 1: Non-disruptive optimizations (no reboot needed)
+# Part 2: IPoIB connected mode (requires reboot)
+
+- name: Phase 1 - Non-Disruptive Optimizations
+  hosts: compute
+  become: yes
+  serial: 2
+
+  vars:
+    ib_interface: ibs1
+    gluster_mount: /mnt/gluster
+
+  tasks:
+    - name: Backup Current Configuration
+      block:
+        - name: Backup sysctl config
+          copy:
+            src: /etc/sysctl.conf
+            dest: "/etc/sysctl.conf.backup-{{ ansible_date_time.date }}"
+            remote_src: yes
+
+    # TCP Stack Tuning for High Bandwidth
+    - name: Optimize TCP Stack for 100Gb Network
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        # Increase TCP buffer sizes (critical for high bandwidth)
+        - { name: "net.core.rmem_max", value: "536870912" } # 512MB
+        - { name: "net.core.wmem_max", value: "536870912" } # 512MB
+        - { name: "net.ipv4.tcp_rmem", value: "4096 87380 536870912" }
+        - { name: "net.ipv4.tcp_wmem", value: "4096 87380 536870912" }
+
+        # Increase network device backlog
+        - { name: "net.core.netdev_max_backlog", value: "250000" }
+
+        # TCP optimization for high bandwidth
+        - { name: "net.ipv4.tcp_congestion_control", value: "htcp" }
+        - { name: "net.ipv4.tcp_mtu_probing", value: "1" }
+        - { name: "net.ipv4.tcp_timestamps", value: "1" }
+        - { name: "net.ipv4.tcp_sack", value: "1" }
+        - { name: "net.ipv4.tcp_window_scaling", value: "1" }
+
+        # Increase max number of packets queued
+        - { name: "net.core.netdev_budget", value: "600" }
+        - { name: "net.core.netdev_budget_usecs", value: "8000" }
+
+    # IRQ Affinity Optimization
+    - name: Optimize Network Card IRQ Affinity
+      block:
+        - name: Find Mellanox IRQs
+          shell: |
+            grep mlx /proc/interrupts | awk '{print $1}' | sed 's/://'
+          register: mlx_irqs
+          changed_when: false
+
+        - name: Distribute IRQs across CPUs
+          shell: |
+            set -e
+            IRQS=({{ mlx_irqs.stdout_lines | join(' ') }})
+            CPUS=$(nproc)
+            for i in "${!IRQS[@]}"; do
+              IRQ=${IRQS[$i]}
+              CPU=$((i % CPUS))
+              echo $((1 << CPU)) > /proc/irq/$IRQ/smp_affinity 2>/dev/null || true
+            done
+          when: mlx_irqs.stdout_lines | length > 0
+          changed_when: false
+
+    # GlusterFS Performance Tuning
+    - name: Optimize GlusterFS Volume Settings
+      shell: |
+        gluster volume set gv0 {{ item }}
+      loop:
+        # Performance options
+        - "performance.cache-size 1GB"
+        - "performance.io-thread-count 32"
+        - "performance.read-ahead on"
+        - "performance.readdir-ahead on"
+        - "performance.quick-read on"
+        - "performance.stat-prefetch on"
+        - "performance.client-io-threads on"
+
+        # Network options
+        - "network.ping-timeout 10"
+        - "network.inode-lru-limit 50000"
+
+        # SSD optimizations
+        - "performance.flush-behind on"
+        - "performance.write-behind-window-size 4MB"
+      run_once: true
+      delegate_to: "{{ groups['compute'][0] }}"
+
+    # Remount with optimized options
+    - name: Check if GlusterFS is mounted
+      shell: mount | grep -q glusterfs
+      register: gluster_mounted
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Remount GlusterFS with performance options
+      block:
+        - name: Unmount GlusterFS
+          mount:
+            path: "{{ gluster_mount }}"
+            state: unmounted
+
+        - name: Wait for unmount
+          pause:
+            seconds: 3
+
+        - name: Remount with optimized options
+          mount:
+            path: "{{ gluster_mount }}"
+            src: "localhost:/gv0"
+            fstype: glusterfs
+            opts: "defaults,_netdev,backupvolfile-server=localhost,fetch-attempts=3,log-level=WARNING,reader-thread-count=8"
+            state: mounted
+
+        - name: Verify mount
+          shell: mount | grep gluster
+          register: mount_check
+          changed_when: false
+
+        - name: Display mount status
+          debug:
+            msg: "{{ mount_check.stdout }}"
+      when: gluster_mounted.rc == 0
+
+- name: Phase 1 Complete - Status Report
+  hosts: compute[0]
+  become: yes
+
+  tasks:
+    - name: Display current configuration
+      debug:
+        msg:
+          - "========================================  "
+          - "Phase 1 Optimizations Complete!"
+          - "========================================"
+          - ""
+          - "Applied:"
+          - "  ✅ TCP stack optimized for 100Gb"
+          - "  ✅ IRQ affinity distributed"
+          - "  ✅ GlusterFS performance tuned"
+          - "  ✅ Mount options optimized"
+          - ""
+          - "⚠️  IPoIB still in DATAGRAM mode (2044 MTU)"
+          - ""
+          - "You can now:"
+          - "  1. Run benchmark to see improvements"
+          - "  2. Apply Phase 2 (IPoIB connected mode)"
+          - ""
+          - "Expected performance gain: 50-100%"
+          - "========================================"
+
+- name: Phase 2 - Configure IPoIB Connected Mode (Requires Reboot)
+  hosts: compute
+  become: yes
+  gather_facts: no
+
+  vars:
+    ib_interface: ibs1
+
+  tasks:
+    - name: Check current IPoIB mode
+      shell: cat /sys/class/net/{{ ib_interface }}/mode
+      register: current_mode
+      changed_when: false
+
+    - name: Configure IPoIB connected mode
+      block:
+        - name: Set IPoIB connected mode via modprobe
+          lineinfile:
+            path: /etc/modprobe.d/ib_ipoib.conf
+            line: "options ib_ipoib cm=1"
+            create: yes
+            mode: "0644"
+
+        - name: Update dracut to include new config
+          shell: dracut -f
+
+        - name: Make persistent in rc.local
+          lineinfile:
+            path: /etc/rc.d/rc.local
+            line: "echo connected > /sys/class/net/{{ ib_interface }}/mode"
+            create: yes
+            mode: "0755"
+
+        - name: Reboot required notice
+          debug:
+            msg:
+              - "========================================"
+              - "IPoIB Connected Mode Configured"
+              - "========================================"
+              - ""
+              - "⚠️  REBOOT REQUIRED to apply changes!"
+              - ""
+              - "After reboot, IPoIB will use:"
+              - "  - Connected mode (no MTU limit)"
+              - "  - Much better performance"
+              - ""
+              - "To reboot all nodes:"
+              - "  ansible compute -m reboot --become"
+              - ""
+              - "========================================"
+      when: "'datagram' in current_mode.stdout"
+
+    - name: Already in connected mode
+      debug:
+        msg: "✅ IPoIB already in connected mode - no reboot needed!"
+      when: "'connected' in current_mode.stdout"
