@@ -1,0 +1,71 @@
+---
+- name: Cleanup Lustre 2.15.4 and Revert to Stock Kernel
+  hosts: all
+  become: yes
+  serial: 10
+
+  tasks:
+    - name: Unmount Lustre client
+      command: umount /mnt/lustre
+      failed_when: false
+      changed_when: false
+
+    - name: Unmount all OSTs
+      shell: umount /mnt/ost* 2>/dev/null || true
+      changed_when: false
+
+    - name: Unmount all MDTs
+      shell: umount /mnt/mdt* 2>/dev/null || true
+      changed_when: false
+
+    - name: Unmount MGS
+      command: umount /mnt/mgt
+      failed_when: false
+      changed_when: false
+
+    - name: Verify no Lustre mounts remain
+      shell: mount | grep lustre || echo "No Lustre mounts"
+      register: lustre_mounts
+      changed_when: false
+
+    - name: Display remaining Lustre mounts
+      debug:
+        var: lustre_mounts.stdout_lines
+
+    - name: Set stock Rocky 8.10 kernel as default
+      command: grubby --set-default /boot/vmlinuz-4.18.0-553.89.1.el8_10.x86_64
+      register: grub_result
+
+    - name: Display grub result
+      debug:
+        var: grub_result.stdout
+
+    - name: Reboot to stock kernel
+      reboot:
+        reboot_timeout: 300
+
+    - name: Wait for nodes to come back
+      wait_for_connection:
+        timeout: 300
+
+    - name: Verify running stock kernel
+      command: uname -r
+      register: kernel_version
+
+    - name: Display running kernel
+      debug:
+        msg: "Node {{ inventory_hostname }} running kernel: {{ kernel_version.stdout }}"
+
+    - name: Verify InfiniBand modules loaded
+      command: lsmod
+      register: lsmod_output
+      changed_when: false
+
+    - name: Check for IB modules
+      shell: lsmod | grep -E 'ib_ipoib|mlx5_ib|rdma_cm' || echo "No IB modules"
+      register: ib_modules
+      changed_when: false
+
+    - name: Display IB modules status
+      debug:
+        var: ib_modules.stdout_lines

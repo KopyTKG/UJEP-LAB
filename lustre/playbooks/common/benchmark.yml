@@ -11,9 +11,9 @@
 
   tasks:
     - name: Install FIO
-      dnf:
-        name: fio
-        state: present
+      command: dnf install -y fio
+      args:
+        creates: /usr/bin/fio
 
     - name: Ensure Lustre mount point exists and is writable
       file:

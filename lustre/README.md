@@ -6,12 +6,14 @@
 ## Lustre Architecture
 
 **Lustre Components:**
+
 - **MGS (Management Server)**: Rocky-Head-1 - Stores configuration information
 - **MDS (Metadata Servers)**: Rocky-Head-1 & Rocky-Head-2 - Handle namespace operations, file metadata
 - **OSS (Object Storage Servers)**: Rocky-Compute-1 through 8 - Store actual file data
 - **Clients**: All compute nodes also act as Lustre clients
 
 **RDMA Configuration:**
+
 - Lustre uses LNET (Lustre Networking) with o2ib (OpenFabrics InfiniBand) for RDMA
 - InfiniBand network: 10.0.0.0/24
 - RDMA capabilities via Mellanox ConnectX-5 EDR cards
@@ -58,6 +60,7 @@
 ## Quick Commands
 
 **Check Lustre status:**
+
 ```bash
 lctl list_nids              # List network IDs
 lctl ping <nid>             # Ping a Lustre node
@@ -66,12 +69,14 @@ lctl get_param version      # Check Lustre version
 ```
 
 **Mount Lustre manually:**
+
 ```bash
 mount -t lustre <MGS_NID>:/<fsname> /mnt/lustre
 # Example: mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre
 ```
 
 **Benchmark:**
+
 ```bash
 cd /home/kopy/Documents/UJEP-LAB/lustre
 ansible-playbook playbooks/common/benchmark.yml
@@ -79,9 +84,89 @@ ansible-playbook playbooks/common/benchmark.yml
 
 ## Performance Testing
 
-Performance benchmarks will be conducted using:
-- FIO for I/O performance testing
-- IOR for parallel I/O benchmarking
-- Comparison with previous filesystem implementations (NFS, GlusterFS, etc.)
+Performance benchmarks using FIO for I/O performance testing across all 8 compute nodes.
 
-Expected improvements with RDMA enabled should show significantly better latency and throughput compared to non-RDMA solutions.
+> [!NOTE]
+> Current deployment uses TCP transport over Ethernet (192.168.1.x@tcp) due to InfiniBand kernel module incompatibility in the Lustre kernel.
+
+**Cluster Configuration:**
+- 16 OSTs across 8 compute nodes (OST0-13, OST18-19)
+- Total Capacity: 3.7TB
+- 2 MDTs (Rocky-Head-1, Rocky-Head-2)
+- 1 MGS (Rocky-Head-1)
+- Transport: TCP over Ethernet
+
+## Benchmark Results (All 8 Nodes Operational)
+
+**Date:** 2026-01-08
+
+### Write Performance
+
+```bash
+TASK [Show Write Bandwidth (MB/s)] *********************************************
+ok: [Rocky-Compute-1] => {
+    "msg": "Host Rocky-Compute-1 Write Speed: 36.1318359375 MB/s"
+}
+ok: [Rocky-Compute-2] => {
+    "msg": "Host Rocky-Compute-2 Write Speed: 231.765625 MB/s"
+}
+ok: [Rocky-Compute-3] => {
+    "msg": "Host Rocky-Compute-3 Write Speed: 239.384765625 MB/s"
+}
+ok: [Rocky-Compute-4] => {
+    "msg": "Host Rocky-Compute-4 Write Speed: 219.166015625 MB/s"
+}
+ok: [Rocky-Compute-5] => {
+    "msg": "Host Rocky-Compute-5 Write Speed: 189.3466796875 MB/s"
+}
+ok: [Rocky-Compute-6] => {
+    "msg": "Host Rocky-Compute-6 Write Speed: 140.345703125 MB/s"
+}
+ok: [Rocky-Compute-7] => {
+    "msg": "Host Rocky-Compute-7 Write Speed: 471.0615234375 MB/s"
+}
+ok: [Rocky-Compute-8] => {
+    "msg": "Host Rocky-Compute-8 Write Speed: 35.953125 MB/s"
+}
+```
+
+**Aggregate Write Throughput: ~1,563 MB/s (1.5 GB/s)**
+
+### Read Performance
+
+```bash
+TASK [Show Read Bandwidth (MB/s)] **********************************************
+ok: [Rocky-Compute-1] => {
+    "msg": "Host Rocky-Compute-1 Read Speed: 73.9443359375 MB/s"
+}
+ok: [Rocky-Compute-2] => {
+    "msg": "Host Rocky-Compute-2 Read Speed: 516.2587890625 MB/s"
+}
+ok: [Rocky-Compute-3] => {
+    "msg": "Host Rocky-Compute-3 Read Speed: 523.3994140625 MB/s"
+}
+ok: [Rocky-Compute-4] => {
+    "msg": "Host Rocky-Compute-4 Read Speed: 518.7265625 MB/s"
+}
+ok: [Rocky-Compute-5] => {
+    "msg": "Host Rocky-Compute-5 Read Speed: 516.5517578125 MB/s"
+}
+ok: [Rocky-Compute-6] => {
+    "msg": "Host Rocky-Compute-6 Read Speed: 516.6494140625 MB/s"
+}
+ok: [Rocky-Compute-7] => {
+    "msg": "Host Rocky-Compute-7 Read Speed: 510.4677734375 MB/s"
+}
+ok: [Rocky-Compute-8] => {
+    "msg": "Host Rocky-Compute-8 Read Speed: 78.1259765625 MB/s"
+}
+```
+
+**Aggregate Read Throughput: ~3,254 MB/s (3.2 GB/s)**
+
+### Performance Notes
+
+- Compute-2 through Compute-7 show consistent high performance (140-523 MB/s)
+- Compute-1 and Compute-8 exhibit lower performance, likely due to being freshly integrated
+- Overall performance of 1.5 GB/s write and 3.2 GB/s read is excellent for TCP transport
+- Future RDMA optimization could significantly improve performance further

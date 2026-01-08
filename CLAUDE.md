@@ -17,8 +17,14 @@ The infrastructure stack consists of:
 **Current Focus: Lustre with RDMA over InfiniBand**
 
 - All nodes reinstalled with Rocky Linux 8.10 for Lustre server compatibility
-- Leveraging RDMA capabilities via Lustre LNET (o2ib) for high-performance storage
-- RDMA critical for VM disk I/O performance and live migration capabilities
+- **CRITICAL**: Current deployment uses Lustre 2.15.4 (el8.9) which does NOT support RDMA on Rocky 8.10
+  - Lustre kernel 4.18.0-513.9.1 (RHEL 8.5 based) lacks InfiniBand drivers
+  - Currently running over TCP/Ethernet (192.168.1.x@tcp) instead of RDMA
+  - Performance: 1.5 GB/s write, 3.2 GB/s read (TCP limited)
+- **Solution**: Upgrade to Lustre 2.15.8 which has el8.10 support with InfiniBand drivers
+  - Available: https://downloads.whamcloud.com/public/lustre/lustre-2.15.8/el8.10/
+  - Will enable RDMA via LNET (o2ib) for 10-40 GB/s performance
+  - RDMA critical for VM disk I/O performance and live migration capabilities
 
 **Previous Filesystem Tests (Rejected):**
 
@@ -123,15 +129,35 @@ ansible-playbook playbooks/<playbook-name>.yml --ask-vault-pass
 
 ### Lustre Implementation Playbooks (Sequential) - CURRENT
 
-Run these playbooks in order to set up the Lustre cluster with RDMA:
+**Current Status: Lustre 2.15.4 (el8.9) - TCP only, NO RDMA**
+
+Initial deployment complete with 16 OSTs (3.7TB), but running over TCP/Ethernet due to kernel limitations.
+
+**Sequential Playbooks:**
 
 0. `stage0_bootstrap.yml` - Bootstrap Python 3.9 on fresh Rocky 8.10 install (run once after OS installation)
 1. `stage1_core_setup.yml` - Imports shared base setup + Lustre firewall + storage prep
-2. `stage2_install_lustre.yml` - Install Lustre packages (server on head/compute, client on all) + configure LNET for RDMA (o2ib)
+2. `stage2_install_lustre.yml` - Install Lustre packages (server on head/compute, client on all) + configure LNET
 3. `stage3_configure_mgs.yml` - Set up Management Server (MGS) on Rocky-Head-1
 4. `stage4_configure_mds.yml` - Set up Metadata Servers (MDS) on head nodes
 5. `stage5_configure_oss.yml` - Set up Object Storage Servers (OSS) on compute nodes
 6. `stage6_mount_clients.yml` - Mount Lustre filesystem on client nodes
+
+**REQUIRED: Upgrade to Lustre 2.15.8 for RDMA Support**
+
+Current Lustre 2.15.4 kernel (4.18.0-513.9.1, RHEL 8.5 based) lacks InfiniBand drivers. Upgrade required:
+
+1. Update `stage2_install_lustre.yml`: Change repo URLs from `el8.9` to `el8.10` and version `2.15.4` to `2.15.8`
+2. Stop Lustre services on all nodes: `umount /mnt/lustre`, `umount /mnt/ost*`, `umount /mnt/mdt*`, `umount /mnt/mgt`
+3. Upgrade Lustre packages: `dnf upgrade lustre lustre-dkms`
+4. Reboot to new kernel (should be 4.18.0-553.x series with IB drivers)
+5. Verify IB modules loaded: `lsmod | grep ib_ipoib`
+6. Reconfigure LNET for RDMA: Change all NIDs from `192.168.1.x@tcp` to `10.0.0.x@o2ib`
+7. Reformat MGS with o2ib: `mkfs.lustre --mgs --reformat --mgsnode=10.0.0.251@o2ib /dev/loop10`
+8. Reformat all MDTs with o2ib NIDs
+9. Reformat all 16 OSTs with o2ib MGS node
+10. Remount filesystem and verify RDMA: `lctl ping 10.0.0.251@o2ib`
+11. Benchmark performance (expect 10-40 GB/s aggregate)
 
 **Lustre-specific commands:**
 

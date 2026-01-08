@@ -1,0 +1,92 @@
+---
+# Lustre Stage 3: Configure Management Server (MGS)
+# Sets up the Lustre Management Target (MGT) on Rocky-Head-1
+
+- name: Configure Lustre Management Server (MGS)
+  hosts: mgs
+  become: yes
+
+  vars:
+    mgt_file: "/var/lib/lustre/mgt.img"
+    mgt_size: "10G"
+    mgt_device: "/dev/loop10"
+    mgt_mount: "/mnt/mgt"
+    filesystem_name: "lustrefs"
+    # Using TCP for now - RDMA (o2ib) partially working on compute nodes 5-8
+    # Once all nodes have RDMA, can switch to: 10.0.0.251@o2ib
+
+  tasks:
+    # --- 1. CREATE MGT BACKING FILE ---
+    - name: Create directory for Lustre images
+      file:
+        path: /var/lib/lustre
+        state: directory
+        mode: "0755"
+
+    - name: Create MGT backing file
+      command: truncate -s {{ mgt_size }} {{ mgt_file }}
+      args:
+        creates: "{{ mgt_file }}"
+
+    - name: Setup loop device for MGT
+      command: losetup {{ mgt_device }} {{ mgt_file }}
+      register: loop_setup
+      failed_when: false
+      changed_when: loop_setup.rc == 0
+
+    # --- 2. PREPARE MGT DEVICE ---
+    - name: Unmount MGT device if mounted
+      command: umount {{ mgt_device }}
+      register: umount_result
+      failed_when: false
+      changed_when: umount_result.rc == 0
+
+    - name: Format MGT with Lustre filesystem
+      command: >
+        mkfs.lustre --mgs
+        --fsname={{ filesystem_name }}
+        --backfstype=ldiskfs
+        --reformat
+        {{ mgt_device }}
+      register: mgt_format
+      changed_when: "'Writing CONFIGS/mountdata' in mgt_format.stdout"
+
+    # --- 2. CREATE MGT MOUNT POINT ---
+    - name: Create MGT mount directory
+      file:
+        path: "{{ mgt_mount }}"
+        state: directory
+        mode: "0755"
+
+    # --- 3. MOUNT MGT ---
+    - name: Mount MGT
+      command: mount -t lustre {{ mgt_device }} {{ mgt_mount }}
+      register: mgt_mount_result
+      changed_when: mgt_mount_result.rc == 0
+
+    - name: Add MGT to /etc/fstab for persistence
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ mgt_device }}  {{ mgt_mount }}  lustre  defaults,_netdev  0 0"
+        state: present
+        backup: yes
+
+    # --- 4. VERIFY MGS STATUS ---
+    - name: Check MGS status
+      command: lctl dl
+      register: mgs_status
+      changed_when: false
+
+    - name: Display MGS status
+      debug:
+        msg: "{{ mgs_status.stdout_lines }}"
+
+    - name: Verify MGT is mounted
+      shell: mount | grep {{ mgt_mount }}
+      register: mgt_check
+      changed_when: false
+      failed_when: mgt_check.rc != 0
+
+    - name: Display MGT mount info
+      debug:
+        msg: "MGT successfully mounted: {{ mgt_check.stdout }}"
