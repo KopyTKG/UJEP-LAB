@@ -8,7 +8,7 @@
 
   vars:
     filesystem_name: "lustrefs"
-    mgs_nid: "192.168.1.251@tcp"  # Rocky-Head-1 MGS NID (using TCP for universal compatibility)
+    mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
     mount_point: "/mnt/lustre"
 
   tasks:
@@ -106,14 +106,13 @@
       debug:
         msg: |
           ============================================================
-          Lustre Filesystem Successfully Configured!
+          Lustre Filesystem Successfully Configured with RDMA!
           ============================================================
           - Filesystem: lustrefs
-          - Transport: TCP over Ethernet (192.168.1.x@tcp)
-          - MGS: Rocky-Head-1 (192.168.1.251@tcp)
+          - Transport: RDMA over InfiniBand (10.0.0.x@o2ib)
+          - MGS: Rocky-Head-1 (10.0.0.251@o2ib)
           - MDS: Rocky-Head-1, Rocky-Head-2 (2 MDTs)
-          - OSS: Rocky-Compute-1 through 8 (16 OSTs total)
+          - OSS: Rocky-Compute-1 through 8 (16 OSTs, ~3.8TB total)
           - Mount Point: /mnt/lustre
-          - Note: Some compute nodes (5-8) also have o2ib available
-          - RDMA optimization available as future enhancement
+          - All nodes using RDMA for high-performance storage access
           ============================================================

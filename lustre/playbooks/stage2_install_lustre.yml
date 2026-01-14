@@ -41,16 +41,16 @@
     - name: Add Lustre server repository
       yum_repository:
         name: lustre-server
-        description: Lustre Server Repository for EL8
-        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el8.9/server/
+        description: Lustre Server Repository for EL9
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el9.7/server/
         gpgcheck: no
         enabled: yes
 
     - name: Add Lustre client repository
       yum_repository:
         name: lustre-client
-        description: Lustre Client Repository for EL8
-        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el8.9/client/
+        description: Lustre Client Repository for EL9
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_version }}/el9.7/client/
         gpgcheck: no
         enabled: yes
 
@@ -58,7 +58,7 @@
       yum_repository:
         name: e2fsprogs-wc
         description: e2fsprogs for Lustre
-        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el8/
+        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el9/
         gpgcheck: no
         enabled: yes
 

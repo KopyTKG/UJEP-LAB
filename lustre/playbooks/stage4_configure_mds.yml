@@ -8,49 +8,27 @@
 
   vars:
     filesystem_name: "lustrefs"
-    mgs_nid: "192.168.1.251@tcp"  # Rocky-Head-1 MGS NID (using TCP for universal compatibility)
+    mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
     mdt_mount_base: "/mnt/mdt"
-    mdt_size: "20G"
+    mdt_device: "/dev/sdb"  # Physical SSD for MDT
 
   tasks:
-    # --- 1. DETERMINE MDT INDEX AND DEVICE ---
-    - name: Set MDT index and loop device for Rocky-Head-1
+    # --- 1. DETERMINE MDT INDEX ---
+    - name: Set MDT index for Rocky-Head-1
       set_fact:
         mdt_index: 0
-        mdt_file: "/var/lib/lustre/mdt0.img"
-        mdt_device: "/dev/loop11"
       when: inventory_hostname == "Rocky-Head-1"
 
-    - name: Set MDT index and loop device for Rocky-Head-2
+    - name: Set MDT index for Rocky-Head-2
       set_fact:
         mdt_index: 1
-        mdt_file: "/var/lib/lustre/mdt1.img"
-        mdt_device: "/dev/loop11"
       when: inventory_hostname == "Rocky-Head-2"
 
     - name: Set MDT mount point
       set_fact:
         mdt_mount: "{{ mdt_mount_base }}{{ mdt_index }}"
 
-    # --- 2. CREATE MDT BACKING FILE ---
-    - name: Create directory for Lustre images
-      file:
-        path: /var/lib/lustre
-        state: directory
-        mode: "0755"
-
-    - name: Create MDT backing file
-      command: truncate -s {{ mdt_size }} {{ mdt_file }}
-      args:
-        creates: "{{ mdt_file }}"
-
-    - name: Setup loop device for MDT
-      command: losetup {{ mdt_device }} {{ mdt_file }}
-      register: loop_setup
-      failed_when: false
-      changed_when: loop_setup.rc == 0
-
-    # --- 3. PREPARE MDT DEVICE ---
+    # --- 2. PREPARE MDT DEVICE ---
     - name: Unmount MDT device if mounted
       command: umount {{ mdt_device }}
       register: umount_result
