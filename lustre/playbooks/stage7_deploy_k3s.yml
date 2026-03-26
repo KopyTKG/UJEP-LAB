@@ -1,0 +1,311 @@
+---
+# Lustre Stage 7: Deploy K3s Kubernetes Cluster
+# Head nodes: K3s servers (HA with embedded etcd), tainted - no workloads
+# Compute nodes: K3s agents (workers), Lustre mounted at /mnt/lustre
+
+# --- 1. INSTALL K3S SERVER ON HEAD-1 (INIT CLUSTER) ---
+- name: Initialize K3s Cluster on Head-1
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    k3s_version: "v1.32.4+k3s1"
+    cluster_cidr: "10.42.0.0/16"
+    service_cidr: "10.43.0.0/16"
+
+  tasks:
+    - name: Check if K3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download K3s installer
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_binary.stat.exists
+
+    - name: Install K3s server (init cluster with embedded etcd)
+      shell: >
+        INSTALL_K3S_VERSION={{ k3s_version }}
+        K3S_TOKEN=lustre-k3s-cluster
+        /tmp/k3s-install.sh server
+        --cluster-init
+        --tls-san 192.168.1.251
+        --tls-san 192.168.1.252
+        --tls-san 10.0.0.251
+        --node-taint node-role.kubernetes.io/control-plane:NoSchedule
+        --cluster-cidr {{ cluster_cidr }}
+        --service-cidr {{ service_cidr }}
+        --write-kubeconfig-mode 644
+        --disable traefik
+        --disable servicelb
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for K3s to be ready
+      shell: /usr/local/bin/k3s kubectl get nodes
+      register: k3s_ready
+      retries: 30
+      delay: 5
+      until: k3s_ready.rc == 0
+
+    - name: Get K3s server token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token
+
+    - name: Store token as fact
+      set_fact:
+        k3s_server_token: "{{ k3s_token.content | b64decode | trim }}"
+
+    - name: Display K3s init status
+      debug:
+        msg: "K3s cluster initialized on {{ inventory_hostname }}"
+
+# --- 2. JOIN HEAD-2 AS SECOND SERVER ---
+- name: Join Head-2 to K3s Cluster as Server
+  hosts: Rocky-Head-2
+  become: yes
+
+  vars:
+    k3s_version: "v1.32.4+k3s1"
+    k3s_server_url: "https://10.0.0.251:6443"
+
+  tasks:
+    - name: Check if K3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download K3s installer
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_binary.stat.exists
+
+    - name: Install K3s server (join existing cluster)
+      shell: >
+        INSTALL_K3S_VERSION={{ k3s_version }}
+        K3S_TOKEN={{ hostvars['Rocky-Head-1'].k3s_server_token }}
+        /tmp/k3s-install.sh server
+        --server {{ k3s_server_url }}
+        --tls-san 192.168.1.251
+        --tls-san 192.168.1.252
+        --tls-san 10.0.0.251
+        --node-taint node-role.kubernetes.io/control-plane:NoSchedule
+        --write-kubeconfig-mode 644
+        --disable traefik
+        --disable servicelb
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for K3s to be ready
+      shell: /usr/local/bin/k3s kubectl get nodes
+      register: k3s_ready
+      retries: 30
+      delay: 5
+      until: k3s_ready.rc == 0
+
+    - name: Display join status
+      debug:
+        msg: "Head-2 joined K3s cluster as server"
+
+# --- 3. JOIN COMPUTE NODES AS AGENTS ---
+- name: Join Compute Nodes to K3s Cluster as Agents
+  hosts: compute
+  become: yes
+
+  vars:
+    k3s_version: "v1.32.4+k3s1"
+    k3s_server_url: "https://10.0.0.251:6443"
+
+  tasks:
+    - name: Check if K3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download K3s installer
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_binary.stat.exists
+
+    - name: Install K3s agent
+      shell: >
+        INSTALL_K3S_VERSION={{ k3s_version }}
+        K3S_URL={{ k3s_server_url }}
+        K3S_TOKEN={{ hostvars['Rocky-Head-1'].k3s_server_token }}
+        /tmp/k3s-install.sh agent
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for K3s agent to be ready
+      shell: /usr/local/bin/k3s --version
+      register: agent_ready
+      retries: 10
+      delay: 3
+      until: agent_ready.rc == 0
+      ignore_errors: yes
+
+# --- 4. CONFIGURE CLUSTER ---
+- name: Configure K3s Cluster
+  hosts: Rocky-Head-1
+  become: yes
+
+  tasks:
+    - name: Wait for all nodes to register
+      shell: /usr/local/bin/k3s kubectl get nodes --no-headers | wc -l
+      register: node_count
+      retries: 30
+      delay: 10
+      until: node_count.stdout | int >= 10
+
+    - name: Label compute nodes as workers
+      shell: >
+        /usr/local/bin/k3s kubectl label node {{ item }} node-role.kubernetes.io/worker=worker --overwrite
+      loop: "{{ groups['compute'] | map('lower') | list }}"
+      ignore_errors: yes
+
+    - name: Create lustre namespace for storage
+      shell: /usr/local/bin/k3s kubectl create namespace lustre-storage --dry-run=client -o yaml | /usr/local/bin/k3s kubectl apply -f -
+
+    - name: Create Lustre hostPath StorageClass
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/lustre-storageclass.yaml
+        content: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: lustre-storage
+          ---
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: lustre
+            annotations:
+              storageclass.kubernetes.io/is-default-class: "true"
+          provisioner: kubernetes.io/no-provisioner
+          volumeBindingMode: WaitForFirstConsumer
+          ---
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: lustre-shared
+          spec:
+            capacity:
+              storage: 3500Gi
+            accessModes:
+              - ReadWriteMany
+            persistentVolumeReclaimPolicy: Retain
+            storageClassName: lustre
+            hostPath:
+              path: /mnt/lustre
+              type: Directory
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/worker
+                        operator: Exists
+          ---
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: lustre-shared
+            namespace: default
+          spec:
+            accessModes:
+              - ReadWriteMany
+            storageClassName: lustre
+            resources:
+              requests:
+                storage: 3500Gi
+        mode: "0644"
+
+    - name: Wait for manifests to be applied
+      shell: /usr/local/bin/k3s kubectl get pv lustre-shared
+      register: pv_check
+      retries: 10
+      delay: 5
+      until: pv_check.rc == 0
+      ignore_errors: yes
+
+    - name: Open K3s ports in firewall
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 6443/tcp      # K3s API server
+        - 10250/tcp     # Kubelet
+        - 2379-2380/tcp # etcd
+        - 8472/udp      # VXLAN
+        - 51820/udp     # WireGuard
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      ignore_errors: yes
+
+    - name: Show cluster status
+      shell: /usr/local/bin/k3s kubectl get nodes -o wide
+      register: cluster_status
+
+    - name: Display cluster
+      debug:
+        msg: "{{ cluster_status.stdout_lines }}"
+
+    - name: Show storage
+      shell: /usr/local/bin/k3s kubectl get pv,pvc --all-namespaces
+      register: storage_status
+
+    - name: Display storage
+      debug:
+        msg: "{{ storage_status.stdout_lines }}"
+
+    - name: Final summary
+      debug:
+        msg: |
+          ============================================================
+          K3s Cluster Deployed on Lustre!
+          ============================================================
+          - API Server: https://10.0.0.251:6443
+          - Servers: Rocky-Head-1, Rocky-Head-2 (tainted, no workloads)
+          - Workers: Rocky-Compute-1 through 8
+          - Storage: Lustre RDMA at /mnt/lustre (3.5TB, 17 Gb/s write)
+          - Kubeconfig: /etc/rancher/k3s/k3s.yaml
+          ============================================================
+
+# --- 5. OPEN FIREWALL ON ALL NODES ---
+- name: Open K3s Firewall Ports on All Nodes
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Open K3s ports
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 6443/tcp
+        - 10250/tcp
+        - 8472/udp
+        - 51820/udp
+      ignore_errors: yes
+
+    - name: Trust K3s pod and service networks
+      command: firewall-cmd --permanent --zone=trusted --add-{{ item }}
+      loop:
+        - interface=flannel.1
+        - interface=cni0
+        - source=10.42.0.0/16
+        - source=10.43.0.0/16
+      ignore_errors: yes
+
+    - name: Enable masquerade for pod networking
+      command: firewall-cmd --permanent --add-masquerade
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      ignore_errors: yes

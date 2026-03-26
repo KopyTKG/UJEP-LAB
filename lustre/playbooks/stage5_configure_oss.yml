@@ -94,14 +94,14 @@
     - name: Add first OST to /etc/fstab
       lineinfile:
         path: /etc/fstab
-        line: "{{ ssd_devices.stdout_lines[0] }}  {{ ost_mount_base }}{{ base_ost_index }}  lustre  defaults,_netdev  0 0"
+        line: "{{ ssd_devices.stdout_lines[0] }}  {{ ost_mount_base }}{{ base_ost_index }}  lustre  defaults,_netdev,nofail  0 0"
         state: present
         backup: yes
 
     - name: Add second OST to /etc/fstab
       lineinfile:
         path: /etc/fstab
-        line: "{{ ssd_devices.stdout_lines[1] }}  {{ ost_mount_base }}{{ base_ost_index | int + 1 }}  lustre  defaults,_netdev  0 0"
+        line: "{{ ssd_devices.stdout_lines[1] }}  {{ ost_mount_base }}{{ base_ost_index | int + 1 }}  lustre  defaults,_netdev,nofail  0 0"
         state: present
 
     # --- 7. VERIFY OSS STATUS ---

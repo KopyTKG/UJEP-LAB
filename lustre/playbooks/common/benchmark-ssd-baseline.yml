@@ -1,0 +1,141 @@
+---
+- name: Bare SSD Baseline Benchmark (No Filesystem Overhead)
+  hosts: compute
+  become: yes
+  vars:
+    test_size: "4G"
+    block_size: "1M"
+    iodepth: 16
+    numjobs: 4
+    benchmark_dir: "{{ playbook_dir }}/../../../benchmarks"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Install FIO
+      command: dnf install -y fio
+      args:
+        creates: /usr/bin/fio
+
+    - name: Find Samsung 256GB OST SSDs
+      shell: >
+        ls -1 /dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-* | grep -v part | head -1
+      register: ssd_device
+      changed_when: false
+
+    - name: Unmount OST on test SSD
+      shell: |
+        MOUNT=$(mount | grep "$(readlink -f {{ ssd_device.stdout }})" | awk '{print $3}')
+        if [ -n "$MOUNT" ]; then umount "$MOUNT"; echo "unmounted $MOUNT"; fi
+      register: unmount_result
+
+    - name: Run Write Bandwidth Test (Raw SSD - direct device)
+      shell: >
+        fio --name=ssd_write_test
+        --filename={{ ssd_device.stdout }}
+        --size={{ test_size }}
+        --rw=write
+        --bs={{ block_size }}
+        --direct=1
+        --numjobs={{ numjobs }}
+        --ioengine=libaio
+        --iodepth={{ iodepth }}
+        --group_reporting
+        --output-format=json
+      register: fio_write
+
+    - name: Parse Write Results
+      set_fact:
+        write_bw_kb: "{{ (fio_write.stdout | from_json).jobs[0].write.bw }}"
+        write_iops: "{{ (fio_write.stdout | from_json).jobs[0].write.iops }}"
+        write_lat_mean_us: "{{ (fio_write.stdout | from_json).jobs[0].write.lat_ns.mean | float / 1000 }}"
+
+    - name: Show Write Bandwidth (MB/s)
+      debug:
+        msg: "Host {{ inventory_hostname }} SSD Write: {{ write_bw_kb | int / 1024 }} MB/s"
+
+    - name: Save raw write JSON
+      copy:
+        content: "{{ fio_write.stdout }}"
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_ssd_baseline_{{ inventory_hostname }}_write.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: no
+
+    - name: Run Read Bandwidth Test (Raw SSD - direct device)
+      shell: >
+        fio --name=ssd_read_test
+        --filename={{ ssd_device.stdout }}
+        --size={{ test_size }}
+        --rw=read
+        --bs={{ block_size }}
+        --direct=1
+        --numjobs={{ numjobs }}
+        --ioengine=libaio
+        --iodepth={{ iodepth }}
+        --group_reporting
+        --output-format=json
+      register: fio_read
+
+    - name: Parse Read Results
+      set_fact:
+        read_bw_kb: "{{ (fio_read.stdout | from_json).jobs[0].read.bw }}"
+        read_iops: "{{ (fio_read.stdout | from_json).jobs[0].read.iops }}"
+        read_lat_mean_us: "{{ (fio_read.stdout | from_json).jobs[0].read.lat_ns.mean | float / 1000 }}"
+
+    - name: Show Read Bandwidth (MB/s)
+      debug:
+        msg: "Host {{ inventory_hostname }} SSD Read: {{ read_bw_kb | int / 1024 }} MB/s"
+
+    - name: Save raw read JSON
+      copy:
+        content: "{{ fio_read.stdout }}"
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_ssd_baseline_{{ inventory_hostname }}_read.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: no
+
+    - name: Restore OST - reformat and remount
+      shell: |
+        mkfs.lustre --ost --fsname=lustrefs --mgsnode=10.0.0.251@o2ib \
+          --index={{ ((inventory_hostname | regex_replace('Rocky-Compute-', '') | int) - 1) * 2 }} \
+          --backfstype=ldiskfs --reformat {{ ssd_device.stdout }}
+        mount -t lustre {{ ssd_device.stdout }} /mnt/ost{{ ((inventory_hostname | regex_replace('Rocky-Compute-', '') | int) - 1) * 2 }}
+      register: restore_result
+
+    - name: Verify OST restored
+      debug:
+        msg: "OST restored: {{ restore_result.stdout_lines | default(['ok']) }}"
+
+- name: Aggregate SSD Baseline Results
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    benchmark_dir: "{{ playbook_dir }}/../../../benchmarks"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Generate CSV
+      copy:
+        content: |
+          timestamp,hostname,write_bw_mbps,write_iops,write_lat_mean_us,read_bw_mbps,read_iops,read_lat_mean_us
+          {% for host in groups['compute'] %}
+          {{ timestamp }},{{ host }},{{ (hostvars[host].write_bw_kb | int / 1024) | round(2) }},{{ hostvars[host].write_iops | round(2) }},{{ hostvars[host].write_lat_mean_us | round(2) }},{{ (hostvars[host].read_bw_kb | int / 1024) | round(2) }},{{ hostvars[host].read_iops | round(2) }},{{ hostvars[host].read_lat_mean_us | round(2) }}
+          {% endfor %}
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_ssd_baseline.csv"
+        mode: "0644"
+
+    - name: Display results
+      debug:
+        msg: |
+          ============================================================
+          Bare SSD Baseline Results ({{ timestamp }})
+          ============================================================
+          {% for host in groups['compute'] %}
+          {{ host }}:  Write {{ (hostvars[host].write_bw_kb | int / 1024) | round(1) }} MB/s  |  Read {{ (hostvars[host].read_bw_kb | int / 1024) | round(1) }} MB/s
+          {% endfor %}
+          ------------------------------------------------------------
+          Avg Write: {{ (groups['compute'] | map('extract', hostvars, 'write_bw_kb') | map('int') | sum / 1024 / groups['compute'] | length) | round(1) }} MB/s
+          Avg Read:  {{ (groups['compute'] | map('extract', hostvars, 'read_bw_kb') | map('int') | sum / 1024 / groups['compute'] | length) | round(1) }} MB/s
+          ============================================================
+          Results saved to: benchmarks/{{ timestamp }}_ssd_baseline.csv
+          ============================================================

@@ -1,0 +1,239 @@
+---
+# Lustre Stage 11: Deploy Monitoring Stack (Prometheus + Grafana)
+# Uses K3s HelmChart CRD for kube-prometheus-stack
+
+- name: Prepare Monitoring Storage
+  hosts: Rocky-Head-1
+  become: yes
+
+  tasks:
+    - name: Create monitoring directories on Lustre
+      shell: |
+        mkdir -p /mnt/lustre/k8s/prometheus
+        mkdir -p /mnt/lustre/k8s/grafana
+        chmod 777 /mnt/lustre/k8s/prometheus
+        chmod 777 /mnt/lustre/k8s/grafana
+
+    - name: Create monitoring namespace
+      shell: >
+        /usr/local/bin/k3s kubectl create namespace monitoring
+        --dry-run=client -o yaml |
+        /usr/local/bin/k3s kubectl apply -f -
+
+    - name: Copy TLS secret to monitoring namespace
+      shell: >
+        /usr/local/bin/k3s kubectl get secret lab-tls -n default -o yaml |
+        sed 's/namespace: default/namespace: monitoring/' |
+        /usr/local/bin/k3s kubectl apply -f -
+      ignore_errors: yes
+
+- name: Deploy Monitoring Stack
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    lab_domain: lab.local
+
+  tasks:
+    - name: Create monitoring PersistentVolumes
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/monitoring-storage.yaml
+        content: |
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: prometheus-data
+          spec:
+            capacity:
+              storage: 50Gi
+            accessModes:
+              - ReadWriteMany
+            persistentVolumeReclaimPolicy: Retain
+            storageClassName: lustre
+            hostPath:
+              path: /mnt/lustre/k8s/prometheus
+              type: Directory
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/worker
+                        operator: Exists
+          ---
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: grafana-data
+          spec:
+            capacity:
+              storage: 10Gi
+            accessModes:
+              - ReadWriteMany
+            persistentVolumeReclaimPolicy: Retain
+            storageClassName: lustre
+            hostPath:
+              path: /mnt/lustre/k8s/grafana
+              type: Directory
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/worker
+                        operator: Exists
+        mode: "0644"
+
+    - name: Deploy kube-prometheus-stack via HelmChart CRD
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/monitoring-stack.yaml
+        content: |
+          apiVersion: helm.cattle.io/v1
+          kind: HelmChart
+          metadata:
+            name: kube-prometheus-stack
+            namespace: kube-system
+          spec:
+            repo: https://prometheus-community.github.io/helm-charts
+            chart: kube-prometheus-stack
+            targetNamespace: monitoring
+            createNamespace: true
+            valuesContent: |-
+              grafana:
+                adminPassword: "admin"
+                ingress:
+                  enabled: true
+                  ingressClassName: nginx
+                  hosts:
+                    - grafana.{{ lab_domain }}
+                  tls:
+                    - secretName: lab-tls
+                      hosts:
+                        - grafana.{{ lab_domain }}
+                persistence:
+                  enabled: false
+                additionalDataSources:
+                  - name: Lustre-Metrics
+                    type: prometheus
+                    access: proxy
+                    url: http://kube-prometheus-stack-prometheus.monitoring:9090
+                    isDefault: false
+              prometheus:
+                prometheusSpec:
+                  retention: 30d
+                  nodeSelector:
+                    node-role.kubernetes.io/worker: worker
+                  storageSpec: {}
+                ingress:
+                  enabled: true
+                  ingressClassName: nginx
+                  hosts:
+                    - prometheus.{{ lab_domain }}
+                  tls:
+                    - secretName: lab-tls
+                      hosts:
+                        - prometheus.{{ lab_domain }}
+              alertmanager:
+                enabled: false
+              nodeExporter:
+                tolerations:
+                  - key: node-role.kubernetes.io/control-plane
+                    effect: NoSchedule
+              prometheusNodeExporter:
+                service:
+                  port: 9101
+                  targetPort: 9101
+                extraArgs:
+                  - --web.listen-address=:9101
+                tolerations:
+                  - key: node-role.kubernetes.io/control-plane
+                    effect: NoSchedule
+              kubeStateMetrics:
+                nodeSelector:
+                  node-role.kubernetes.io/worker: worker
+              kube-state-metrics:
+                nodeSelector:
+                  node-role.kubernetes.io/worker: worker
+        mode: "0644"
+
+    - name: Wait for HelmChart to be processed
+      shell: >
+        /usr/local/bin/k3s kubectl get helmchart -n kube-system kube-prometheus-stack
+        -o jsonpath='{.status.jobName}'
+      register: helm_status
+      retries: 30
+      delay: 10
+      until: helm_status.stdout | length > 0
+      ignore_errors: yes
+
+    - name: Wait for Grafana to be ready
+      shell: >
+        /usr/local/bin/k3s kubectl wait --for=condition=ready pod
+        -l app.kubernetes.io/name=grafana
+        -n monitoring --timeout=300s
+      retries: 5
+      delay: 30
+      register: grafana_ready
+      until: grafana_ready.rc == 0
+      ignore_errors: yes
+
+    - name: Wait for Prometheus to be ready
+      shell: >
+        /usr/local/bin/k3s kubectl wait --for=condition=ready pod
+        -l app.kubernetes.io/name=prometheus
+        -n monitoring --timeout=300s
+      retries: 5
+      delay: 30
+      register: prom_ready
+      until: prom_ready.rc == 0
+      ignore_errors: yes
+
+    - name: Get all monitoring pods
+      shell: /usr/local/bin/k3s kubectl get pods -n monitoring -o wide
+      register: monitoring_pods
+      changed_when: false
+
+    - name: Get monitoring ingresses
+      shell: /usr/local/bin/k3s kubectl get ingress -n monitoring
+      register: monitoring_ingress
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Get ingress external IP
+      shell: >
+        /usr/local/bin/k3s kubectl get svc ingress-nginx-controller
+        -n ingress-nginx
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: ingress_ip
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display monitoring status
+      debug:
+        msg: |
+          ============================================================
+          Monitoring Stack Deployed
+          ============================================================
+          Grafana:    https://grafana.{{ lab_domain }} (admin/admin)
+          Prometheus: https://prometheus.{{ lab_domain }}
+
+          Add to /etc/hosts:
+            {{ ingress_ip.stdout | default('<INGRESS_IP>') }}  grafana.{{ lab_domain }} prometheus.{{ lab_domain }}
+
+          Pods:
+          {{ monitoring_pods.stdout }}
+
+          Ingresses:
+          {{ monitoring_ingress.stdout | default('pending...') }}
+          ============================================================
+
+- name: Open Monitoring Firewall Ports
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Open node-exporter port
+      command: firewall-cmd --permanent --add-port=9100/tcp
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      ignore_errors: yes

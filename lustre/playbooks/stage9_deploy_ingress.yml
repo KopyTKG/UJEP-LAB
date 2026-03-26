@@ -1,0 +1,86 @@
+---
+# Lustre Stage 9: Deploy Nginx Ingress Controller
+# Routes HTTP/HTTPS traffic to K3s services via MetalLB LoadBalancer IP
+
+- name: Deploy Nginx Ingress Controller
+  hosts: Rocky-Head-1
+  become: yes
+
+  tasks:
+    - name: Check if ingress-nginx is already deployed
+      shell: /usr/local/bin/k3s kubectl get namespace ingress-nginx --no-headers 2>/dev/null | grep -c ingress
+      register: ingress_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Deploy Nginx Ingress Controller manifest
+      shell: >
+        /usr/local/bin/k3s kubectl apply -f
+        https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/baremetal/deploy.yaml
+      when: ingress_exists.stdout | int == 0
+
+    - name: Wait for ingress controller pod to be ready
+      shell: >
+        /usr/local/bin/k3s kubectl wait --for=condition=ready pod
+        -l app.kubernetes.io/component=controller
+        -n ingress-nginx --timeout=120s
+      retries: 10
+      delay: 10
+      register: ingress_ready
+      until: ingress_ready.rc == 0
+
+    - name: Patch ingress service to LoadBalancer (MetalLB assigns IP)
+      shell: >
+        /usr/local/bin/k3s kubectl patch svc ingress-nginx-controller
+        -n ingress-nginx
+        -p '{"spec":{"type":"LoadBalancer"}}'
+
+    - name: Wait for LoadBalancer IP assignment
+      shell: >
+        /usr/local/bin/k3s kubectl get svc ingress-nginx-controller
+        -n ingress-nginx
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: ingress_ip
+      retries: 20
+      delay: 5
+      until: ingress_ip.stdout | length > 0
+
+    - name: Store ingress IP
+      set_fact:
+        ingress_external_ip: "{{ ingress_ip.stdout }}"
+
+    - name: Verify ingress class
+      shell: /usr/local/bin/k3s kubectl get ingressclass
+      register: ingress_class
+      changed_when: false
+
+    - name: Display Ingress status
+      debug:
+        msg: |
+          ============================================================
+          Nginx Ingress Controller Deployed
+          ============================================================
+          External IP: {{ ingress_external_ip }}
+          IngressClass: nginx
+
+          Add to your workstation's /etc/hosts:
+            {{ ingress_external_ip }}  dashboard.lab.local grafana.lab.local prometheus.lab.local
+
+          {{ ingress_class.stdout }}
+          ============================================================
+
+- name: Open Ingress Firewall Ports on Workers
+  hosts: compute
+  become: yes
+
+  tasks:
+    - name: Open HTTP/HTTPS ports
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 80/tcp
+        - 443/tcp
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      ignore_errors: yes

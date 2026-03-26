@@ -67,7 +67,7 @@
     - name: Add MGT to /etc/fstab for persistence
       lineinfile:
         path: /etc/fstab
-        line: "{{ mgt_device }}  {{ mgt_mount }}  lustre  defaults,_netdev  0 0"
+        line: "{{ mgt_device }}  {{ mgt_mount }}  lustre  defaults,_netdev,nofail  0 0"
         state: present
         backup: yes
 

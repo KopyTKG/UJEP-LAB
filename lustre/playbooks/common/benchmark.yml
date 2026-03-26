@@ -8,6 +8,8 @@
     block_size: "1M"
     iodepth: 16
     numjobs: 4
+    benchmark_dir: "{{ playbook_dir }}/../../../benchmarks"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
 
   tasks:
     - name: Install FIO
@@ -40,10 +42,21 @@
     - name: Parse Write Results
       set_fact:
         write_bw_kb: "{{ (fio_write.stdout | from_json).jobs[0].write.bw }}"
+        write_iops: "{{ (fio_write.stdout | from_json).jobs[0].write.iops }}"
+        write_lat_mean_us: "{{ (fio_write.stdout | from_json).jobs[0].write.lat_ns.mean | float / 1000 }}"
+        write_lat_p99_us: "{{ (fio_write.stdout | from_json).jobs[0].write.clat_ns.percentile['99.000000'] | default(0) | float / 1000 }}"
 
     - name: Show Write Bandwidth (MB/s)
       debug:
         msg: "Host {{ inventory_hostname }} Write Speed: {{ write_bw_kb | int / 1024 }} MB/s"
+
+    - name: Save raw FIO write JSON per node
+      copy:
+        content: "{{ fio_write.stdout }}"
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_{{ inventory_hostname }}_write.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: no
 
     - name: Run Read Bandwidth Test (Parallel)
       shell: >
@@ -63,12 +76,98 @@
     - name: Parse Read Results
       set_fact:
         read_bw_kb: "{{ (fio_read.stdout | from_json).jobs[0].read.bw }}"
+        read_iops: "{{ (fio_read.stdout | from_json).jobs[0].read.iops }}"
+        read_lat_mean_us: "{{ (fio_read.stdout | from_json).jobs[0].read.lat_ns.mean | float / 1000 }}"
+        read_lat_p99_us: "{{ (fio_read.stdout | from_json).jobs[0].read.clat_ns.percentile['99.000000'] | default(0) | float / 1000 }}"
 
     - name: Show Read Bandwidth (MB/s)
       debug:
         msg: "Host {{ inventory_hostname }} Read Speed: {{ read_bw_kb | int / 1024 }} MB/s"
 
+    - name: Save raw FIO read JSON per node
+      copy:
+        content: "{{ fio_read.stdout }}"
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_{{ inventory_hostname }}_read.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: no
+
     - name: Cleanup Test Files
       file:
         path: "{{ fio_target_dir }}/fio_test_{{ inventory_hostname }}"
         state: absent
+
+- name: Aggregate Benchmark Results
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    benchmark_dir: "{{ playbook_dir }}/../../../benchmarks"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Build summary JSON
+      set_fact:
+        benchmark_summary:
+          timestamp: "{{ timestamp }}"
+          filesystem: "lustre"
+          lustre_version: "2.17.0"
+          transport: "o2ib (RDMA over InfiniBand)"
+          test_params:
+            size: "{{ hostvars[groups['lustre_clients'][0]].test_size | default('4G') }}"
+            block_size: "{{ hostvars[groups['lustre_clients'][0]].block_size | default('1M') }}"
+            iodepth: "{{ hostvars[groups['lustre_clients'][0]].iodepth | default(16) }}"
+            numjobs: "{{ hostvars[groups['lustre_clients'][0]].numjobs | default(4) }}"
+            ioengine: "libaio"
+            direct: 1
+          nodes: "{{ groups['lustre_clients'] | map('extract', hostvars) | map(attribute='inventory_hostname') | list }}"
+          results: >-
+            {{
+              groups['lustre_clients'] | map('extract', hostvars) | list
+              | json_query('[].{
+                  hostname: inventory_hostname,
+                  write_bw_mbps: to_number(write_bw_kb) && (to_number(write_bw_kb) / `1024`),
+                  write_iops: to_number(write_iops),
+                  write_lat_mean_us: to_number(write_lat_mean_us),
+                  write_lat_p99_us: to_number(write_lat_p99_us),
+                  read_bw_mbps: to_number(read_bw_kb) && (to_number(read_bw_kb) / `1024`),
+                  read_iops: to_number(read_iops),
+                  read_lat_mean_us: to_number(read_lat_mean_us),
+                  read_lat_p99_us: to_number(read_lat_p99_us)
+                }')
+            }}
+
+    - name: Save summary JSON
+      copy:
+        content: "{{ benchmark_summary | to_nice_json }}"
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_summary.json"
+        mode: "0644"
+
+    - name: Generate CSV header and rows
+      copy:
+        content: |
+          timestamp,hostname,write_bw_mbps,write_iops,write_lat_mean_us,write_lat_p99_us,read_bw_mbps,read_iops,read_lat_mean_us,read_lat_p99_us
+          {% for host in groups['lustre_clients'] %}
+          {{ timestamp }},{{ host }},{{ (hostvars[host].write_bw_kb | int / 1024) | round(2) }},{{ hostvars[host].write_iops | round(2) }},{{ hostvars[host].write_lat_mean_us | round(2) }},{{ hostvars[host].write_lat_p99_us | round(2) }},{{ (hostvars[host].read_bw_kb | int / 1024) | round(2) }},{{ hostvars[host].read_iops | round(2) }},{{ hostvars[host].read_lat_mean_us | round(2) }},{{ hostvars[host].read_lat_p99_us | round(2) }}
+          {% endfor %}
+        dest: "{{ benchmark_dir }}/{{ timestamp }}_results.csv"
+        mode: "0644"
+
+    - name: Display aggregate results
+      debug:
+        msg: |
+          ============================================================
+          Lustre Benchmark Results ({{ timestamp }})
+          ============================================================
+          {% for host in groups['lustre_clients'] %}
+          {{ host }}:  Write {{ (hostvars[host].write_bw_kb | int / 1024) | round(1) }} MB/s  |  Read {{ (hostvars[host].read_bw_kb | int / 1024) | round(1) }} MB/s
+          {% endfor %}
+          ------------------------------------------------------------
+          Total Write: {{ groups['lustre_clients'] | map('extract', hostvars, 'write_bw_kb') | map('int') | sum / 1024 | round(1) }} MB/s
+          Total Read:  {{ groups['lustre_clients'] | map('extract', hostvars, 'read_bw_kb') | map('int') | sum / 1024 | round(1) }} MB/s
+          ============================================================
+          Results saved to: benchmarks/
+            - {{ timestamp }}_summary.json
+            - {{ timestamp }}_results.csv
+            - {{ timestamp }}_<node>_write.json (raw FIO per node)
+            - {{ timestamp }}_<node>_read.json (raw FIO per node)
+          ============================================================

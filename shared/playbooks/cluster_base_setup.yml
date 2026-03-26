@@ -72,6 +72,7 @@
         ip4: "10.0.0.{{ ib_node_id }}/24"
         method4: manual
         autoconnect: yes
+        transport_mode: datagram
         state: present
 
     - name: Install opensm package

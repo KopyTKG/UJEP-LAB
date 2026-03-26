@@ -24,8 +24,6 @@
     - name: Reload firewall to apply Lustre rules
       command: firewall-cmd --reload
 
-# --- PREPARE STORAGE FOR LUSTRE OSTs ---
-- import_playbook: ../../shared/playbooks/prepare_compute_storage.yml
-  vars:
-    target_folder: "/data/lustre"
-    mount_prefix: "ost"
+# --- STORAGE PREP SKIPPED ---
+# SSDs are formatted directly by stage5_configure_oss.yml with mkfs.lustre
+# No need to pre-format as XFS here

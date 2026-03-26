@@ -1,0 +1,107 @@
+---
+# Lustre Stage 8: Deploy MetalLB Load Balancer
+# Provides external IP allocation for K3s services via L2 advertisement
+
+- name: Deploy MetalLB Load Balancer
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    metallb_version: "v0.14.9"
+    metallb_pool_start: "192.168.1.200"
+    metallb_pool_end: "192.168.1.220"
+
+  tasks:
+    - name: Check if MetalLB is already deployed
+      shell: /usr/local/bin/k3s kubectl get namespace metallb-system --no-headers 2>/dev/null | grep -c metallb
+      register: metallb_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Deploy MetalLB manifest
+      shell: >
+        /usr/local/bin/k3s kubectl apply -f
+        https://raw.githubusercontent.com/metallb/metallb/{{ metallb_version }}/config/manifests/metallb-native.yaml
+      when: metallb_exists.stdout | int == 0
+
+    - name: Wait for MetalLB controller to be ready
+      shell: >
+        /usr/local/bin/k3s kubectl wait --for=condition=ready pod
+        -l app=metallb,component=controller
+        -n metallb-system --timeout=120s
+      retries: 5
+      delay: 10
+      register: metallb_ready
+      until: metallb_ready.rc == 0
+
+    - name: Wait for MetalLB speaker to be ready
+      shell: >
+        /usr/local/bin/k3s kubectl wait --for=condition=ready pod
+        -l app=metallb,component=speaker
+        -n metallb-system --timeout=120s
+      retries: 5
+      delay: 10
+      register: speaker_ready
+      until: speaker_ready.rc == 0
+
+    - name: Deploy MetalLB IP pool configuration
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/metallb-config.yaml
+        content: |
+          apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: lab-pool
+            namespace: metallb-system
+          spec:
+            addresses:
+              - {{ metallb_pool_start }}-{{ metallb_pool_end }}
+          ---
+          apiVersion: metallb.io/v1beta1
+          kind: L2Advertisement
+          metadata:
+            name: lab-l2
+            namespace: metallb-system
+          spec:
+            ipAddressPools:
+              - lab-pool
+        mode: "0644"
+
+    - name: Wait for IPAddressPool to be created
+      shell: /usr/local/bin/k3s kubectl get ipaddresspool -n metallb-system lab-pool
+      retries: 10
+      delay: 5
+      register: pool_check
+      until: pool_check.rc == 0
+
+    - name: Verify MetalLB pods
+      shell: /usr/local/bin/k3s kubectl get pods -n metallb-system -o wide
+      register: metallb_pods
+      changed_when: false
+
+    - name: Display MetalLB status
+      debug:
+        msg: |
+          ============================================================
+          MetalLB Load Balancer Deployed
+          ============================================================
+          IP Pool: {{ metallb_pool_start }} - {{ metallb_pool_end }}
+          Mode: L2 Advertisement
+          {{ metallb_pods.stdout }}
+          ============================================================
+
+- name: Open MetalLB Firewall Ports
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Open MetalLB memberlist ports
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 7946/tcp
+        - 7946/udp
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      ignore_errors: yes

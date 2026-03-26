@@ -1,0 +1,360 @@
+\chapter{Lustre Filesystem Deployment with RDMA}
+\label{ch:lustre-deployment}
+
+This chapter documents the full deployment process of Lustre 2.17.0 with RDMA over InfiniBand on a 10-node Rocky Linux 9.7 cluster. The deployment uses Ansible for automation and targets a shared storage layer for VM and container orchestration.
+
+\section{Cluster Hardware}
+
+The cluster consists of 10 nodes housed in 2U Supermicro SYS-6028TR-HTR chassis, each containing 4 X10DRT-H blades.
+
+\begin{table}[h]
+\centering
+\caption{Per-blade hardware specifications}
+\label{tab:blade-specs}
+\begin{tabular}{ll}
+\hline
+\textbf{Component} & \textbf{Specification} \\
+\hline
+CPUs & 2$\times$ Intel Xeon E5-2650 v4 @ 2.20\,GHz (24 cores total) \\
+RAM & 8$\times$ 8\,GiB DDR4 ECC (64\,GiB total) \\
+InfiniBand & 1$\times$ Mellanox ConnectX-5 EDR 100\,GbE \\
+Data Storage & Samsung 256\,GB SSD (MZ7TY256) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Network topology}
+\label{tab:network}
+\begin{tabular}{lll}
+\hline
+\textbf{Network} & \textbf{Subnet} & \textbf{Purpose} \\
+\hline
+Ethernet & 192.168.1.0/24 & Management \\
+InfiniBand (IPoIB) & 10.0.0.0/24 & Storage traffic (RDMA) \\
+IPMI & 192.168.50.0/24 & Out-of-band management \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Node Roles and IP Addressing}
+
+\begin{table}[h]
+\centering
+\caption{Cluster node assignment}
+\label{tab:nodes}
+\begin{tabular}{lllll}
+\hline
+\textbf{Node} & \textbf{Ethernet IP} & \textbf{IB IP} & \textbf{Lustre Role} & \textbf{IPMI IP} \\
+\hline
+Rocky-Head-1 & 192.168.1.251 & 10.0.0.251 & MGS + MDS & 192.168.50.9 \\
+Rocky-Head-2 & 192.168.1.252 & 10.0.0.252 & MDS & 192.168.50.10 \\
+Rocky-Compute-1 & 192.168.1.101 & 10.0.0.1 & OSS + Client & 192.168.50.1 \\
+Rocky-Compute-2 & 192.168.1.102 & 10.0.0.2 & OSS + Client & 192.168.50.2 \\
+Rocky-Compute-3 & 192.168.1.103 & 10.0.0.3 & OSS + Client & 192.168.50.3 \\
+Rocky-Compute-4 & 192.168.1.104 & 10.0.0.4 & OSS + Client & 192.168.50.4 \\
+Rocky-Compute-5 & 192.168.1.105 & 10.0.0.5 & OSS + Client & 192.168.50.5 \\
+Rocky-Compute-6 & 192.168.1.106 & 10.0.0.6 & OSS + Client & 192.168.50.6 \\
+Rocky-Compute-7 & 192.168.1.107 & 10.0.0.7 & OSS + Client & 192.168.50.7 \\
+Rocky-Compute-8 & 192.168.1.108 & 10.0.0.8 & OSS + Client & 192.168.50.8 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Software Stack}
+
+\begin{itemize}
+    \item \textbf{Operating System}: Rocky Linux 9.7 (Blue Onyx)
+    \item \textbf{Kernel}: 5.14.0-611.13.1\_lustre.el9.x86\_64 (Lustre-patched)
+    \item \textbf{Lustre Version}: 2.17.0
+    \item \textbf{LNET Transport}: o2ib (OpenFabrics InfiniBand RDMA)
+    \item \textbf{Backend Filesystem}: ldiskfs
+    \item \textbf{Automation}: Ansible (via mise-managed Python 3.13)
+    \item \textbf{InfiniBand Switch}: Mellanox SB7790 (EDR)
+\end{itemize}
+
+\section{Deployment Process}
+
+The deployment is fully automated via Ansible playbooks organized into sequential stages. All playbooks are executed from the \texttt{lustre/} directory of the repository.
+
+\subsection{Stage 0: Bootstrap}
+
+Fresh Rocky 9.7 installations require Python 3.9 for Ansible connectivity. The bootstrap playbook installs the Python interpreter on all nodes.
+
+\begin{verbatim}
+ansible-playbook playbooks/stage0_bootstrap.yml
+\end{verbatim}
+
+\subsection{Stage 1: Core Cluster Setup}
+
+This stage configures the foundational infrastructure:
+
+\begin{itemize}
+    \item \textbf{Firewall}: firewalld with NTP and Lustre ports (988/tcp, 988/udp, 1021--1023/tcp, 1021--1023/udp)
+    \item \textbf{Time synchronization}: Chrony configured with CESNET NTP servers (tik.cesnet.cz, tak.cesnet.cz)
+    \item \textbf{InfiniBand}: \texttt{ib\_ipoib} kernel module loaded, \texttt{ibs1} interface configured via NetworkManager with static IPoIB addresses in datagram transport mode
+    \item \textbf{Subnet Manager}: OpenSM installed and enabled for InfiniBand fabric management
+    \item \textbf{Hosts file}: Populated with InfiniBand IP mappings for all cluster nodes
+    \item \textbf{Network routing}: Ethernet interface (\texttt{eno2}) configured with higher metric to prioritize InfiniBand for storage traffic
+\end{itemize}
+
+\begin{verbatim}
+ansible-playbook playbooks/stage1_core_setup.yml
+\end{verbatim}
+
+\subsubsection{InfiniBand Transport Mode Issue}
+
+During deployment, the InfiniBand interface failed to activate due to a transport mode mismatch. The \texttt{nmcli} connection was created with \texttt{connected} transport mode, but the interface MTU of 2044 bytes indicated \texttt{datagram} mode operation. Setting the transport mode explicitly to \texttt{datagram} resolved the activation failure:
+
+\begin{verbatim}
+nmcli con mod ibs1 infiniband.transport-mode datagram
+nmcli con up ibs1
+\end{verbatim}
+
+This fix was incorporated into the base setup playbook for future deployments.
+
+\subsection{Stage 2: Lustre Package Installation}
+
+Lustre packages are installed from the Whamcloud repositories:
+
+\begin{itemize}
+    \item \textbf{Server repository}: \texttt{https://downloads.whamcloud.com/public/lustre/lustre-2.17.0/el9.7/server/}
+    \item \textbf{Client repository}: \texttt{https://downloads.whamcloud.com/public/lustre/lustre-2.17.0/el9.7/client/}
+    \item \textbf{e2fsprogs}: Lustre-patched \texttt{e2fsprogs} from Whamcloud
+\end{itemize}
+
+Packages installed on head nodes (MGS/MDS): \texttt{lustre}, \texttt{lustre-osd-ldiskfs-mount}, \texttt{e2fsprogs}. Compute nodes (OSS) receive the same server packages. All nodes additionally receive \texttt{lustre-client-dkms} for client mount capability.
+
+LNET is configured for RDMA via \texttt{/etc/modprobe.d/lnet.conf}:
+
+\begin{verbatim}
+options lnet networks=o2ib(ibs1)
+\end{verbatim}
+
+Kernel modules are persisted via \texttt{/etc/modules-load.d/lustre.conf} containing \texttt{lustre}, \texttt{lnet}, and \texttt{ko2iblnd}.
+
+\textbf{Critical requirement}: The Lustre-patched kernel (\texttt{5.14.0-611.13.1\_lustre.el9}) must be set as the default boot kernel. The stock Rocky 9.7 kernel lacks the \texttt{ldiskfs} module required for Lustre server operation:
+
+\begin{verbatim}
+grubby --set-default=/boot/vmlinuz-5.14.0-611.13.1_lustre.el9.x86_64
+\end{verbatim}
+
+The CRB (Code Ready Builder) repository is enabled on Rocky 9 for development dependencies (note: this was formerly named \texttt{powertools} on Rocky 8).
+
+\begin{verbatim}
+ansible-playbook playbooks/stage2_install_lustre.yml
+\end{verbatim}
+
+\subsection{Stage 3: Management Server (MGS)}
+
+The Lustre Management Server runs on Rocky-Head-1. A 10\,GB backing file (\texttt{/var/lib/lustre/mgt.img}) is created and attached as a loop device (\texttt{/dev/loop10}), then formatted as the Management Target (MGT):
+
+\begin{verbatim}
+mkfs.lustre --mgs --fsname=lustrefs --backfstype=ldiskfs \
+    --reformat /dev/loop10
+mount -t lustre /dev/loop10 /mnt/mgt
+\end{verbatim}
+
+\begin{verbatim}
+ansible-playbook playbooks/stage3_configure_mgs.yml
+\end{verbatim}
+
+\subsection{Stage 4: Metadata Servers (MDS)}
+
+Two Metadata Targets (MDTs) are configured, one on each head node, using dedicated SSDs:
+
+\begin{itemize}
+    \item \textbf{Rocky-Head-1}: MDT0 on \texttt{/dev/sdb}, mounted at \texttt{/mnt/mdt0}
+    \item \textbf{Rocky-Head-2}: MDT1 on \texttt{/dev/sda}, mounted at \texttt{/mnt/mdt1}
+\end{itemize}
+
+Note: The MDT device differs between head nodes due to different disk enumeration order. This is handled per-host in the playbook rather than using a single hardcoded device path.
+
+\begin{verbatim}
+mkfs.lustre --mdt --fsname=lustrefs --mgsnode=10.0.0.251@o2ib \
+    --index=0 --backfstype=ldiskfs --reformat /dev/sdb
+\end{verbatim}
+
+\begin{verbatim}
+ansible-playbook playbooks/stage4_configure_mds.yml
+\end{verbatim}
+
+\subsection{Stage 5: Object Storage Servers (OSS)}
+
+Each of the 8 compute nodes contributes 2 Samsung 256\,GB SSDs as Object Storage Targets (OSTs), for a total of 16 OSTs ($\approx$3.8\,TB aggregate). SSDs are identified by stable \texttt{/dev/disk/by-id/ata-SAMSUNG\_MZ7TY256HDHP-*} paths to prevent accidental formatting of wrong devices.
+
+OST indices are calculated from the compute node number:
+\begin{itemize}
+    \item Rocky-Compute-1: OST0, OST1
+    \item Rocky-Compute-2: OST2, OST3
+    \item \ldots
+    \item Rocky-Compute-8: OST14, OST15
+\end{itemize}
+
+Nodes are configured serially (\texttt{serial: 1}) to prevent OST index conflicts.
+
+\begin{verbatim}
+mkfs.lustre --ost --fsname=lustrefs --mgsnode=10.0.0.251@o2ib \
+    --index=0 --backfstype=ldiskfs --reformat \
+    /dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_<serial>
+\end{verbatim}
+
+\begin{verbatim}
+ansible-playbook playbooks/stage5_configure_oss.yml
+\end{verbatim}
+
+\subsection{Stage 6: Client Mounts}
+
+All compute nodes mount the Lustre filesystem at \texttt{/mnt/lustre} via RDMA:
+
+\begin{verbatim}
+mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre
+\end{verbatim}
+
+The playbook verifies write access by creating a test file from each node and displays the filesystem status via \texttt{lfs df -h}.
+
+\begin{verbatim}
+ansible-playbook playbooks/stage6_mount_clients.yml
+\end{verbatim}
+
+\section{Persistent Mount Configuration}
+
+All Lustre mount entries in \texttt{/etc/fstab} include the \texttt{nofail} option to prevent nodes from dropping into emergency mode if the Lustre filesystem is unavailable at boot:
+
+\begin{verbatim}
+/dev/loop10  /mnt/mgt  lustre  defaults,_netdev,nofail  0 0
+/dev/sdb     /mnt/mdt0 lustre  defaults,_netdev,nofail  0 0
+10.0.0.251@o2ib:/lustrefs  /mnt/lustre  lustre  defaults,_netdev,nofail  0 0
+\end{verbatim}
+
+\subsection{Emergency Mode Incident}
+
+Prior to adding the \texttt{nofail} flag, compute nodes entered systemd emergency mode after rebooting into the stock Rocky kernel. The boot sequence failed because:
+
+\begin{enumerate}
+    \item The stock kernel lacks the \texttt{ldiskfs} kernel module
+    \item \texttt{/etc/fstab} contained Lustre mount entries without \texttt{nofail}
+    \item \texttt{systemd} could not mount Lustre targets, causing \texttt{local-fs.target} to fail
+    \item The system entered emergency mode, requiring IPMI Serial-over-LAN access for recovery
+\end{enumerate}
+
+Recovery was performed via IPMI SOL:
+
+\begin{verbatim}
+ipmitool -I lanplus -H 192.168.50.<N> -U ADMIN -P <pass> sol activate
+# In emergency shell:
+sed -i '/lustre\|ssd/s/defaults/defaults,nofail/' /etc/fstab
+grubby --set-default=/boot/vmlinuz-*lustre*
+reboot
+\end{verbatim}
+
+\section{LNET and RDMA Configuration}
+
+Lustre Networking (LNET) is configured to use the \texttt{o2ib} (OpenFabrics InfiniBand) transport for RDMA operations. This provides kernel-bypass data transfer, significantly reducing CPU overhead and latency compared to TCP/IP.
+
+\begin{table}[h]
+\centering
+\caption{LNET Network Identifiers (NIDs)}
+\label{tab:nids}
+\begin{tabular}{ll}
+\hline
+\textbf{Node} & \textbf{NID} \\
+\hline
+Rocky-Head-1 (MGS) & 10.0.0.251@o2ib \\
+Rocky-Head-2 & 10.0.0.252@o2ib \\
+Rocky-Compute-1 & 10.0.0.1@o2ib \\
+Rocky-Compute-2 & 10.0.0.2@o2ib \\
+\ldots & \ldots \\
+Rocky-Compute-8 & 10.0.0.8@o2ib \\
+\hline
+\end{tabular}
+\end{table}
+
+Verification commands:
+
+\begin{verbatim}
+lctl list_nids                          # List local NIDs
+lctl ping 10.0.0.251@o2ib              # Test RDMA connectivity
+lfs df -h                              # Show filesystem usage
+lctl get_param -n version              # Check Lustre version
+\end{verbatim}
+
+\section{Previous Filesystem Evaluations}
+
+Several distributed filesystem solutions were evaluated before selecting Lustre:
+
+\begin{table}[h]
+\centering
+\caption{Filesystem comparison}
+\label{tab:fs-comparison}
+\begin{tabular}{llp{7cm}}
+\hline
+\textbf{Filesystem} & \textbf{Result} & \textbf{Reason for Rejection} \\
+\hline
+Ceph & Rejected & Significant software overhead limiting raw performance \\
+BeeGFS & Rejected & OSS/Community version only supports RAID0, no redundancy \\
+NFS + Pacemaker & Rejected & Stability issues after reboots, complex HA configuration \\
+GlusterFS & Rejected & RDMA support removed in recent versions \\
+Lustre & \textbf{Selected} & Best performance, native RDMA support via o2ib \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Lustre Filesystem Architecture}
+
+\begin{figure}[h]
+\centering
+\begin{verbatim}
++-------------------+     +-------------------+
+|   Rocky-Head-1    |     |   Rocky-Head-2    |
+|  MGS + MDS (MDT0) |     |    MDS (MDT1)     |
+|  10.0.0.251@o2ib  |     |  10.0.0.252@o2ib  |
++--------+----------+     +--------+----------+
+         |                          |
+    InfiniBand RDMA (o2ib) via Mellanox SB7790 EDR Switch
+         |                          |
++--------+--------+---------+------+------+---...---+
+|                  |         |             |         |
+| Compute-1        | Compute-2  ...    Compute-8     |
+| OSS: OST0,OST1  | OSS: OST2,OST3   OST14,OST15   |
+| Client: /mnt/lustre                                |
+| 10.0.0.1@o2ib                    10.0.0.8@o2ib     |
++----------------------------------------------------+
+\end{verbatim}
+\caption{Lustre cluster architecture with RDMA over InfiniBand}
+\label{fig:lustre-arch}
+\end{figure}
+
+\section{Storage Capacity}
+
+\begin{itemize}
+    \item \textbf{OSTs}: 16$\times$ Samsung 256\,GB SSDs $\approx$ 3.8\,TB total
+    \item \textbf{MDTs}: 2$\times$ 119\,GB SSDs (dedicated metadata storage)
+    \item \textbf{MGT}: 10\,GB loopback device (management data)
+    \item \textbf{Striping}: Default Lustre striping across available OSTs
+\end{itemize}
+
+\section{Ansible Automation}
+
+The entire deployment is managed via Ansible with the following configuration:
+
+\begin{verbatim}
+[defaults]
+inventory = hosts.ini
+host_key_checking = False
+private_key_file = ~/.ssh/ujep_lab
+interpreter_python = auto_silent
+vault_password_file = ~/.ansible_vault_pass
+\end{verbatim}
+
+Sensitive data (sudo passwords, IPMI credentials) is stored in Ansible Vault (\texttt{group\_vars/all/secret.yml}). The vault password file eliminates the need for interactive \texttt{--ask-vault-pass} during automated deployments.
+
+Cluster-wide variables are defined in \texttt{hosts.ini}:
+
+\begin{verbatim}
+[cluster:vars]
+lustre_version=2.17.0
+fsname=lustrefs
+ib_ip=10.0.0.{{ ansible_host.split('.')[3] }}
+\end{verbatim}

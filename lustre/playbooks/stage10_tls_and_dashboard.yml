@@ -1,0 +1,207 @@
+---
+# Lustre Stage 10: Self-Signed TLS + Dashboard Ingress
+# Generates lab CA and wildcard cert, exposes Dashboard via Ingress
+
+- name: Generate TLS Certificates and Configure Dashboard Ingress
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    cert_dir: /var/lib/rancher/k3s/server/tls-certs
+    lab_domain: lab.local
+    cert_days: 3650
+    dashboard_namespace: kubernetes-dashboard
+
+  tasks:
+    # --- 1. GENERATE SELF-SIGNED CA ---
+    - name: Create certificate directory
+      file:
+        path: "{{ cert_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Generate CA private key
+      shell: openssl genrsa -out {{ cert_dir }}/ca.key 4096
+      args:
+        creates: "{{ cert_dir }}/ca.key"
+
+    - name: Generate CA certificate
+      shell: >
+        openssl req -x509 -new -nodes
+        -key {{ cert_dir }}/ca.key
+        -sha256 -days {{ cert_days }}
+        -out {{ cert_dir }}/ca.crt
+        -subj "/CN=UJEP-Lab-CA/O=UJEP-Lab"
+      args:
+        creates: "{{ cert_dir }}/ca.crt"
+
+    # --- 2. GENERATE WILDCARD SERVER CERT ---
+    - name: Generate server private key
+      shell: openssl genrsa -out {{ cert_dir }}/tls.key 2048
+      args:
+        creates: "{{ cert_dir }}/tls.key"
+
+    - name: Create OpenSSL config for SANs
+      copy:
+        dest: "{{ cert_dir }}/san.cnf"
+        content: |
+          [req]
+          distinguished_name = req_dn
+          req_extensions = v3_req
+          prompt = no
+
+          [req_dn]
+          CN = *.{{ lab_domain }}
+          O = UJEP-Lab
+
+          [v3_req]
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = *.{{ lab_domain }}
+          DNS.2 = dashboard.{{ lab_domain }}
+          DNS.3 = grafana.{{ lab_domain }}
+          DNS.4 = prometheus.{{ lab_domain }}
+          IP.1 = 192.168.1.200
+          IP.2 = 192.168.1.201
+          IP.3 = 192.168.1.202
+        mode: "0644"
+
+    - name: Generate CSR
+      shell: >
+        openssl req -new
+        -key {{ cert_dir }}/tls.key
+        -out {{ cert_dir }}/tls.csr
+        -config {{ cert_dir }}/san.cnf
+      args:
+        creates: "{{ cert_dir }}/tls.csr"
+
+    - name: Sign server certificate with CA
+      shell: >
+        openssl x509 -req
+        -in {{ cert_dir }}/tls.csr
+        -CA {{ cert_dir }}/ca.crt
+        -CAkey {{ cert_dir }}/ca.key
+        -CAcreateserial
+        -out {{ cert_dir }}/tls.crt
+        -days 730
+        -sha256
+        -extensions v3_req
+        -extfile {{ cert_dir }}/san.cnf
+      args:
+        creates: "{{ cert_dir }}/tls.crt"
+
+    # --- 3. CREATE K8S TLS SECRETS ---
+    - name: Create TLS secret in default namespace
+      shell: >
+        /usr/local/bin/k3s kubectl create secret tls lab-tls
+        --cert={{ cert_dir }}/tls.crt
+        --key={{ cert_dir }}/tls.key
+        -n default --dry-run=client -o yaml |
+        /usr/local/bin/k3s kubectl apply -f -
+
+    - name: Create TLS secret in kubernetes-dashboard namespace
+      shell: >
+        /usr/local/bin/k3s kubectl create secret tls lab-tls
+        --cert={{ cert_dir }}/tls.crt
+        --key={{ cert_dir }}/tls.key
+        -n {{ dashboard_namespace }} --dry-run=client -o yaml |
+        /usr/local/bin/k3s kubectl apply -f -
+
+    # --- 4. DASHBOARD INGRESS ---
+    - name: Get Dashboard service name
+      shell: /usr/local/bin/k3s kubectl get svc -n {{ dashboard_namespace }} -o jsonpath='{.items[0].metadata.name}'
+      register: dashboard_svc_name
+      changed_when: false
+
+    - name: Deploy Dashboard Ingress
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/dashboard-ingress.yaml
+        content: |
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: kubernetes-dashboard
+            namespace: {{ dashboard_namespace }}
+            annotations:
+              nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          spec:
+            ingressClassName: nginx
+            tls:
+              - hosts:
+                  - dashboard.{{ lab_domain }}
+                secretName: lab-tls
+            rules:
+              - host: dashboard.{{ lab_domain }}
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: {{ dashboard_svc_name.stdout }}
+                          port:
+                            number: 443
+        mode: "0644"
+
+    # --- 5. DASHBOARD ADMIN TOKEN ---
+    - name: Ensure admin-user ServiceAccount exists
+      shell: >
+        /usr/local/bin/k3s kubectl create serviceaccount admin-user
+        -n {{ dashboard_namespace }} --dry-run=client -o yaml |
+        /usr/local/bin/k3s kubectl apply -f -
+
+    - name: Ensure admin ClusterRoleBinding exists
+      copy:
+        dest: /var/lib/rancher/k3s/server/manifests/dashboard-admin.yaml
+        content: |
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: admin-user
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+            - kind: ServiceAccount
+              name: admin-user
+              namespace: {{ dashboard_namespace }}
+        mode: "0644"
+
+    - name: Generate long-lived admin token (1 year)
+      shell: /usr/local/bin/k3s kubectl create token admin-user -n {{ dashboard_namespace }} --duration=8760h
+      register: admin_token
+
+    - name: Get ingress external IP
+      shell: >
+        /usr/local/bin/k3s kubectl get svc ingress-nginx-controller
+        -n ingress-nginx
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: ingress_ip
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Verify Dashboard Ingress
+      shell: /usr/local/bin/k3s kubectl get ingress -n {{ dashboard_namespace }}
+      register: dashboard_ingress
+      changed_when: false
+
+    - name: Display Dashboard access info
+      debug:
+        msg: |
+          ============================================================
+          Dashboard Configured with TLS
+          ============================================================
+          URL: https://dashboard.{{ lab_domain }}
+          Direct: https://{{ ingress_ip.stdout | default('<INGRESS_IP>') }}
+          NodePort fallback: https://192.168.1.251:30443
+
+          Add to /etc/hosts:
+            {{ ingress_ip.stdout | default('<INGRESS_IP>') }}  dashboard.{{ lab_domain }}
+
+          Admin Token:
+          {{ admin_token.stdout }}
+
+          {{ dashboard_ingress.stdout }}
+          ============================================================

@@ -117,8 +117,8 @@
   become: yes
 
   tasks:
-    - name: Enable PowerTools repository for development packages
-      command: dnf config-manager --set-enabled powertools
+    - name: Enable CRB repository for development packages (Rocky 9)
+      command: dnf config-manager --set-enabled crb
       register: powertools_enable
       changed_when: false
       ignore_errors: yes

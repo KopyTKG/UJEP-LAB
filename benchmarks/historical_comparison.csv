@@ -1,0 +1,71 @@
+filesystem,transport,date,test_tool,num_nodes,hostname,write_bw_mbps,read_bw_mbps,notes
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-1,73.21,522.90,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-2,73.22,501.62,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-3,221.70,509.42,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-4,226.25,523.65,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-5,223.00,518.81,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-6,222.94,512.79,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-7,70.90,501.93,
+glusterfs,ipoib,2025-11-01,fio,8,Rocky-Compute-8,71.00,518.42,aggregate write 982 MB/s read 4109 MB/s
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-1,1233.27,2205.11,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-2,1241.31,2031.24,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-3,1227.45,2060.88,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-4,1230.68,1784.75,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-5,1242.25,2080.51,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-6,1753.24,3263.09,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-7,1537.97,2552.42,INVALID - RAM cached despite direct=1 attempts
+nfs,ethernet,2025-11-01,fio,8,Rocky-Compute-8,1550.78,2660.60,INVALID - RAM cached despite direct=1 attempts
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,210.85,618.52,16x SSD initial test
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,168.11,427.06,mixed OSD types issue
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,561.95,2360.23,8x SSD
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,681.64,2313.18,16x SSD
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,410.35,3058.17,16x SSD t128 threads
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,1032.45,,1 replica t64
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,539.23,,2 replicas t64
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,979.82,,1 replica t64 run2
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,399.04,,3 replicas t64 - unstable 20-600MB/s
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,1077.31,,1 replica t64 run3
+ceph,ethernet,2025-11-12,rados-bench,aggregate,aggregate,701.88,,2 replicas t64 run2
+beegfs,ipoib,2025-11-01,beegfs-bench,8,aggregate,4424.00,7676.00,16x SSD final test ~35.39Gb/s write ~61.41Gb/s read
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-1,36.13,73.94,freshly integrated node
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-2,231.77,516.26,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-3,239.38,523.40,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-4,219.17,518.73,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-5,189.35,516.55,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-6,140.35,516.65,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-7,471.06,510.47,
+lustre-2.15.4,tcp,2026-01-08,fio,8,Rocky-Compute-8,35.95,78.13,freshly integrated node
+lustre-2.17.0,o2ib-rdma,2026-01-14,dd,1,single-node,165.00,331.00,dd test not fio
+lustre-2.17.0-flr,o2ib-rdma,2026-01-14,dd,1,single-node,137.00,456.00,FLR mirroring enabled
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-1,48.88,460.09,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-2,46.30,431.16,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-3,44.22,444.92,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-4,52.11,458.13,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-5,63.72,458.22,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-6,41.79,453.85,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-7,53.11,453.38,
+lustre-2.17.0,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-8,50.80,456.00,aggregate write 401 MB/s read 3616 MB/s
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-1,276.29,1204.88,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-2,265.29,1210.58,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-3,396.92,1661.33,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-4,403.75,1865.85,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-5,243.36,967.63,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-6,316.48,1564.55,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-7,346.66,1894.32,stripe=4 + RPCs=32 + dirty=64MB
+lustre-2.17.0-tuned,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-8,344.38,1869.04,aggregate write 2593 MB/s read 12238 MB/s
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-1,342.45,1810.99,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-2,256.68,1024.45,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-3,249.63,917.05,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-4,220.70,873.77,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-5,211.03,800.66,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-6,341.43,1822.47,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-7,237.73,1093.65,FLR 2 mirrors + stripe=4 + tuned
+lustre-2.17.0-flr,o2ib-rdma,2026-03-26,fio,8,Rocky-Compute-8,274.00,743.51,aggregate write 2134 MB/s read 9087 MB/s
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-1,257.36,528.75,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-2,260.26,530.07,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-3,247.47,528.41,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-4,250.73,530.74,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-5,238.59,530.21,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-6,245.68,529.32,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-7,245.23,529.85,raw SSD no filesystem
+bare-ssd-baseline,sata-direct,2026-03-26,fio,8,Rocky-Compute-8,249.90,529.66,raw SSD no filesystem

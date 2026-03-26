@@ -10,18 +10,34 @@
     filesystem_name: "lustrefs"
     mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
     mdt_mount_base: "/mnt/mdt"
-    mdt_device: "/dev/sdb"  # Physical SSD for MDT
-
   tasks:
-    # --- 1. DETERMINE MDT INDEX ---
+    # --- 1. DETERMINE MDT INDEX AND DEVICE ---
+    - name: Find the non-OS disk for MDT
+      shell: |
+        # Find which physical disk holds the root filesystem (works with LVM)
+        ROOT_DEV=$(findmnt -n -o SOURCE /)
+        if [[ "$ROOT_DEV" == /dev/mapper/* ]]; then
+          VG=$(lvs --noheadings -o vg_name "$ROOT_DEV" 2>/dev/null | tr -d ' ')
+          OS_DISK=$(pvs --noheadings -o pv_name -S "vg_name=$VG" 2>/dev/null | tr -d ' ' | sed 's|/dev/||;s/[0-9]*$//')
+        else
+          OS_DISK=$(lsblk -ndo PKNAME "$ROOT_DEV" | head -1)
+        fi
+        for d in sda sdb; do
+          if [ "$d" != "$OS_DISK" ]; then echo "/dev/$d"; break; fi
+        done
+      register: mdt_disk_result
+      changed_when: false
+
     - name: Set MDT index for Rocky-Head-1
       set_fact:
         mdt_index: 0
+        mdt_device: "{{ mdt_disk_result.stdout }}"
       when: inventory_hostname == "Rocky-Head-1"
 
     - name: Set MDT index for Rocky-Head-2
       set_fact:
         mdt_index: 1
+        mdt_device: "{{ mdt_disk_result.stdout }}"
       when: inventory_hostname == "Rocky-Head-2"
 
     - name: Set MDT mount point
@@ -63,7 +79,7 @@
     - name: Add MDT to /etc/fstab for persistence
       lineinfile:
         path: /etc/fstab
-        line: "{{ mdt_device }}  {{ mdt_mount }}  lustre  defaults,_netdev  0 0"
+        line: "{{ mdt_device }}  {{ mdt_mount }}  lustre  defaults,_netdev,nofail  0 0"
         state: present
         backup: yes
 
