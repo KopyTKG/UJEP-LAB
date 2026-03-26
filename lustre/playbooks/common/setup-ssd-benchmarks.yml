@@ -1,0 +1,171 @@
+---
+- name: Setup SSDs and Run Benchmarks for Sysmon
+  hosts: compute
+  become: yes
+  vars:
+    mount_base: "/mnt/ssd"
+
+  tasks:
+    # --- STEP 1: IDENTIFY SSDs ---
+    - name: Identify boot device
+      set_fact:
+        boot_device: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='device') | first }}"
+
+    - name: Find Samsung SSDs
+      shell: "lsblk -ndo NAME,SIZE,MODEL | grep SAMSUNG | awk '{print \"/dev/\" $1}'"
+      register: ssd_list
+      changed_when: false
+
+    - name: Filter out boot device from SSD list
+      set_fact:
+        storage_ssds: "{{ ssd_list.stdout_lines | reject('search', boot_device | regex_replace('/dev/([a-z]+).*', '\\1')) | list }}"
+
+    - name: Display SSDs to be formatted
+      debug:
+        msg: "{{ inventory_hostname }}: Found {{ storage_ssds | length }} non-boot Samsung SSDs: {{ storage_ssds }}"
+
+    # --- STEP 2: FORMAT SSDs ---
+    - name: Wipe existing filesystems
+      command: "wipefs -a {{ item }}"
+      loop: "{{ storage_ssds }}"
+      ignore_errors: yes
+
+    - name: Create XFS filesystem on each SSD
+      community.general.filesystem:
+        fstype: xfs
+        dev: "{{ item }}"
+        force: yes
+      loop: "{{ storage_ssds }}"
+
+    # --- STEP 3: MOUNT SSDs ---
+    - name: Create mount points
+      file:
+        path: "{{ mount_base }}{{ idx }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+
+    - name: Mount SSDs
+      ansible.posix.mount:
+        path: "{{ mount_base }}{{ idx }}"
+        src: "{{ item }}"
+        fstype: xfs
+        state: mounted
+        opts: defaults,noatime
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+
+    - name: Verify mounts
+      shell: "df -h | grep ssd"
+      register: mount_status
+      changed_when: false
+
+    - name: Display mount status
+      debug:
+        msg: "{{ mount_status.stdout_lines }}"
+
+    # --- STEP 4: INSTALL FIO ---
+    - name: Install FIO benchmark tool
+      dnf:
+        name: fio
+        state: present
+
+    # --- STEP 5: RUN BENCHMARKS ---
+    - name: Run Sequential Write Benchmark
+      shell: >
+        fio --name=seq_write
+        --filename={{ mount_base }}{{ idx }}/fio_test
+        --size=4G
+        --rw=write
+        --bs=1M
+        --direct=1
+        --numjobs=4
+        --ioengine=libaio
+        --iodepth=16
+        --group_reporting
+        --time_based
+        --runtime=60
+        --output-format=json
+        --output=/tmp/fio_seq_write_ssd{{ idx }}.json
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+      async: 300
+      poll: 0
+      register: fio_write_jobs
+
+    - name: Run Sequential Read Benchmark
+      shell: >
+        fio --name=seq_read
+        --filename={{ mount_base }}{{ idx }}/fio_test
+        --size=4G
+        --rw=read
+        --bs=1M
+        --direct=1
+        --numjobs=4
+        --ioengine=libaio
+        --iodepth=16
+        --group_reporting
+        --time_based
+        --runtime=60
+        --output-format=json
+        --output=/tmp/fio_seq_read_ssd{{ idx }}.json
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+      async: 300
+      poll: 0
+      register: fio_read_jobs
+
+    - name: Run Random Write IOPS Benchmark
+      shell: >
+        fio --name=rand_write
+        --filename={{ mount_base }}{{ idx }}/fio_test_rand
+        --size=2G
+        --rw=randwrite
+        --bs=4K
+        --direct=1
+        --numjobs=4
+        --ioengine=libaio
+        --iodepth=32
+        --group_reporting
+        --time_based
+        --runtime=60
+        --output-format=json
+        --output=/tmp/fio_rand_write_ssd{{ idx }}.json
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+      async: 300
+      poll: 0
+      register: fio_randwrite_jobs
+
+    - name: Run Random Read IOPS Benchmark
+      shell: >
+        fio --name=rand_read
+        --filename={{ mount_base }}{{ idx }}/fio_test_rand
+        --size=2G
+        --rw=randread
+        --bs=4K
+        --direct=1
+        --numjobs=4
+        --ioengine=libaio
+        --iodepth=32
+        --group_reporting
+        --time_based
+        --runtime=60
+        --output-format=json
+        --output=/tmp/fio_rand_read_ssd{{ idx }}.json
+      loop: "{{ storage_ssds }}"
+      loop_control:
+        index_var: idx
+      async: 300
+      poll: 0
+      register: fio_randread_jobs
+
+    - name: Display benchmark status
+      debug:
+        msg: "FIO benchmarks running in background. Check /tmp/fio_*.json for results."

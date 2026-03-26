@@ -1,0 +1,45 @@
+[server]
+grpc_address = '0.0.0.0:9100'
+advertise_address = ''
+auth_token = 'heslo'
+
+[server.tls]
+enabled = false
+cert_file = '/etc/sysmon/certs/probe.crt'
+key_file = '/etc/sysmon/certs/probe.key'
+
+[discovery]
+enabled = true
+multicast_group = '239.255.42.1:9099'
+announce_interval = 30000000000
+secret = 'heslo'
+
+[metrics]
+scan_interval = 1000000000
+
+[metrics.refresh_intervals]
+cpu = 1000000000
+memory = 1000000000
+disk = 5000000000
+network = 1000000000
+
+[metrics.enabled]
+cpu = true
+memory = true
+disk = true
+network = true
+gpu = true
+
+[metadata]
+probe_id = ''
+
+[metadata.labels]
+
+[logging]
+level = 'info'
+format = 'json'
+output = 'stdout'
+
+[debug_api]
+enabled = false
+address = 'localhost:9101'

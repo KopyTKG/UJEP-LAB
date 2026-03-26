@@ -1,0 +1,48 @@
+# Systemd service file for Sysmon Probe
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/sysmon-probe.service
+#   2. Configure /etc/sysmon/probe.toml with your settings
+#   3. Reload systemd: sudo systemctl daemon-reload
+#   4. Enable service: sudo systemctl enable sysmon-probe
+#   5. Start service: sudo systemctl start sysmon-probe
+#
+# Management:
+#   - Start:   sudo systemctl start sysmon-probe
+#   - Stop:    sudo systemctl stop sysmon-probe
+#   - Restart: sudo systemctl restart sysmon-probe
+#   - Reload:  sudo systemctl reload sysmon-probe (hot config reload)
+#   - Status:  sudo systemctl status sysmon-probe
+#   - Logs:    sudo journalctl -u sysmon-probe -f
+
+[Unit]
+Description=Sysmon Probe - System Metrics Collection Agent
+Documentation=https://gitlab.com/kopytkg/sysmon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/sysmon-probe --config /etc/sysmon/probe.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+
+# Note: Minimal security restrictions due to requirement for /proc filesystem access
+# The probe needs root privileges and full system access to read /proc metrics
+NoNewPrivileges=false
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=512
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sysmon-probe
+
+[Install]
+WantedBy=multi-user.target

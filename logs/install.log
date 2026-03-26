@@ -1,0 +1,1401 @@
+UJEP-LAB/lustre Live ? ❯ ansible all -m ping
+Rocky-Head-1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Head-2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-3 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-4 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-7 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-6 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-5 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+Rocky-Compute-8 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+UJEP-LAB/lustre Live ? ❯ ls
+Permissions Size User Date Modified Name
+drwxr-xr-x     - kopy  7 Jan 17:28   group_vars
+drwxr-xr-x     - kopy 27 Jan 12:14   lnp
+drwxr-xr-x     - kopy 13 Jan 16:35   playbooks
+.rw-------   171 kopy  7 Jan 17:29  󱁻 ansible.cfg
+.rw-------  1.3k kopy 13 Jan 15:34  󱁻 hosts.ini
+.rw-r--r--@ 269k kopy  8 Jan 14:26   kernel.log
+.rw-------   31k kopy  8 Jan 17:19   log.md
+.rw-------  5.6k kopy  8 Jan 15:53  󰂺 README.md
+.rw-------   28k kopy 13 Jan 17:10   ROCKY9_RDMA_BREAKTHROUGH.md
+
+UJEP-LAB/lustre Live ? ❯ cd playbooks/
+
+…/lustre/playbooks Live ? ❯ ls
+Permissions Size User Date Modified Name
+drwxr-xr-x     - kopy 27 Jan 16:53   common
+drwxr-xr-x     - kopy  7 Jan 17:32   diagnostics
+.rw-------  1.8k kopy  8 Jan 17:04   cleanup_and_revert.yml
+.rw-------  1.0k kopy  7 Jan 18:23   stage0_bootstrap.yml
+.rw-------   991 kopy  7 Jan 18:22   stage1_core_setup.yml
+.rw-------  6.8k kopy 13 Jan 15:34   stage2_install_lustre.yml
+.rw-------  2.6k kopy  8 Jan 13:32   stage3_configure_mgs.yml
+.rw-------  2.5k kopy 13 Jan 16:20   stage4_configure_mds.yml
+.rw-------  4.2k kopy 13 Jan 16:26   stage5_configure_oss.yml
+.rw-------  3.7k kopy 13 Jan 16:35   stage6_mount_clients.yml
+
+…/lustre/playbooks Live ? ❯ cd ..
+
+UJEP-LAB/lustre Live  ? ❯ ansi
+ansible        ...-config     ...-doc        ...-inventory  ...-pull       ...-vault
+...-community  ...-console    ...-galaxy     ...-playbook   ...-test
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/st
+...0_bootstrap.yml       ...2_install_lustre.yml  ...4_configure_mds.yml   ...6_mount_clients.yml
+...1_core_setup.yml      ...3_configure_mgs.yml   ...5_configure_oss.yml
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage1_core_setup.yml
+
+PLAY [Cluster Basic Setup & Networking] ***********************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Ensure firewalld is installed] **************************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-8]
+changed: [Rocky-Compute-3]
+
+TASK [Start and enable firewalld] *****************************************************************************************************
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Configure Firewall (Allow NTP)] *************************************************************************************************
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Reload firewall to apply changes] ***********************************************************************************************
+skipping: [Rocky-Head-1]
+skipping: [Rocky-Head-2]
+skipping: [Rocky-Compute-1]
+skipping: [Rocky-Compute-2]
+skipping: [Rocky-Compute-3]
+skipping: [Rocky-Compute-4]
+skipping: [Rocky-Compute-5]
+skipping: [Rocky-Compute-6]
+skipping: [Rocky-Compute-7]
+skipping: [Rocky-Compute-8]
+
+TASK [Configure Chrony (CESNET servers)] **********************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Persist ib_ipoib kernel module] *************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Load ib_ipoib module immediately] ***********************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Configure InfiniBand Interface (ibs1)] ******************************************************************************************
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Install opensm package] *********************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Ensure opensm service is enabled and started] ***********************************************************************************
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Reset /etc/hosts to minimal default] ********************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Populate /etc/hosts with InfiniBand IPs] ****************************************************************************************
+changed: [Rocky-Compute-1] => (item=Rocky-Head-1)
+changed: [Rocky-Head-1] => (item=Rocky-Head-1)
+changed: [Rocky-Head-2] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-2] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-3] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-1] => (item=Rocky-Head-2)
+changed: [Rocky-Head-1] => (item=Rocky-Head-2)
+changed: [Rocky-Head-2] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-2] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-3] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-1)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-1)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-2)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-2)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-3)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-3)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-2)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-4)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-4)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-5)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-3)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-6)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-7)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-7)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-1] => (item=Rocky-Compute-8)
+changed: [Rocky-Head-1] => (item=Rocky-Compute-8)
+changed: [Rocky-Head-2] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-2] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-4] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-6] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-7] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-5] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-4] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-6] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-7] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-5] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-3] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-8] => (item=Rocky-Head-1)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-8] => (item=Rocky-Head-2)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-1)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-6] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-4] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-7] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-2)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-3)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-4)
+changed: [Rocky-Compute-5] => (item=Rocky-Compute-8)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-5)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-6)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-7)
+changed: [Rocky-Compute-8] => (item=Rocky-Compute-8)
+
+TASK [Add higher metric to eno2 default route] ****************************************************************************************
+changed: [Rocky-Compute-2]
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Enable default route on eno2] ***************************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+RUNNING HANDLER [Restart NetworkManager] **********************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+PLAY [Configure Lustre-specific Firewall Rules] ***************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Configure Firewall (Allow Lustre ports)] ****************************************************************************************
+changed: [Rocky-Compute-2] => (item=988/tcp)
+changed: [Rocky-Head-1] => (item=988/tcp)
+changed: [Rocky-Head-2] => (item=988/tcp)
+changed: [Rocky-Compute-1] => (item=988/tcp)
+changed: [Rocky-Compute-3] => (item=988/tcp)
+changed: [Rocky-Head-1] => (item=988/udp)
+changed: [Rocky-Compute-2] => (item=988/udp)
+changed: [Rocky-Head-2] => (item=988/udp)
+changed: [Rocky-Compute-1] => (item=988/udp)
+changed: [Rocky-Compute-3] => (item=988/udp)
+changed: [Rocky-Head-1] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-1] => (item=1021-1023/tcp)
+changed: [Rocky-Head-2] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-2] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-3] => (item=1021-1023/tcp)
+changed: [Rocky-Head-1] => (item=1021-1023/udp)
+changed: [Rocky-Compute-1] => (item=1021-1023/udp)
+changed: [Rocky-Head-2] => (item=1021-1023/udp)
+changed: [Rocky-Compute-2] => (item=1021-1023/udp)
+changed: [Rocky-Compute-4] => (item=988/tcp)
+changed: [Rocky-Compute-6] => (item=988/tcp)
+changed: [Rocky-Compute-7] => (item=988/tcp)
+changed: [Rocky-Compute-3] => (item=1021-1023/udp)
+changed: [Rocky-Compute-5] => (item=988/tcp)
+changed: [Rocky-Compute-4] => (item=988/udp)
+changed: [Rocky-Compute-6] => (item=988/udp)
+changed: [Rocky-Compute-7] => (item=988/udp)
+changed: [Rocky-Compute-8] => (item=988/tcp)
+changed: [Rocky-Compute-5] => (item=988/udp)
+changed: [Rocky-Compute-4] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-6] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-7] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-8] => (item=988/udp)
+changed: [Rocky-Compute-5] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-4] => (item=1021-1023/udp)
+changed: [Rocky-Compute-6] => (item=1021-1023/udp)
+changed: [Rocky-Compute-7] => (item=1021-1023/udp)
+changed: [Rocky-Compute-8] => (item=1021-1023/tcp)
+changed: [Rocky-Compute-5] => (item=1021-1023/udp)
+changed: [Rocky-Compute-8] => (item=1021-1023/udp)
+
+TASK [Reload firewall to apply Lustre rules] ******************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+PLAY [Prepare Compute Nodes SSDs for Distributed Storage] *****************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Find the stable disk ID for Samsung 256GB SSD] **********************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Set target_disk variable] *******************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Wipe filesystem signatures] *****************************************************************************************************
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-8]
+
+TASK [Create storage data directory] **************************************************************************************************
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-8]
+
+TASK [Initialize storage_drives list] *************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Find Samsung 256GB SSDs (By-ID)] ************************************************************************************************
+[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+[DEPRECATION WARNING]: INJECT_FACTS_AS_VARS default to `True` is deprecated, top-level facts will not be auto injected after the change. This feature will be removed from ansible-core version 2.24.
+Origin: /home/kopy/Documents/UJEP-LAB/shared/playbooks/prepare_compute_storage.yml:46:13
+
+44       set_fact:
+45         storage_drives: "{{ storage_drives + ['/dev/disk/by-id/' + (item.value.links.ids | select('match', '^ata-'...
+46       loop: "{{ ansible_devices | dict2items }}"
+               ^ column 13
+
+Use `ansible_facts["fact_name"]` (no `ansible_` prefix) instead.
+
+skipping: [Rocky-Compute-1] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-WpBmvuj1fdlqJ02IwaQ69aO3axJ6N9UMkHS5kxiFidYyKkfVV7lRla00uAd0K1nN'], 'uuids': ['978f6ea4-b96e-4a43-8ad6-3ba2832c6749'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707774', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 23445504, 'size': '11.18 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-2] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-zU2mTlXudUte43YW2TWaofZqzNHYr2j2qfHAShiKaOmtsYcp6QAwAX9EeeSfc2KW'], 'uuids': ['0031a5ea-bef8-4be5-bdd2-56cccb874666'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A02E52', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 50012160, 'size': '23.85 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-3] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-sCgjGf2MQdxjdpRZqImC8DDJBEMkd0KTRuvukySBud5rTlloIKmgydLsFSJvyc5X'], 'uuids': ['4f095093-ed99-408c-b2ff-084ea6726fc0'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A02B71', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 50012160, 'size': '23.85 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-1] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J201561', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J201561', 'wwn-0x5002538d00000000'], 'uuids': ['5c67f5e3-3fc2-4ff2-9f8c-f9af213b11a8'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J201561', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-1] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-WpBmvuj1fdlqJ02IwaQ69aO3axJ6N9UM7iDhS2733uVVG9Gyj6l87gT9bcWtDGc7'], 'uuids': ['c235eae0-6de8-48e9-9b6a-d3895135742d'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707774', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 68124672, 'size': '32.48 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-2] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB02392', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB02392'], 'uuids': ['227f9f7b-96b6-47b0-8d7a-15c6add02f85'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB02392', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-1] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-WpBmvuj1fdlqJ02IwaQ69aO3axJ6N9UMdYH0FAJHBiZDXerZBt59bJMJKyBE9T3N'], 'uuids': ['4807d6a5-1305-4aff-b751-93da90cbfc01'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707774', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 139534336, 'size': '66.54 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-4] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-0MH4Ek115x0hKfHyCHPzhNpIBMb830x517lbxqthhC7qhrfSFBMcK0pePHEVSxG4'], 'uuids': ['ed83561c-89b4-4000-bb99-8a94d7722d7d'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A026E5', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 50012160, 'size': '23.85 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-2] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-zU2mTlXudUte43YW2TWaofZqzNHYr2j2oUWt43s1obwsXa910vJzu53bR3thrOnB'], 'uuids': ['b0349870-d5b1-42e5-87fc-da3d9d4d6782'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A02E52', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 299974656, 'size': '143.04 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-1] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707774', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774', 'scsi-35002538740216c1a', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707774', 'wwn-0x5002538740216c1a'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7LF120', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707774', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538740216c1a', 'partitions': {'sdc2': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part2', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part2', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part2', 'scsi-35002538740216c1a-part2', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part2', 'wwn-0x5002538740216c1a-part2'], 'uuids': ['945537b3-b701-470f-9375-270d09092011'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '945537b3-b701-470f-9375-270d09092011', 'holders': []}, 'sdc3': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part3', 'lvm-pv-uuid-TBaLLj-u6Rg-Akyp-ISZu-YrRl-XOcd-vuaiHN', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part3', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part3', 'scsi-35002538740216c1a-part3', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part3', 'wwn-0x5002538740216c1a-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 231112704, 'size': '110.20 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sdc1': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part1', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part1', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707774-part1', 'scsi-35002538740216c1a-part1', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707774-part1', 'wwn-0x5002538740216c1a-part1'], 'uuids': ['4AF7-F50C'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': '4AF7-F50C', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 234441648, 'size': '111.79 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-2] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-zU2mTlXudUte43YW2TWaofZqzNHYr2j2NnXEKq1xTDHQeh1e2wArrACpVe6Zy9ST'], 'uuids': ['868ef8c9-3671-425c-a19c-45e5145990fa'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A02E52', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 146800640, 'size': '70.00 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-3] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB16669', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB16669'], 'uuids': ['a102829a-bed1-4e8a-8c17-00345d153140'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB16669', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-2] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52', 'scsi-0ATA_SanDisk_X600_2.5_182205A02E52', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52', 'scsi-35001b448b6dd2bc6', 'scsi-SATA_SanDisk_X600_2.5_182205A02E52', 'wwn-0x5001b448b6dd2bc6'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SanDisk X600 2.5', 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A02E52', 'removable': '0', 'support_discard': '512', 'wwn': '0x5001b448b6dd2bc6', 'partitions': {'sdc2': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part2', 'scsi-0ATA_SanDisk_X600_2.5_182205A02E52-part2', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part2', 'scsi-35001b448b6dd2bc6-part2', 'scsi-SATA_SanDisk_X600_2.5_182205A02E52-part2', 'wwn-0x5001b448b6dd2bc6-part2'], 'uuids': ['43eae109-9d99-4227-9e28-fc508f6e3e85'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '43eae109-9d99-4227-9e28-fc508f6e3e85', 'holders': []}, 'sdc3': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part3', 'lvm-pv-uuid-QOiKeo-3LQi-DhDS-C2qt-8fP3-fxZR-3pwIEH', 'scsi-0ATA_SanDisk_X600_2.5_182205A02E52-part3', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part3', 'scsi-35001b448b6dd2bc6-part3', 'scsi-SATA_SanDisk_X600_2.5_182205A02E52-part3', 'wwn-0x5001b448b6dd2bc6-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 496789504, 'size': '236.89 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sdc1': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part1', 'scsi-0ATA_SanDisk_X600_2.5_182205A02E52-part1', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A02E52-part1', 'scsi-35001b448b6dd2bc6-part1', 'scsi-SATA_SanDisk_X600_2.5_182205A02E52-part1', 'wwn-0x5001b448b6dd2bc6-part1'], 'uuids': ['AEF3-8608'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': 'AEF3-8608', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-3] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-sCgjGf2MQdxjdpRZqImC8DDJBEMkd0KTd5DgncyY0fA0Gf2CINRxVMVUjzJm1CWA'], 'uuids': ['b05ceb32-1e40-4d1b-8578-d61057751f75'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A02B71', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 299974656, 'size': '143.04 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-5] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-dtg2tMCHiXpgIyJjMXL0sFEpB7FmwP1ucHhyUA47wKzGSvAUGps4WDdBtzqXHa7i'], 'uuids': ['1e037948-cf85-4937-962a-5d210f60c097'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A01CC6', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 50012160, 'size': '23.85 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-1] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J201315', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J201315'], 'uuids': ['d91b74ec-bdcd-4c37-9937-ee719b501db9'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J201315', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-4] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J201562', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J201562'], 'uuids': ['918d0845-3dd5-4619-a21c-31f669f9a3b1'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J201562', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-3] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-sCgjGf2MQdxjdpRZqImC8DDJBEMkd0KTjyITiKcUrY2t2NX6irmA2r9H2JwwNy2W'], 'uuids': ['dbffd93c-c947-4155-b169-3498e68009b6'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A02B71', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 146800640, 'size': '70.00 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-4] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-0MH4Ek115x0hKfHyCHPzhNpIBMb830x5RkWoL6CgbZc7Mu7G9L6jnw4vWJwK7H4c'], 'uuids': ['fd07e19a-9502-4850-bfab-c1048621888f'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A026E5', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 299974656, 'size': '143.04 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-2] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J205867', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J205867', 'wwn-0x5002538d00000000'], 'uuids': ['0d0b8b01-e4e7-47a3-8ca8-50a3dc58093c'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J205867', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-4] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-0MH4Ek115x0hKfHyCHPzhNpIBMb830x5HZf318B8SUsL5n1v4skkSbcXQaP74p95'], 'uuids': ['14ededc6-37c3-477c-aaf5-ace978b648f0'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A026E5', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 146800640, 'size': '70.00 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-4] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5', 'scsi-0ATA_SanDisk_X600_2.5_182204A026E5', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5', 'scsi-35001b448b6dd3569', 'scsi-SATA_SanDisk_X600_2.5_182204A026E5', 'wwn-0x5001b448b6dd3569'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SanDisk X600 2.5', 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A026E5', 'removable': '0', 'support_discard': '512', 'wwn': '0x5001b448b6dd3569', 'partitions': {'sdc2': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part2', 'scsi-0ATA_SanDisk_X600_2.5_182204A026E5-part2', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part2', 'scsi-35001b448b6dd3569-part2', 'scsi-SATA_SanDisk_X600_2.5_182204A026E5-part2', 'wwn-0x5001b448b6dd3569-part2'], 'uuids': ['22570a7a-c09c-4ea0-b46d-7d954cd21962'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '22570a7a-c09c-4ea0-b46d-7d954cd21962', 'holders': []}, 'sdc3': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part3', 'lvm-pv-uuid-6BgbGD-9x7N-CpOn-Y9zS-xZXa-yxHE-Y7oqDH', 'scsi-0ATA_SanDisk_X600_2.5_182204A026E5-part3', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part3', 'scsi-35001b448b6dd3569-part3', 'scsi-SATA_SanDisk_X600_2.5_182204A026E5-part3', 'wwn-0x5001b448b6dd3569-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 496789504, 'size': '236.89 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sdc1': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part1', 'scsi-0ATA_SanDisk_X600_2.5_182204A026E5-part1', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A026E5-part1', 'scsi-35001b448b6dd3569-part1', 'scsi-SATA_SanDisk_X600_2.5_182204A026E5-part1', 'wwn-0x5001b448b6dd3569-part1'], 'uuids': ['3F0D-430E'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': '3F0D-430E', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-5] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB02417', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB02417', 'wwn-0x5002538d00000000'], 'uuids': ['eff474b4-6645-4e1e-865c-2225cd906634'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB02417', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-3] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB02295', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB02295', 'wwn-0x5002538d00000000'], 'uuids': ['fa2b5ad3-7cec-488a-b063-8927a6cead40'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB02295', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-5] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-dtg2tMCHiXpgIyJjMXL0sFEpB7FmwP1u4Jla4uTjWiIxr0OSuSJawIMA1OZketQE'], 'uuids': ['2e892d10-b232-4814-9868-77035a411376'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A01CC6', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 299974656, 'size': '143.04 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-5] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-dtg2tMCHiXpgIyJjMXL0sFEpB7FmwP1uAXqvGkFuX1UFTdI0WoGva6hRvfdqAsDX'], 'uuids': ['e22d1def-1c5b-4d78-9af9-0cf57ebf0d49'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A01CC6', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 146800640, 'size': '70.00 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-3] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71', 'scsi-0ATA_SanDisk_X600_2.5_182204A02B71', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71', 'scsi-35001b448b6dda5ae', 'scsi-SATA_SanDisk_X600_2.5_182204A02B71', 'wwn-0x5001b448b6dda5ae'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SanDisk X600 2.5', 'sas_address': None, 'sas_device_handle': None, 'serial': '182204A02B71', 'removable': '0', 'support_discard': '512', 'wwn': '0x5001b448b6dda5ae', 'partitions': {'sda2': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part2', 'scsi-0ATA_SanDisk_X600_2.5_182204A02B71-part2', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part2', 'scsi-35001b448b6dda5ae-part2', 'scsi-SATA_SanDisk_X600_2.5_182204A02B71-part2', 'wwn-0x5001b448b6dda5ae-part2'], 'uuids': ['137f23b7-b4da-4b05-a259-54fedaa28b92'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '137f23b7-b4da-4b05-a259-54fedaa28b92', 'holders': []}, 'sda3': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part3', 'lvm-pv-uuid-C5swNA-YUKj-aqT8-eyjv-nK0F-08j0-HrnzrO', 'scsi-0ATA_SanDisk_X600_2.5_182204A02B71-part3', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part3', 'scsi-35001b448b6dda5ae-part3', 'scsi-SATA_SanDisk_X600_2.5_182204A02B71-part3', 'wwn-0x5001b448b6dda5ae-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 496789504, 'size': '236.89 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sda1': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part1', 'scsi-0ATA_SanDisk_X600_2.5_182204A02B71-part1', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182204A02B71-part1', 'scsi-35001b448b6dda5ae-part1', 'scsi-SATA_SanDisk_X600_2.5_182204A02B71-part1', 'wwn-0x5001b448b6dda5ae-part1'], 'uuids': ['3A5F-24DC'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': '3A5F-24DC', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-4] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB16696', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB16696', 'wwn-0x5002538d00000000'], 'uuids': ['bf42117b-4961-4de4-be97-080a5c9e8c90'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB16696', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-6] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-7eJmze8Zi1G2KLDyMhrSdusJOYzQ8CazlmJWpDl95ipJbwGZLkibLT0ZeXB7BLWb'], 'uuids': ['17dc7d04-ffa6-4759-89e4-914577fc9e23'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707859', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 23445504, 'size': '11.18 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-6] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707859', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859', 'scsi-35002538740216bc1', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707859', 'wwn-0x5002538740216bc1'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7LF120', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707859', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538740216bc1', 'partitions': {'sdb2': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part2', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part2', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part2', 'scsi-35002538740216bc1-part2', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part2', 'wwn-0x5002538740216bc1-part2'], 'uuids': ['883a93de-b1d9-404f-b710-54a479b1f231'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '883a93de-b1d9-404f-b710-54a479b1f231', 'holders': []}, 'sdb3': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part3', 'lvm-pv-uuid-dvzH2X-evXK-M0xt-b35j-pMqI-uSia-gXtP93', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part3', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part3', 'scsi-35002538740216bc1-part3', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part3', 'wwn-0x5002538740216bc1-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 231112704, 'size': '110.20 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sdb1': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part1', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part1', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXRH707859-part1', 'scsi-35002538740216bc1-part1', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXRH707859-part1', 'wwn-0x5002538740216bc1-part1'], 'uuids': ['B584-01D5'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': 'B584-01D5', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 234441648, 'size': '111.79 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-6] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-7eJmze8Zi1G2KLDyMhrSdusJOYzQ8CaztXHVaQqJxgyfO4N3FL7amXBchy6ugLfT'], 'uuids': ['9ce24779-5329-4bac-b7ac-573716a3abb9'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707859', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 68124672, 'size': '32.48 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-5] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB02383', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB02383'], 'uuids': ['487f716e-9f85-409e-9391-c88bec7f031d'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB02383', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-6] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-7eJmze8Zi1G2KLDyMhrSdusJOYzQ8Caz94axAuInrBynO5ADEkpUtd0CwuZdTuIR'], 'uuids': ['5b4676b9-96f4-4a2f-8910-357d83353f76'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXRH707859', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 139534336, 'size': '66.54 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-5] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6', 'scsi-0ATA_SanDisk_X600_2.5_182205A01CC6', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6', 'scsi-35001b448b6dd2b79', 'scsi-SATA_SanDisk_X600_2.5_182205A01CC6', 'wwn-0x5001b448b6dd2b79'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SanDisk X600 2.5', 'sas_address': None, 'sas_device_handle': None, 'serial': '182205A01CC6', 'removable': '0', 'support_discard': '512', 'wwn': '0x5001b448b6dd2b79', 'partitions': {'sda2': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part2', 'scsi-0ATA_SanDisk_X600_2.5_182205A01CC6-part2', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part2', 'scsi-35001b448b6dd2b79-part2', 'scsi-SATA_SanDisk_X600_2.5_182205A01CC6-part2', 'wwn-0x5001b448b6dd2b79-part2'], 'uuids': ['d2b75f92-01d8-4347-ae4a-7e4873207f57'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': 'd2b75f92-01d8-4347-ae4a-7e4873207f57', 'holders': []}, 'sda3': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part3', 'lvm-pv-uuid-c2bxDC-VvuN-uOXv-D2Rg-Rvcc-5gHr-hmv3tM', 'scsi-0ATA_SanDisk_X600_2.5_182205A01CC6-part3', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part3', 'scsi-35001b448b6dd2b79-part3', 'scsi-SATA_SanDisk_X600_2.5_182205A01CC6-part3', 'wwn-0x5001b448b6dd2b79-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 496789504, 'size': '236.89 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sda1': {'links': {'ids': ['ata-SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part1', 'scsi-0ATA_SanDisk_X600_2.5_182205A01CC6-part1', 'scsi-1ATA_SanDisk_X600_2.5_7MM_SATA_256GB_182205A01CC6-part1', 'scsi-35001b448b6dd2b79-part1', 'scsi-SATA_SanDisk_X600_2.5_182205A01CC6-part1', 'wwn-0x5001b448b6dd2b79-part1'], 'uuids': ['43DD-AA3A'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': '43DD-AA3A', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-7] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-zTR62ZC5m1TREs0CHfkBRp1hkDtgTx4sGj3gwHzneTfSHWWoq11oMsSDF0hHFD8Q'], 'uuids': ['79c907f9-dc3d-4da9-b011-852ef4aab573'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S0U8NSAC505166', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 25010176, 'size': '11.93 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-7] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166', 'scsi-0ATA_SAMSUNG_MZ7PC128_S0U8NSAC505166', 'scsi-1ATA_SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166', 'scsi-SATA_SAMSUNG_MZ7PC128_S0U8NSAC505166', 'wwn-0x5002538043584d30'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7PC128', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S0U8NSAC505166', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538043584d30', 'partitions': {'sdb2': {'links': {'ids': ['ata-SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part2', 'scsi-0ATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part2', 'scsi-1ATA_SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part2', 'scsi-SATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part2', 'wwn-0x5002538043584d30-part2'], 'uuids': ['13855ccd-1588-492b-84f9-65f93200d1cd'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': '13855ccd-1588-492b-84f9-65f93200d1cd', 'holders': []}, 'sdb3': {'links': {'ids': ['ata-SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part3', 'lvm-pv-uuid-Fq1TQ6-NfDC-FDrw-CzDx-2bb9-p26H-IKIBxG', 'scsi-0ATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part3', 'scsi-1ATA_SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part3', 'scsi-SATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part3', 'wwn-0x5002538043584d30-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 246740992, 'size': '117.66 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sdb1': {'links': {'ids': ['ata-SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part1', 'scsi-0ATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part1', 'scsi-1ATA_SAMSUNG_MZ7PC128HAFU-000L1_S0U8NSAC505166-part1', 'scsi-SATA_SAMSUNG_MZ7PC128_S0U8NSAC505166-part1', 'wwn-0x5002538043584d30-part1'], 'uuids': ['B84C-03DE'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': 'B84C-03DE', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 250069680, 'size': '119.24 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-6] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J205832', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J205832', 'wwn-0x5002538d00000000'], 'uuids': ['21ce8488-e0ba-4024-ab6b-cc5bb83d177f'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J205832', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-7] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-zTR62ZC5m1TREs0CHfkBRp1hkDtgTx4sRe8pQFne9SFlJ6fNJWg0SKUd5pVFL0GC'], 'uuids': ['9d825e0a-5a8f-45c0-9baa-b6470444888c'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S0U8NSAC505166', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 74924032, 'size': '35.73 GB', 'host': '', 'holders': []}})
+skipping: [Rocky-Compute-7] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-zTR62ZC5m1TREs0CHfkBRp1hkDtgTx4sIZSBkMcLwEoQ3lvExSD0mI4PTHklWCF1'], 'uuids': ['2f862bb8-f06c-4054-b23b-59c923c211b9'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S0U8NSAC505166', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 146800640, 'size': '70.00 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-6] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HA07332', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HA07332'], 'uuids': ['af9870a5-6261-4a37-a5ee-19502aa8d292'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HA07332', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-8] => (item={'key': 'dm-1', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-swap', 'dm-uuid-LVM-3yxDIvu2tKhMZ6qU5CJ4dD2JBEyl31edRXuhjfLUGkkLZ6Mc2XQio7ofjRZknquL'], 'uuids': ['cb37fc4a-1b6d-4a34-b75a-4397e36c2ce0'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXAGB32342', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 23445504, 'size': '11.18 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-7] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J201607', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J201607'], 'uuids': ['07f2ec01-7cd0-4911-bf6b-1705fac42dd7'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J201607', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+ok: [Rocky-Compute-8] => (item={'key': 'sdb', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB03366', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB03366'], 'uuids': ['1f626e02-83b6-49cd-9596-79abfc66c1fe'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB03366', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-8] => (item={'key': 'dm-2', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-home', 'dm-uuid-LVM-3yxDIvu2tKhMZ6qU5CJ4dD2JBEyl31edzNgrKdnPNExg8CaWLAIGUSzZ46cssGNL'], 'uuids': ['c89e19e8-64a2-4d5d-8923-86ee37449e26'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXAGB32342', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 68124672, 'size': '32.48 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-7] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0J205835', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0J205835', 'wwn-0x5002538d00000000'], 'uuids': ['7b809f05-1016-4aac-b9b0-90e58258e4f8'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0J205835', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-8] => (item={'key': 'dm-0', 'value': {'virtual': 1, 'links': {'ids': ['dm-name-rl-root', 'dm-uuid-LVM-3yxDIvu2tKhMZ6qU5CJ4dD2JBEyl31edapFZzYnQbr2AeqEjYBol9RKGY8gsCpQ2'], 'uuids': ['d9e448de-cbb7-46f6-bf38-7ec46709e6f8'], 'labels': [], 'masters': []}, 'vendor': None, 'model': None, 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXAGB32342', 'removable': '0', 'support_discard': '512', 'partitions': {}, 'rotational': '0', 'scheduler_mode': '', 'sectorsize': '512', 'sectors': 139534336, 'size': '66.54 GB', 'host': '', 'holders': []}})
+ok: [Rocky-Compute-8] => (item={'key': 'sdc', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302', 'scsi-0ATA_SAMSUNG_MZ7TY256_S307NB0HB02302', 'scsi-1ATA_SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302', 'scsi-35002538d00000000', 'scsi-SATA_SAMSUNG_MZ7TY256_S307NB0HB02302', 'wwn-0x5002538d00000000'], 'uuids': ['dd6e6655-0f7b-4bae-86a6-80c72fc28dc2'], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7TY256', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S307NB0HB02302', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538d00000000', 'partitions': {}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 500118192, 'size': '238.47 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+skipping: [Rocky-Compute-8] => (item={'key': 'sda', 'value': {'virtual': 1, 'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342', 'scsi-35002538700000000', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342', 'wwn-0x5002538700000000'], 'uuids': [], 'labels': [], 'masters': []}, 'vendor': 'ATA', 'model': 'SAMSUNG MZ7LF120', 'sas_address': None, 'sas_device_handle': None, 'serial': 'S25ZNXAGB32342', 'removable': '0', 'support_discard': '512', 'wwn': '0x5002538700000000', 'partitions': {'sda2': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part2', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part2', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part2', 'scsi-35002538700000000-part2', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part2', 'wwn-0x5002538700000000-part2'], 'uuids': ['cb8d9458-8c4e-424d-ad05-e5ecb47515ca'], 'labels': [], 'masters': []}, 'start': '1230848', 'sectorsize': 512, 'sectors': 2097152, 'size': '1.00 GB', 'uuid': 'cb8d9458-8c4e-424d-ad05-e5ecb47515ca', 'holders': []}, 'sda3': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part3', 'lvm-pv-uuid-aDKa8G-FpoG-VbpY-L0a6-oGHb-8TKH-QDlxVH', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part3', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part3', 'scsi-35002538700000000-part3', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part3', 'wwn-0x5002538700000000-part3'], 'uuids': [], 'labels': [], 'masters': ['dm-0', 'dm-1', 'dm-2']}, 'start': '3328000', 'sectorsize': 512, 'sectors': 231112704, 'size': '110.20 GB', 'uuid': None, 'holders': ['rl-swap', 'rl-home', 'rl-root']}, 'sda1': {'links': {'ids': ['ata-SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part1', 'scsi-0ATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part1', 'scsi-1ATA_SAMSUNG_MZ7LF120HCHP-000L1_S25ZNXAGB32342-part1', 'scsi-35002538700000000-part1', 'scsi-SATA_SAMSUNG_MZ7LF120_S25ZNXAGB32342-part1', 'wwn-0x5002538700000000-part1'], 'uuids': ['BC0D-16B3'], 'labels': [], 'masters': []}, 'start': '2048', 'sectorsize': 512, 'sectors': 1228800, 'size': '600.00 MB', 'uuid': 'BC0D-16B3', 'holders': []}}, 'rotational': '0', 'scheduler_mode': 'mq-deadline', 'sectorsize': '512', 'sectors': 234441648, 'size': '111.79 GB', 'host': 'SATA controller: Intel Corporation C610/X99 series chipset 6-Port SATA Controller [AHCI mode] (rev 05)', 'holders': []}})
+
+TASK [Create XFS filesystem on each drive] ********************************************************************************************
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561)
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669)
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867)
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302)
+
+TASK [Create mount directories] *******************************************************************************************************
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561)
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417)
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315)
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302)
+
+TASK [Mount formatted disks] **********************************************************************************************************
+[DEPRECATION WARNING]: Importing 'to_bytes' from 'ansible.module_utils._text' is deprecated. This feature will be removed from ansible-core version 2.24. Use ansible.module_utils.common.text.converters instead.
+[DEPRECATION WARNING]: Importing 'to_native' from 'ansible.module_utils._text' is deprecated. This feature will be removed from ansible-core version 2.24. Use ansible.module_utils.common.text.converters instead.
+[DEPRECATION WARNING]: Passing `warnings` to `exit_json` or `fail_json` is deprecated. This feature will be removed from ansible-core version 2.23. Use `AnsibleModule.warn` instead.
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392)
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669)
+changed: [Rocky-Compute-1] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315)
+changed: [Rocky-Compute-4] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696)
+changed: [Rocky-Compute-2] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867)
+changed: [Rocky-Compute-5] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383)
+changed: [Rocky-Compute-3] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366)
+changed: [Rocky-Compute-6] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332)
+changed: [Rocky-Compute-7] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835)
+changed: [Rocky-Compute-8] => (item=/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302)
+
+TASK [Display discovered drives] ******************************************************************************************************
+ok: [Rocky-Compute-1] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-1: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201561', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201315']"
+}
+ok: [Rocky-Compute-2] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-2: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02392', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205867']"
+}
+ok: [Rocky-Compute-3] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-3: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16669', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02295']"
+}
+ok: [Rocky-Compute-4] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-4: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201562', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB16696']"
+}
+ok: [Rocky-Compute-5] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-5: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02417', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02383']"
+}
+ok: [Rocky-Compute-6] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-6: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205832', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HA07332']"
+}
+ok: [Rocky-Compute-7] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-7: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J201607', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0J205835']"
+}
+ok: [Rocky-Compute-8] => {
+    "msg": "Found 2 drive(s) on Rocky-Compute-8: ['/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB03366', '/dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-000L7_S307NB0HB02302']"
+}
+
+PLAY RECAP ****************************************************************************************************************************
+Rocky-Compute-1            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-2            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-3            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-4            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-5            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-6            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-7            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Compute-8            : ok=29   changed=14   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Head-1               : ok=18   changed=9    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+Rocky-Head-2               : ok=18   changed=9    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage
+...0_bootstrap.yml       ...2_install_lustre.yml  ...4_configure_mds.yml   ...6_mount_clients.yml
+...1_core_setup.yml      ...3_configure_mgs.yml   ...5_configure_oss.yml
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage2_install_lustre.yml
+ansible.cfg                  kernel.log                   playbooks/
+group_vars/                  lnp/                         README.md
+hosts.ini                    log.md                       ROCKY9_RDMA_BREAKTHROUGH.md
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage2_install_lustre.yml
+
+PLAY [Install Lustre Dependencies and Repositories] ***********************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Remove old Lustre repository configurations] ************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Clear DNF cache to remove old repository metadata] ******************************************************************************
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Install EPEL repository] ********************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Update package cache] ***********************************************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Install kernel-devel and development tools] *************************************************************************************
+changed: [Rocky-Compute-2]
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-8]
+
+TASK [Add Lustre server repository] ***************************************************************************************************
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Add Lustre client repository] ***************************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Add e2fsprogs-wc repository (Lustre patched e2fsprogs)] *************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Update package cache after adding repositories] *********************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-8]
+
+PLAY [Install Lustre Server on Head Nodes (MGS/MDS)] **********************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+
+TASK [Install Lustre server packages for MGS/MDS] *************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+
+TASK [Load Lustre kernel modules on head nodes] ***************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:84:7
+
+82       until: lustre_server_head_install.rc == 0
+83
+84     - name: Load Lustre kernel modules on head nodes
+         ^ column 7
+
+failed: [Rocky-Head-1] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.071121", "end": "2026-03-26 10:09:20.973015", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:09:18.901894", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Head-2] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.122302", "end": "2026-03-26 10:09:21.012693", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:09:18.890391", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+ok: [Rocky-Head-1] => (item=lnet)
+...ignoring
+ok: [Rocky-Head-2] => (item=lnet)
+...ignoring
+
+PLAY [Install Lustre Server on Compute Nodes (OSS)] ***********************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Install Lustre server packages for OSS] *****************************************************************************************
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-8]
+
+TASK [Load Lustre kernel modules on compute nodes] ************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:106:7
+
+104       until: lustre_server_compute_install.rc == 0
+105
+106     - name: Load Lustre kernel modules on compute nodes
+          ^ column 7
+
+failed: [Rocky-Compute-2] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.063105", "end": "2026-03-26 10:14:18.045425", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:15.982320", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-1] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.104525", "end": "2026-03-26 10:14:18.082679", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:15.978154", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-4] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.105653", "end": "2026-03-26 10:14:18.097831", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:15.992178", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-3] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.059202", "end": "2026-03-26 10:14:18.272814", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:16.213612", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-5] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.109513", "end": "2026-03-26 10:14:18.314953", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:16.205440", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+ok: [Rocky-Compute-2] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-1] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-4] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-3] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-5] => (item=lnet)
+...ignoring
+failed: [Rocky-Compute-6] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.058656", "end": "2026-03-26 10:14:21.073255", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:19.014599", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-7] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.079030", "end": "2026-03-26 10:14:21.106725", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:19.027695", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+failed: [Rocky-Compute-8] (item=lustre) => {"ansible_loop_var": "item", "changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:02.109720", "end": "2026-03-26 10:14:21.366047", "item": "lustre", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:14:19.256327", "stderr": "modprobe: ERROR: could not insert 'lustre': Network is down", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Network is down"], "stdout": "", "stdout_lines": []}
+ok: [Rocky-Compute-6] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-7] => (item=lnet)
+...ignoring
+ok: [Rocky-Compute-8] => (item=lnet)
+...ignoring
+
+PLAY [Install Lustre Client on All Nodes] *********************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-8]
+
+TASK [Enable CRB repository for development packages (Rocky 9)] ***********************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Install Lustre client DKMS dependencies] ****************************************************************************************
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-8]
+
+TASK [Install Lustre client DKMS (server nodes already have client functionality via lustre package)] *********************************
+changed: [Rocky-Compute-3]
+changed: [Rocky-Head-1]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-8]
+
+TASK [Create Lustre client mount point] ***********************************************************************************************
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-8]
+
+TASK [Load Lustre client kernel module] ***********************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:145:7
+
+143         mode: '0755'
+144
+145     - name: Load Lustre client kernel module
+          ^ column 7
+
+fatal: [Rocky-Head-2]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.578341", "end": "2026-03-26 10:22:04.626279", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:04.047938", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-1]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.583120", "end": "2026-03-26 10:22:04.633028", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:04.049908", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.579830", "end": "2026-03-26 10:22:04.638663", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:04.058833", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.582382", "end": "2026-03-26 10:22:04.644103", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:04.061721", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.577068", "end": "2026-03-26 10:22:04.852661", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:04.275593", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.577514", "end": "2026-03-26 10:22:05.684335", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:05.106821", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.582866", "end": "2026-03-26 10:22:05.704779", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:05.121913", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.586150", "end": "2026-03-26 10:22:05.720936", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:05.134786", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.576939", "end": "2026-03-26 10:22:05.900627", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:05.323688", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": false, "cmd": ["modprobe", "lustre"], "delta": "0:00:00.580609", "end": "2026-03-26 10:22:06.119874", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:05.539265", "stderr": "modprobe: ERROR: could not insert 'lustre': Invalid argument", "stderr_lines": ["modprobe: ERROR: could not insert 'lustre': Invalid argument"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Persist Lustre kernel modules] **************************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+PLAY [Configure LNET for RDMA (o2ib)] *************************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Create LNET configuration directory] ********************************************************************************************
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Configure LNET for InfiniBand RDMA (o2ib)] **************************************************************************************
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Load LNET module with o2ib configuration] ***************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:177:7
+
+175         mode: "0644"
+176
+177     - name: Load LNET module with o2ib configuration
+          ^ column 7
+
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.044389", "end": "2026-03-26 10:22:16.905806", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:15.861417", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-2]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.069025", "end": "2026-03-26 10:22:16.921489", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:15.852464", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.058745", "end": "2026-03-26 10:22:16.922073", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:15.863328", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-1]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.085657", "end": "2026-03-26 10:22:16.940196", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:15.854539", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.023165", "end": "2026-03-26 10:22:17.099659", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:16.076494", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.063609", "end": "2026-03-26 10:22:18.454168", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:17.390559", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.078936", "end": "2026-03-26 10:22:18.495115", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:17.416179", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.082458", "end": "2026-03-26 10:22:18.515400", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:17.432942", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.052599", "end": "2026-03-26 10:22:18.676504", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:17.623905", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": true, "cmd": "modprobe lnet\nlctl network configure\n", "delta": "0:00:01.054131", "end": "2026-03-26 10:22:18.846171", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:17.792040", "stderr": "LNET configure error 100: Network is down", "stderr_lines": ["LNET configure error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Verify LNET is configured] ******************************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:183:7
+
+181       ignore_errors: yes
+182
+183     - name: Verify LNET is configured
+          ^ column 7
+
+fatal: [Rocky-Head-1]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.004311", "end": "2026-03-26 10:22:19.327312", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.323001", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-2]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003762", "end": "2026-03-26 10:22:19.345030", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.341268", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003701", "end": "2026-03-26 10:22:19.352294", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.348593", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003764", "end": "2026-03-26 10:22:19.362520", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.358756", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003664", "end": "2026-03-26 10:22:19.572213", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.568549", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.004201", "end": "2026-03-26 10:22:19.823727", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.819526", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003836", "end": "2026-03-26 10:22:19.838798", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.834962", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003804", "end": "2026-03-26 10:22:19.842557", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:19.838753", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003666", "end": "2026-03-26 10:22:20.021930", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:20.018264", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": true, "cmd": ["lctl", "list_nids"], "delta": "0:00:00.003673", "end": "2026-03-26 10:22:20.247807", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:20.244134", "stderr": "Reader error: 'LNet stack down' at 0\nIOC_LIBCFS_GET_NI error 100: Network is down", "stderr_lines": ["Reader error: 'LNet stack down' at 0", "IOC_LIBCFS_GET_NI error 100: Network is down"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Display LNET NIDs] **************************************************************************************************************
+skipping: [Rocky-Head-1]
+skipping: [Rocky-Head-2]
+skipping: [Rocky-Compute-1]
+skipping: [Rocky-Compute-2]
+skipping: [Rocky-Compute-3]
+skipping: [Rocky-Compute-4]
+skipping: [Rocky-Compute-5]
+skipping: [Rocky-Compute-6]
+skipping: [Rocky-Compute-7]
+skipping: [Rocky-Compute-8]
+
+PLAY [Verify Lustre Installation] *****************************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Check Lustre version] ***********************************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:198:7
+
+196
+197   tasks:
+198     - name: Check Lustre version
+          ^ column 7
+
+fatal: [Rocky-Head-1]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.005433", "end": "2026-03-26 10:22:23.480297", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.474864", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004632", "end": "2026-03-26 10:22:23.483250", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.478618", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-2]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004734", "end": "2026-03-26 10:22:23.484874", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.480140", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004925", "end": "2026-03-26 10:22:23.496723", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.491798", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004908", "end": "2026-03-26 10:22:23.720051", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.715143", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004852", "end": "2026-03-26 10:22:23.969964", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.965112", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.005249", "end": "2026-03-26 10:22:23.993060", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.987811", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.004767", "end": "2026-03-26 10:22:23.994188", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:23.989421", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.005177", "end": "2026-03-26 10:22:24.169502", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:24.164325", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": false, "cmd": ["lustre_rmmod", "-l"], "delta": "0:00:00.005216", "end": "2026-03-26 10:22:24.404879", "msg": "non-zero return code", "rc": 2, "start": "2026-03-26 10:22:24.399663", "stderr": "Error invalid option\nlustre_rmmod -h|--help\nlustre_rmmod [-d|--debug-kernel] [modulesname...]\n\n\t-h, --help\t\tDisplay this help message\n\t-d, --debug-kernel\tDisplay lustre kernel debug messages\n\tmodulesname\t\tList of lustre modules to unload. By default\n\t\t\t\tldiskfs and libcfs (and their dependencies) are\n\t\t\t\tselected.", "stderr_lines": ["Error invalid option", "lustre_rmmod -h|--help", "lustre_rmmod [-d|--debug-kernel] [modulesname...]", "", "\t-h, --help\t\tDisplay this help message", "\t-d, --debug-kernel\tDisplay lustre kernel debug messages", "\tmodulesname\t\tList of lustre modules to unload. By default", "\t\t\t\tldiskfs and libcfs (and their dependencies) are", "\t\t\t\tselected."], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Check loaded Lustre modules] ****************************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:204:7
+
+202       changed_when: false
+203
+204     - name: Check loaded Lustre modules
+          ^ column 7
+
+fatal: [Rocky-Head-1]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003698", "end": "2026-03-26 10:22:24.891474", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:24.887776", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003132", "end": "2026-03-26 10:22:24.904330", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:24.901198", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003259", "end": "2026-03-26 10:22:24.910277", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:24.907018", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Head-2]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003657", "end": "2026-03-26 10:22:24.909190", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:24.905533", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003477", "end": "2026-03-26 10:22:25.122754", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.119277", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003288", "end": "2026-03-26 10:22:25.368174", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.364886", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003222", "end": "2026-03-26 10:22:25.391845", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.388623", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003411", "end": "2026-03-26 10:22:25.409854", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.406443", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003271", "end": "2026-03-26 10:22:25.584670", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.581399", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": false, "cmd": ["lsmod", "|", "grep", "lustre"], "delta": "0:00:00.003187", "end": "2026-03-26 10:22:25.804533", "msg": "non-zero return code", "rc": 1, "start": "2026-03-26 10:22:25.801346", "stderr": "Usage: lsmod", "stderr_lines": ["Usage: lsmod"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Display loaded modules] *********************************************************************************************************
+skipping: [Rocky-Head-1]
+skipping: [Rocky-Head-2]
+skipping: [Rocky-Compute-1]
+skipping: [Rocky-Compute-2]
+skipping: [Rocky-Compute-3]
+skipping: [Rocky-Compute-4]
+skipping: [Rocky-Compute-5]
+skipping: [Rocky-Compute-6]
+skipping: [Rocky-Compute-7]
+skipping: [Rocky-Compute-8]
+
+TASK [Verify RDMA/LNET configuration] *************************************************************************************************
+skipping: [Rocky-Head-1]
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage2_install_lustre.yml:215:7
+
+213       when: lustre_modules.rc == 0
+214
+215     - name: Verify RDMA/LNET configuration
+          ^ column 7
+
+fatal: [Rocky-Head-2]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003739", "end": "2026-03-26 10:22:26.394470", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.390731", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003706", "end": "2026-03-26 10:22:26.403943", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.400237", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003964", "end": "2026-03-26 10:22:26.411702", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.407738", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003751", "end": "2026-03-26 10:22:26.432732", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.428981", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003786", "end": "2026-03-26 10:22:26.623893", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.620107", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003948", "end": "2026-03-26 10:22:26.897278", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.893330", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003984", "end": "2026-03-26 10:22:26.912037", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:26.908053", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003932", "end": "2026-03-26 10:22:27.082784", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:27.078852", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": false, "cmd": ["lctl", "ping", "10.0.0.251@o2ib"], "delta": "0:00:00.003893", "end": "2026-03-26 10:22:27.116257", "msg": "non-zero return code", "rc": 100, "start": "2026-03-26 10:22:27.112364", "stderr": "", "stderr_lines": [], "stdout": "failed to ping 10.0.0.251@o2ib: Network is down", "stdout_lines": ["failed to ping 10.0.0.251@o2ib: Network is down"]}
+...ignoring
+
+TASK [Display LNET ping result] *******************************************************************************************************
+skipping: [Rocky-Head-1]
+skipping: [Rocky-Head-2]
+skipping: [Rocky-Compute-1]
+skipping: [Rocky-Compute-2]
+skipping: [Rocky-Compute-3]
+skipping: [Rocky-Compute-4]
+skipping: [Rocky-Compute-5]
+skipping: [Rocky-Compute-6]
+skipping: [Rocky-Compute-7]
+skipping: [Rocky-Compute-8]
+
+PLAY RECAP ****************************************************************************************************************************
+Rocky-Compute-1            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-2            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-3            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-4            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-5            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-6            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-7            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Compute-8            : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+Rocky-Head-1               : ok=28   changed=10   unreachable=0    failed=0    skipped=4    rescued=0    ignored=6
+Rocky-Head-2               : ok=29   changed=10   unreachable=0    failed=0    skipped=3    rescued=0    ignored=7
+
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage0_bootstrap.yml
+
+PLAY [Bootstrap Python3 on all nodes] *************************************************************************************************
+
+TASK [Install Python 3.9 using raw command] *******************************************************************************************
+changed: [Rocky-Compute-2]
+changed: [Rocky-Compute-3]
+changed: [Rocky-Compute-1]
+changed: [Rocky-Head-1]
+changed: [Rocky-Head-2]
+changed: [Rocky-Compute-4]
+changed: [Rocky-Compute-5]
+changed: [Rocky-Compute-7]
+changed: [Rocky-Compute-6]
+changed: [Rocky-Compute-8]
+
+TASK [Set Python 3.9 as default python3] **********************************************************************************************
+[ERROR]: Task failed: Action failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage0_bootstrap.yml:16:7
+
+14       changed_when: "'Nothing to do' not in python_install.stdout"
+15
+16     - name: Set Python 3.9 as default python3
+         ^ column 7
+
+fatal: [Rocky-Head-2]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.252 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.252 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Head-1]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.251 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.251 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-1]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.101 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.101 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.102 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.102 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-4]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.104 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.104 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-6]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.106 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.106 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-7]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.107 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.107 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-3]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.103 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.103 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-5]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.105 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.105 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+fatal: [Rocky-Compute-8]: FAILED! => {"changed": false, "msg": "non-zero return code", "rc": 2, "stderr": "Shared connection to 192.168.1.108 closed.\r\n", "stderr_lines": ["Shared connection to 192.168.1.108 closed."], "stdout": "\r\ncannot access /var/lib/alternatives/python3: No such file or directory\r\n", "stdout_lines": ["", "cannot access /var/lib/alternatives/python3: No such file or directory"]}
+...ignoring
+
+TASK [Install essential tools] ********************************************************************************************************
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Head-1]
+ok: [Rocky-Head-2]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Verify Python3 installation] ****************************************************************************************************
+ok: [Rocky-Head-2]
+ok: [Rocky-Head-1]
+ok: [Rocky-Compute-1]
+ok: [Rocky-Compute-2]
+ok: [Rocky-Compute-4]
+ok: [Rocky-Compute-6]
+ok: [Rocky-Compute-7]
+ok: [Rocky-Compute-3]
+ok: [Rocky-Compute-5]
+ok: [Rocky-Compute-8]
+
+TASK [Display Python version] *********************************************************************************************************
+ok: [Rocky-Head-1] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Head-2] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-1] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-2] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-3] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-4] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-5] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-6] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-7] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+ok: [Rocky-Compute-8] => {
+    "msg": "\r\nPython 3.9.25\r\n"
+}
+
+PLAY RECAP ****************************************************************************************************************************
+Rocky-Compute-1            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-2            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-3            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-4            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-5            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-6            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-7            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Compute-8            : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Head-1               : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+Rocky-Head-2               : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+
+
+UJEP-LAB/lustre Live  ? ❯ ansible-playbook playbooks/stage3_configure_mgs.yml
+
+PLAY [Configure Lustre Management Server (MGS)] ***************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************
+ok: [Rocky-Head-1]
+
+TASK [Create directory for Lustre images] *********************************************************************************************
+ok: [Rocky-Head-1]
+
+TASK [Create MGT backing file] ********************************************************************************************************
+ok: [Rocky-Head-1]
+
+TASK [Setup loop device for MGT] ******************************************************************************************************
+changed: [Rocky-Head-1]
+
+TASK [Unmount MGT device if mounted] **************************************************************************************************
+ok: [Rocky-Head-1]
+
+TASK [Format MGT with Lustre filesystem] **********************************************************************************************
+[ERROR]: Task failed: Module failed: non-zero return code
+Origin: /home/kopy/Documents/UJEP-LAB/lustre/playbooks/stage3_configure_mgs.yml:44:7
+
+42       changed_when: umount_result.rc == 0
+43
+44     - name: Format MGT with Lustre filesystem
+         ^ column 7
+
+fatal: [Rocky-Head-1]: FAILED! => {"changed": false, "cmd": ["mkfs.lustre", "--mgs", "--fsname=lustrefs", "--backfstype=ldiskfs", "--reformat", "/dev/loop10"], "delta": "0:00:00.291020", "end": "2026-03-26 10:23:09.031389", "msg": "non-zero return code", "rc": 19, "start": "2026-03-26 10:23:08.740369", "stderr": "mkfs.lustre: Unable to mount /dev/loop10: No such device\nIs the ldiskfs module available?\n\nmkfs.lustre FATAL: failed to write local files\nmkfs.lustre: exiting with 19 (No such device)", "stderr_lines": ["mkfs.lustre: Unable to mount /dev/loop10: No such device", "Is the ldiskfs module available?", "", "mkfs.lustre FATAL: failed to write local files", "mkfs.lustre: exiting with 19 (No such device)"], "stdout": "\n   Permanent disk data:\nTarget:     MGS\nIndex:      unassigned\nLustre FS:  lustrefs\nMount type: ldiskfs\nFlags:      0x64\n              (MGS first_time update )\nPersistent mount opts: user_xattr,errors=remount-ro\nParameters:\n\ndevice size = 10240MB\nformatting backing filesystem ldiskfs on /dev/loop10\n\ttarget name   MGS\n\tkilobytes     10485760\n\toptions        -q -O uninit_bg,extents,dir_nlink,quota,project,huge_file,large_dir,^fast_commit,flex_bg -E lazy_journal_init,lazy_itable_init=\"0\",packed_meta_blocks -F\nmkfs_cmd = mke2fs -j -b 4096 -L MGS  -q -O uninit_bg,extents,dir_nlink,quota,project,huge_file,large_dir,^fast_commit,flex_bg -E lazy_journal_init,lazy_itable_init=\"0\",packed_meta_blocks -F /dev/loop10 10485760k", "stdout_lines": ["", "   Permanent disk data:", "Target:     MGS", "Index:      unassigned", "Lustre FS:  lustrefs", "Mount type: ldiskfs", "Flags:      0x64", "              (MGS first_time update )", "Persistent mount opts: user_xattr,errors=remount-ro", "Parameters:", "", "device size = 10240MB", "formatting backing filesystem ldiskfs on /dev/loop10", "\ttarget name   MGS", "\tkilobytes     10485760", "\toptions        -q -O uninit_bg,extents,dir_nlink,quota,project,huge_file,large_dir,^fast_commit,flex_bg -E lazy_journal_init,lazy_itable_init=\"0\",packed_meta_blocks -F", "mkfs_cmd = mke2fs -j -b 4096 -L MGS  -q -O uninit_bg,extents,dir_nlink,quota,project,huge_file,large_dir,^fast_commit,flex_bg -E lazy_journal_init,lazy_itable_init=\"0\",packed_meta_blocks -F /dev/loop10 10485760k"]}
+
+PLAY RECAP ****************************************************************************************************************************
+Rocky-Head-1               : ok=5    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+
+
+UJEP-LAB/lustre Live  ? ✗
