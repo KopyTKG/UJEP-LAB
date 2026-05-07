@@ -1,8 +1,11 @@
 ---
-# Stage 13: Self-signed TLS + Kubernetes Dashboard
-# Generates a lab CA + wildcard cert for *.lab.local and exposes Dashboard via Ingress.
+# Stage 13: Self-signed TLS + Headlamp dashboard
+# Generates a lab CA + wildcard cert for *.lab.local and exposes Headlamp via Ingress.
+# Headlamp is a CNCF Sandbox dashboard project, used here instead of kubernetes-dashboard
+# because the upstream kubernetes-dashboard helm repo at kubernetes.github.io/dashboard/
+# is dead (404) — same issue that prompted the K3s -> kubeadm pivot earlier.
 
-- name: Generate TLS + deploy Dashboard
+- name: Generate TLS + deploy Headlamp
   hosts: Rocky-Head-1
   become: yes
 
@@ -10,8 +13,8 @@
     cert_dir: /etc/kubernetes/lab-tls
     lab_domain: lab.local
     cert_days: 3650
-    dashboard_namespace: kubernetes-dashboard
-    dashboard_chart_url: "https://kubernetes.github.io/dashboard/"
+    dashboard_namespace: headlamp
+    dashboard_chart_url: "https://kubernetes-sigs.github.io/headlamp/"
 
   tasks:
     # --- 1. CA + WILDCARD CERT ---
@@ -91,21 +94,36 @@
         creates: "{{ cert_dir }}/tls.crt"
 
     # --- 2. INSTALL HELM (used here + stage 14) ---
+    # The upstream get-helm-3 install script has a PATH-validation step that false-negatives
+    # in non-interactive shells (helm gets installed but the script's `command -v helm`
+    # check fails and exits 1). Install via direct tarball instead.
     - name: Check for helm
       stat:
         path: /usr/local/bin/helm
       register: helm_bin
 
-    - name: Install Helm
+    - name: Install Helm (direct tarball)
       shell: |
-        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        set -e
+        cd /tmp
+        curl -fsSL https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz -o helm.tgz
+        tar -xzf helm.tgz
+        install -m 0755 linux-amd64/helm /usr/local/bin/helm
+        rm -rf helm.tgz linux-amd64
       args:
         executable: /bin/bash
       when: not helm_bin.stat.exists
 
+    - name: Symlink helm into /usr/bin (ansible's non-login shell PATH lacks /usr/local/bin)
+      file:
+        src: /usr/local/bin/helm
+        dest: /usr/bin/helm
+        state: link
+        force: yes
+
     # --- 3. DASHBOARD VIA HELM ---
-    - name: Add Dashboard helm repo
-      command: helm repo add kubernetes-dashboard {{ dashboard_chart_url }}
+    - name: Add Headlamp helm repo
+      command: helm repo add headlamp {{ dashboard_chart_url }}
       register: helm_add
       failed_when: helm_add.rc != 0 and 'already exists' not in helm_add.stderr
       changed_when: "'has been added' in helm_add.stdout"
@@ -113,17 +131,16 @@
     - name: Update helm repos
       command: helm repo update
 
-    - name: Install Dashboard chart
+    - name: Install Headlamp chart
       command: >
-        helm upgrade --install kubernetes-dashboard
-        kubernetes-dashboard/kubernetes-dashboard
+        helm upgrade --install headlamp headlamp/headlamp
         --namespace {{ dashboard_namespace }}
         --create-namespace
 
-    - name: Wait for Dashboard kong proxy
+    - name: Wait for Headlamp pod
       command: >
         kubectl wait --for=condition=ready pod
-        -l app.kubernetes.io/name=kong
+        -l app.kubernetes.io/name=headlamp
         -n {{ dashboard_namespace }} --timeout=180s
       retries: 5
       delay: 10
@@ -139,7 +156,7 @@
         -n default --dry-run=client -o yaml |
         kubectl apply -f -
 
-    - name: Create lab-tls secret in dashboard ns
+    - name: Create lab-tls secret in headlamp ns
       shell: >
         kubectl create secret tls lab-tls
         --cert={{ cert_dir }}/tls.crt
@@ -148,26 +165,32 @@
         kubectl apply -f -
 
     # --- 5. INGRESS ---
-    - name: Detect dashboard kong service name
+    - name: Detect Headlamp service name
       shell: >
         kubectl get svc -n {{ dashboard_namespace }}
-        -l app.kubernetes.io/name=kong
+        -l app.kubernetes.io/name=headlamp
         -o jsonpath='{.items[0].metadata.name}'
-      register: kong_svc
+      register: headlamp_svc
       changed_when: false
 
-    - name: Apply Dashboard Ingress
+    - name: Detect Headlamp service port
+      shell: >
+        kubectl get svc -n {{ dashboard_namespace }}
+        -l app.kubernetes.io/name=headlamp
+        -o jsonpath='{.items[0].spec.ports[0].port}'
+      register: headlamp_port
+      changed_when: false
+
+    - name: Apply Headlamp Ingress
       copy:
-        dest: /root/dashboard-ingress.yaml
+        dest: /root/headlamp-ingress.yaml
         mode: "0644"
         content: |
           apiVersion: networking.k8s.io/v1
           kind: Ingress
           metadata:
-            name: kubernetes-dashboard
+            name: headlamp
             namespace: {{ dashboard_namespace }}
-            annotations:
-              nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
           spec:
             ingressClassName: nginx
             tls:
@@ -182,12 +205,12 @@
                       pathType: Prefix
                       backend:
                         service:
-                          name: {{ kong_svc.stdout }}
+                          name: {{ headlamp_svc.stdout }}
                           port:
-                            number: 443
+                            number: {{ headlamp_port.stdout }}
 
     - name: kubectl apply ingress
-      command: kubectl apply -f /root/dashboard-ingress.yaml
+      command: kubectl apply -f /root/headlamp-ingress.yaml
 
     # --- 6. ADMIN TOKEN ---
     - name: Create admin-user ServiceAccount
@@ -224,11 +247,14 @@
       debug:
         msg: |
           ============================================================
-          Dashboard Ready
+          Headlamp Ready
           ============================================================
           URL: https://dashboard.{{ lab_domain }}
           CA: {{ cert_dir }}/ca.crt  (import into your browser/system trust)
 
-          Admin token (valid 1 year):
+          Add to /etc/hosts on your workstation:
+            192.168.1.200  dashboard.{{ lab_domain }}
+
+          Admin token (valid 1 year — paste into Headlamp's "Token" login):
           {{ admin_token.stdout }}
           ============================================================

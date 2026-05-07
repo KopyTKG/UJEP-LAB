@@ -26,7 +26,8 @@
     - name: Copy lab-tls secret into monitoring ns
       shell: |
         kubectl get secret lab-tls -n default -o yaml \
-          | sed 's/namespace: default/namespace: {{ monitoring_ns }}/' \
+          | sed -e 's/namespace: default/namespace: {{ monitoring_ns }}/' \
+                -e '/resourceVersion:/d' -e '/uid:/d' -e '/creationTimestamp:/d' \
           | kubectl apply -f -
 
     - name: Create monitoring PVs on Lustre
@@ -123,15 +124,20 @@
                     - prometheus.{{ lab_domain }}
           alertmanager:
             enabled: false
-          prometheusNodeExporter:
+          # Subchart override: the actual node-exporter pod port. Sysmon-probe uses 9100,
+          # node-exporter moves to 9101. The chart auto-derives --web.listen-address from
+          # service.targetPort, so DO NOT add --web.listen-address as extraArg (duplicate flag).
+          prometheus-node-exporter:
             service:
               port: 9101
               targetPort: 9101
-            extraArgs:
-              - --web.listen-address=:9101
             tolerations:
               - key: node-role.kubernetes.io/control-plane
                 effect: NoSchedule
+              - operator: Exists
+          # Parent-chart section for node-exporter integration (ServiceMonitor target port etc.)
+          nodeExporter:
+            enabled: true
           kube-state-metrics:
             nodeSelector:
               node-role.kubernetes.io/worker: worker
