@@ -1,0 +1,48 @@
+---
+# Stage 7: Uninstall K3s (idempotent — no-op if absent)
+# Removes any leftover K3s install before deploying upstream Kubernetes.
+
+- name: Uninstall K3s servers
+  hosts: controller
+  become: yes
+
+  tasks:
+    - name: Check for K3s server uninstall script
+      stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: k3s_server_uninstaller
+
+    - name: Run K3s server uninstaller
+      command: /usr/local/bin/k3s-uninstall.sh
+      when: k3s_server_uninstaller.stat.exists
+
+- name: Uninstall K3s agents
+  hosts: compute
+  become: yes
+
+  tasks:
+    - name: Check for K3s agent uninstall script
+      stat:
+        path: /usr/local/bin/k3s-agent-uninstall.sh
+      register: k3s_agent_uninstaller
+
+    - name: Run K3s agent uninstaller
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_agent_uninstaller.stat.exists
+
+- name: Clean up K3s residue
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Remove K3s data directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/rancher
+        - /var/lib/rancher
+        - /var/lib/kubelet
+        - /var/lib/cni
+        - /run/k3s
+        - /run/flannel

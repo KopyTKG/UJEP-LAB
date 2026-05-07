@@ -1,0 +1,166 @@
+---
+# Stage 8: Kubernetes prerequisites
+# - containerd runtime
+# - kubeadm/kubelet/kubectl from the upstream Kubernetes RPM repo
+# - swap off, kernel modules, sysctl tuning
+# - firewall ports for control plane + workers
+
+- name: Install Kubernetes prerequisites
+  hosts: all
+  become: yes
+
+  vars:
+    k8s_minor: "1.32"
+    k8s_version: "1.32.4"
+    pod_cidr: "10.42.0.0/16"
+    service_cidr: "10.43.0.0/16"
+
+  tasks:
+    # --- 1. SWAP & KERNEL ---
+    - name: Disable swap (runtime)
+      command: swapoff -a
+      when: ansible_swaptotal_mb | int > 0
+
+    - name: Disable swap (fstab)
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*\sswap\s.*)$'
+        replace: '# \1'
+
+    - name: Load required kernel modules now
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Persist kernel modules
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+        mode: "0644"
+
+    - name: Apply sysctl for K8s networking
+      copy:
+        dest: /etc/sysctl.d/99-kubernetes.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward                 = 1
+        mode: "0644"
+
+    - name: Reload sysctl
+      command: sysctl --system
+
+    # --- 2. CONTAINERD ---
+    - name: Add Docker CE repo (for containerd)
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable
+        baseurl: https://download.docker.com/linux/centos/9/x86_64/stable
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/centos/gpg
+        enabled: yes
+
+    - name: Install containerd
+      dnf:
+        name: containerd.io
+        state: present
+
+    - name: Generate default containerd config
+      shell: containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: Enable SystemdCgroup in containerd
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: Enable + start containerd
+      systemd:
+        name: containerd
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
+
+    # --- 3. KUBEADM / KUBELET / KUBECTL ---
+    - name: Add Kubernetes RPM repo
+      yum_repository:
+        name: kubernetes
+        description: "Kubernetes v{{ k8s_minor }}"
+        baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_minor }}/rpm/"
+        gpgcheck: yes
+        gpgkey: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_minor }}/rpm/repodata/repomd.xml.key"
+        enabled: yes
+        exclude:
+          - kubelet
+          - kubeadm
+          - kubectl
+          - cri-tools
+          - kubernetes-cni
+
+    - name: Install kubelet/kubeadm/kubectl
+      dnf:
+        name:
+          - "kubelet-{{ k8s_version }}"
+          - "kubeadm-{{ k8s_version }}"
+          - "kubectl-{{ k8s_version }}"
+        state: present
+        disable_excludes: kubernetes
+
+    - name: Enable kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+    # --- 4. SELINUX (kubeadm requires permissive) ---
+    - name: Set SELinux to permissive (runtime)
+      command: setenforce 0
+      ignore_errors: yes
+
+    - name: Set SELinux to permissive (persistent)
+      replace:
+        path: /etc/selinux/config
+        regexp: '^SELINUX=enforcing'
+        replace: 'SELINUX=permissive'
+
+    # --- 5. FIREWALL ---
+    - name: Open control-plane firewall ports (heads only)
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 6443/tcp        # kube-apiserver
+        - 2379-2380/tcp   # etcd
+        - 10257/tcp       # kube-controller-manager
+        - 10259/tcp       # kube-scheduler
+      when: inventory_hostname in groups['controller']
+      ignore_errors: yes
+
+    - name: Open node firewall ports (all nodes)
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 10250/tcp       # kubelet
+        - 8472/udp        # flannel VXLAN
+        - 30000-32767/tcp # NodePort range
+      ignore_errors: yes
+
+    - name: Trust pod and service CIDRs + flannel/cni interfaces
+      command: firewall-cmd --permanent --zone=trusted --add-{{ item }}
+      loop:
+        - "interface=flannel.1"
+        - "interface=cni0"
+        - "source={{ pod_cidr }}"
+        - "source={{ service_cidr }}"
+      ignore_errors: yes
+
+    - name: Enable masquerade
+      command: firewall-cmd --permanent --add-masquerade
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload

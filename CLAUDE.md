@@ -6,38 +6,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains infrastructure automation for a university thesis project: deploying RDMA-enabled distributed file systems for VM/Docker clustering on a Rocky Linux HPC cluster. The cluster consists of 2 head/controller nodes and 8 compute nodes connected via InfiniBand.
 
-**Project Goal: OpenNebula Cloud Platform with RDMA-Enabled Storage**
+**Project Goal: Stable RDMA-enabled storage layer for a Kubernetes-based VM/container cluster**
 
-The infrastructure stack consists of:
-1. **Lustre filesystem** (RDMA over InfiniBand) - Shared storage layer for VM images, disks, and data
-2. **OpenNebula** - Cloud orchestration platform for VM/container management
-3. **Head nodes** - OpenNebula frontend services (oned, sunstone, scheduler)
-4. **Compute nodes** - KVM hypervisors for running VMs + Lustre OSS for storage
+Originally framed around OpenNebula on Lustre. Pivoted to Kubernetes (originally K3s, then full kubeadm) for ecosystem reasons. The storage-layer choice is the active question — see "Current State" below.
 
-**Current Focus: Lustre with RDMA over InfiniBand**
+**Current State (2026-05-07)**
 
-- All nodes reinstalled with Rocky Linux 8.10 for Lustre server compatibility
-- **CRITICAL**: Current deployment uses Lustre 2.15.4 (el8.9) which does NOT support RDMA on Rocky 8.10
-  - Lustre kernel 4.18.0-513.9.1 (RHEL 8.5 based) lacks InfiniBand drivers
-  - Currently running over TCP/Ethernet (192.168.1.x@tcp) instead of RDMA
-  - Performance: 1.5 GB/s write, 3.2 GB/s read (TCP limited)
-- **Solution**: Upgrade to Lustre 2.15.8 which has el8.10 support with InfiniBand drivers
-  - Available: https://downloads.whamcloud.com/public/lustre/lustre-2.15.8/el8.10/
-  - Will enable RDMA via LNET (o2ib) for 10-40 GB/s performance
-  - RDMA critical for VM disk I/O performance and live migration capabilities
+- OS: Rocky Linux 9.7 on all 10 nodes
+- Kernel: `5.14.0-611.13.1_lustre.el9.x86_64` (Lustre kernel set as default via `grubby`)
+- Lustre 2.17.0 deployed with RDMA over InfiniBand (`o2ib(ibs1)`), 2 MDTs + 16 OSTs + FLR for redundancy. Aggregate: 1.38 GB/s write, 2.77 GB/s read.
+- **RDMA was enabled via a BTF-stripping workaround**: Lustre kernel ships without IB drivers; copying the stock kernel's `ib_core`, `mlx5_ib`, `rdma_cm`, `ib_ipoib` modules and running `strip --strip-debug --remove-section=.BTF` on each `.ko` allows them to load alongside the Lustre kernel. Full writeup in `lustre/ROCKY9_RDMA_BREAKTHROUGH.md`.
+- **K3s deployment was working** (stages 7-11 in `lustre/playbooks/`) but was abandoned for full Kubernetes (kubeadm) due to K3s ecosystem limitations (dead Dashboard Helm repo, basic-auth workarounds).
+- **kubeadm migration playbooks written** (stages 7-14 with `_k8s_` / kubeadm names) but not yet executed.
 
-**Previous Filesystem Tests (Rejected):**
+> [!NOTE]
+> **Lustre cold-boot stabilized 2026-05-07** via `lustre-startup.service`, deployed cluster-wide by `lustre/playbooks/setup_lustre_startup.yml`. The orchestrator handles the three previously-broken pieces: it binds `/dev/loop10` before MGS mount, discovers the MDT disk by Lustre volume label (defeating `/dev/sda↔sdb` swap on Supermicro reboots), and serializes OST mounts with race-tolerant retries. fstab MGS+MDT lines on heads are commented out so the orchestrator is the single source of truth. Failures are loud (no `nofail`-masking). Validated: Compute-1 reboot ~30s, Head-1 reboot ~75s incl. MDT recovery. See `docs/Lustre.md` for the full evaluation.
 
-- **Ceph**: Significant software overhead limiting performance
-- **BeeGFS**: OSS/Community version only supports RAID0
-- **NFS with Pacemaker/TargetCLI**: Stability issues after reboots
-- **GlusterFS**: RDMA support removed in recent versions
+**Filesystem Verdicts (chronological):**
+
+- **Ceph** (rejected): Significant software overhead limiting raw IOPS. Documented in `docs/Ceph.md`.
+- **BeeGFS** (rejected): Community/OSS edition only supports RAID0. `docs/BeeGFS.md`.
+- **NFS + Pacemaker + TargetCLI** (rejected): Head node instability after every reboot. `docs/NFS_PCS_TargetCLI.md`.
+- **GlusterFS** (rejected): RDMA support removed in current versions.
+- **Lustre** (selected): RDMA + FLR + cold-boot stabilization via `lustre-startup.service`. Hits all four hard requirements (performance, redundancy, stability, RDMA) where each prior candidate failed exactly one. `docs/Lustre.md`.
 
 ## Repository Structure
 
 ```
 .
-├── lustre/           # Lustre implementation (CURRENT - Rocky 8.10, RDMA enabled)
+├── lustre/           # Lustre implementation (Rocky 9.7 + 2.17.0 + RDMA + cold-boot orchestrator) — production target
 ├── nfs/              # NFS + Pacemaker + TargetCLI implementation (deprecated)
 ├── glusterfs/        # GlusterFS implementation (deprecated - no RDMA)
 ├── beegfs/           # BeeGFS implementation (deprecated)
@@ -116,7 +113,7 @@ _Networking:_
 
 _Software:_
 
-- **OS**: Rocky Linux 8.10 (RHEL 8.10 compatible) - required for Lustre server compatibility
+- **OS**: Rocky Linux 9.7 (re-installed 2026-01-13 to enable Lustre 2.17.0 RDMA via the BTF-stripping technique)
 
 ## Running Ansible Playbooks
 
@@ -127,37 +124,32 @@ cd lustre/  # or nfs/ or glusterfs/
 ansible-playbook playbooks/<playbook-name>.yml --ask-vault-pass
 ```
 
-### Lustre Implementation Playbooks (Sequential) - CURRENT
+### Lustre Storage Playbooks (Stages 0–6)
 
-**Current Status: Lustre 2.15.4 (el8.9) - TCP only, NO RDMA**
+**Status: Lustre 2.17.0 with RDMA (o2ib) deployed. Marked as not suitable for production due to cold-boot fragility — see Current State section above.**
 
-Initial deployment complete with 16 OSTs (3.7TB), but running over TCP/Ethernet due to kernel limitations.
+0. `stage0_bootstrap.yml` — Python 3.9 bootstrap on fresh Rocky install
+1. `stage1_core_setup.yml` — Shared base setup (NTP, IB, OpenSM, hosts, firewall) + storage prep
+2. `stage2_install_lustre.yml` — Lustre 2.17.0 RPMs (el9.7) + LNET configuration
+3. `stage3_configure_mgs.yml` — MGS on Rocky-Head-1 (loop device `/dev/loop10` backed by `/var/lib/lustre/mgt.img`)
+4. `stage4_configure_mds.yml` — Metadata Targets on both heads (physical SSDs)
+5. `stage5_configure_oss.yml` — 16 OSTs on compute SSDs
+6. `stage6_mount_clients.yml` — Mount `/mnt/lustre` on clients
 
-**Sequential Playbooks:**
+### K3s deployment (Stages 7–11) — superseded
 
-0. `stage0_bootstrap.yml` - Bootstrap Python 3.9 on fresh Rocky 8.10 install (run once after OS installation)
-1. `stage1_core_setup.yml` - Imports shared base setup + Lustre firewall + storage prep
-2. `stage2_install_lustre.yml` - Install Lustre packages (server on head/compute, client on all) + configure LNET
-3. `stage3_configure_mgs.yml` - Set up Management Server (MGS) on Rocky-Head-1
-4. `stage4_configure_mds.yml` - Set up Metadata Servers (MDS) on head nodes
-5. `stage5_configure_oss.yml` - Set up Object Storage Servers (OSS) on compute nodes
-6. `stage6_mount_clients.yml` - Mount Lustre filesystem on client nodes
+Working K3s deployment on Lustre, abandoned in favor of full kubeadm. Files retained for reference: `stage7_deploy_k3s.yml`, `stage8_deploy_metallb.yml`, `stage9_deploy_ingress.yml`, `stage10_tls_and_dashboard.yml`, `stage11_deploy_monitoring.yml`.
 
-**REQUIRED: Upgrade to Lustre 2.15.8 for RDMA Support**
+### Kubeadm deployment (Stages 7–14) — written, not yet executed
 
-Current Lustre 2.15.4 kernel (4.18.0-513.9.1, RHEL 8.5 based) lacks InfiniBand drivers. Upgrade required:
-
-1. Update `stage2_install_lustre.yml`: Change repo URLs from `el8.9` to `el8.10` and version `2.15.4` to `2.15.8`
-2. Stop Lustre services on all nodes: `umount /mnt/lustre`, `umount /mnt/ost*`, `umount /mnt/mdt*`, `umount /mnt/mgt`
-3. Upgrade Lustre packages: `dnf upgrade lustre lustre-dkms`
-4. Reboot to new kernel (should be 4.18.0-553.x series with IB drivers)
-5. Verify IB modules loaded: `lsmod | grep ib_ipoib`
-6. Reconfigure LNET for RDMA: Change all NIDs from `192.168.1.x@tcp` to `10.0.0.x@o2ib`
-7. Reformat MGS with o2ib: `mkfs.lustre --mgs --reformat --mgsnode=10.0.0.251@o2ib /dev/loop10`
-8. Reformat all MDTs with o2ib NIDs
-9. Reformat all 16 OSTs with o2ib MGS node
-10. Remount filesystem and verify RDMA: `lctl ping 10.0.0.251@o2ib`
-11. Benchmark performance (expect 10-40 GB/s aggregate)
+7. `stage7_uninstall_k3s.yml` — idempotent K3s residue cleanup
+8. `stage8_k8s_prereqs.yml` — containerd + kubeadm/kubelet/kubectl, swap off, sysctl, firewall
+9. `stage9_control_plane_ha.yml` — keepalived VIP `192.168.1.250` + HAProxy on `:8443`
+10. `stage10_cluster_init.yml` — `kubeadm init/join` + Flannel CNI + Lustre StorageClass/PV
+11. `stage11_metallb.yml` — MetalLB L2 (pool `192.168.1.200-220`)
+12. `stage12_ingress.yml` — Nginx Ingress, LoadBalancer-typed
+13. `stage13_tls_dashboard.yml` — self-signed CA + wildcard `*.lab.local` + Helm + Dashboard
+14. `stage14_helm_monitoring.yml` — kube-prometheus-stack via Helm
 
 **Lustre-specific commands:**
 

@@ -1,0 +1,74 @@
+---
+# Stage 12: Nginx Ingress Controller (LoadBalancer via MetalLB)
+
+- name: Deploy Nginx Ingress
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    ingress_version: "controller-v1.12.1"
+
+  tasks:
+    - name: Check for ingress-nginx namespace
+      command: kubectl get namespace ingress-nginx
+      register: ing_ns
+      failed_when: false
+      changed_when: false
+
+    - name: Apply ingress-nginx baremetal manifest
+      command: >
+        kubectl apply -f
+        https://raw.githubusercontent.com/kubernetes/ingress-nginx/{{ ingress_version }}/deploy/static/provider/baremetal/deploy.yaml
+      when: ing_ns.rc != 0
+
+    - name: Wait for controller pod
+      command: >
+        kubectl wait --for=condition=ready pod
+        -l app.kubernetes.io/component=controller
+        -n ingress-nginx --timeout=180s
+      retries: 10
+      delay: 10
+      register: ing_ready
+      until: ing_ready.rc == 0
+
+    - name: Patch service to LoadBalancer
+      command: >
+        kubectl patch svc ingress-nginx-controller
+        -n ingress-nginx
+        -p '{"spec":{"type":"LoadBalancer"}}'
+
+    - name: Wait for LoadBalancer IP
+      shell: >
+        kubectl get svc ingress-nginx-controller -n ingress-nginx
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: ing_ip
+      retries: 30
+      delay: 5
+      until: ing_ip.stdout | length > 0
+      changed_when: false
+
+    - name: Display ingress IP
+      debug:
+        msg: |
+          ============================================================
+          Nginx Ingress: {{ ing_ip.stdout }}
+          IngressClass: nginx
+
+          Add to your /etc/hosts:
+            {{ ing_ip.stdout }}  dashboard.lab.local grafana.lab.local prometheus.lab.local
+          ============================================================
+
+- name: Open HTTP/HTTPS on workers
+  hosts: compute
+  become: yes
+
+  tasks:
+    - name: Open 80/443
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 80/tcp
+        - 443/tcp
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload

@@ -897,3 +897,173 @@ The cleanup playbook should have:
 3. THEN reboot
 
 ---
+
+## Session: 2026-05-07 — Cold-boot postmortem
+
+### Starting state
+
+Cluster had been powered off since shortly after the 2026-03-26 K3s deployment commit (`24a25a9 Adding data`). Brought it back up today to start the planned K3s → kubeadm migration. All 10 nodes booted to the Lustre kernel as expected, but `/mnt/lustre` was missing on every node.
+
+### What was actually broken
+
+Three layered failures, all hidden by `nofail`:
+
+1. **MGS missing.** `/var/lib/lustre/mgt.img` is a 10 GB sparse file on Head-1. `losetup /dev/loop10 mgt.img` is required before the MGS mount, but nothing in the boot sequence does this. fstab assumes `/dev/loop10` already exists.
+2. **`nofail` propagates to ldiskfs.** Even after manually binding loop10, `mount` of MGS failed with `-22 EINVAL`. dmesg revealed `ldiskfs: Unknown parameter 'nofail'`. The mount(8) `nofail` option is supposed to be consumed at the systemd/mount layer, but here it reaches ldiskfs which rejects it. Mounting with explicit `mount -t lustre /dev/loop10 /mnt/mgt` (no options) succeeded immediately.
+3. **OST `_netdev` race.** OST0001 (Compute-1, sdc) and OST0007 (Compute-4, sdc) failed to auto-mount. The fstab entries are correct, by-id symlinks resolve. Most likely cause: systemd parallel mounts race with ldiskfs module init on the affected nodes. Other compute nodes happened to enumerate disks in an order that didn't trigger the race. `nofail` again hid the failure.
+
+Cascade: with MGS down, every client mount timed out at `-110 ETIMEDOUT` because clients can't read their config log without the MGS responding. Symptom looked like a network problem; was actually a 10 GB file that wasn't bound to a loop device.
+
+### Recovery
+
+Full orchestrated restart in dependency order:
+
+```bash
+# Unmount all clients (none were up), all OSTs, all MDTs, MGS, detach loop10
+# Then bring up:
+losetup /dev/loop10 /var/lib/lustre/mgt.img
+mount -t lustre /dev/loop10 /mnt/mgt          # Head-1 MGS
+mount -t lustre /dev/sda /mnt/mdt0            # Head-1 MDT
+mount -t lustre /dev/sdb /mnt/mdt1            # Head-2 MDT
+ansible compute -m shell -a "mount -a"        # All 16 OSTs from fstab
+ansible all -m shell -a "mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre"
+```
+
+**Verification:**
+
+```
+$ lfs df -h
+lustrefs-MDT0000_UUID  ...
+lustrefs-MDT0001_UUID  ...
+lustrefs-OST0000..OST000f  (all 16, ~233 GB each)
+filesystem_summary: 3.7T  24M  3.5T  1% /mnt/lustre
+```
+
+Write test from Compute-1 succeeded.
+
+### Why this matters
+
+The cluster is up *now*, but a `reboot` would put it right back into broken state. None of the three issues are fixed:
+
+- Loop10 still isn't auto-bound on boot
+- MGS fstab entry still has `nofail`
+- OST `_netdev` race is still latent
+
+The fix is a `lustre-startup.service` per node-role that:
+- Runs after `network-online.target` *and* opensm
+- On Head-1: `losetup` + MGS mount (without `nofail`)
+- On heads: MDT mounts after MGS is reachable
+- On compute: OST mounts in series (not parallel) with retries to absorb the ldiskfs init race
+- On all: client mount once OSTs are registered
+- Fails loudly so `systemctl --failed` shows the problem
+
+This was scoped (~30 min) but not implemented this session — see Lustre verdict in `../docs/Lustre.md`.
+
+### K8s migration setup
+
+While the cluster was up, wrote (but did not run) the kubeadm migration playbooks:
+
+- `stage7_uninstall_k3s.yml` — idempotent cleanup
+- `stage8_k8s_prereqs.yml` — containerd, kubeadm RPMs, sysctl, firewall
+- `stage9_control_plane_ha.yml` — keepalived VIP `192.168.1.250` + HAProxy on `:8443`
+- `stage10_cluster_init.yml` — `kubeadm init/join` + Flannel + Lustre StorageClass
+- `stage11_metallb.yml` — same MetalLB pool as before
+- `stage12_ingress.yml` — Nginx Ingress
+- `stage13_tls_dashboard.yml` — TLS + Dashboard via Helm (replacing K3s HelmController)
+- `stage14_helm_monitoring.yml` — kube-prometheus-stack via Helm
+
+These weren't run because the user pivoted: a cluster with cold-boot fragility in its storage layer is unsuitable for the thesis stability goal regardless of orchestration layer. Probable next move: switch to Rook-Ceph on K8s (Ceph runs as K8s pods, OSDs map to SSDs directly, no fstab/loop-device cold-boot path).
+
+### Files touched this session
+
+**Created:**
+- `lustre/playbooks/stage7_uninstall_k3s.yml`
+- `lustre/playbooks/stage8_k8s_prereqs.yml`
+- `lustre/playbooks/stage9_control_plane_ha.yml`
+- `lustre/playbooks/stage10_cluster_init.yml`
+- `lustre/playbooks/stage11_metallb.yml`
+- `lustre/playbooks/stage12_ingress.yml`
+- `lustre/playbooks/stage13_tls_dashboard.yml`
+- `lustre/playbooks/stage14_helm_monitoring.yml`
+- `docs/Lustre.md` — project-level Lustre verdict
+
+**Updated:**
+- `lustre/README.md` — current state including cold-boot warning and recovery procedure
+- `lustre/log.md` — this entry
+
+### Key takeaways
+
+1. `nofail` on a critical filesystem converts loud failures into silent ones. Either don't use it, or pair it with explicit health monitoring.
+2. Loop-backed Lustre targets are a lab convenience that introduces a hidden boot dependency. A dedicated block device or a properly-managed `systemd-tmpfiles` + `losetup@.service` is required.
+3. systemd's `network-online.target` is reached before LNET is up. `_netdev` mounts on Lustre therefore race with module init. Serialize them or guard with `RequiresMountsFor=` plus a custom unit that waits on `lctl ping`.
+4. The Lustre + RDMA work is technically successful; the failure is operational. For the thesis goal of a *stable production cluster*, this is enough to disqualify the current Lustre stack.
+
+---
+
+## Session: 2026-05-07 (afternoon) — Cold-boot stabilization
+
+After the morning's postmortem, switching storage layers a fifth time would have meant restarting four months of work for marginal gain on disk-bound (SATA III, ~8 GB/s aggregate ceiling) hardware. Decision: fix the boot orchestration, not the filesystem.
+
+### Implementation
+
+`lustre/playbooks/setup_lustre_startup.yml` deploys two artifacts to every node:
+
+1. **`/usr/local/sbin/lustre-startup`** — bash orchestrator with role detection from hostname:
+   - `Rocky-Head-1`: `losetup` → mount MGS (no extra options, no `nofail`) → mount MDT0 → mount client
+   - `Rocky-Head-2`: wait for MGS reachable via `lctl ping` → mount MDT1 → mount client
+   - `Rocky-Compute-N`: wait for MGS → serially mount all `/mnt/ost*` from fstab → mount client
+   - `find_mdt_dev` discovers the MDT block device by Lustre volume label (`blkid -L lustrefs-MDT000X`) instead of `/dev/sda`, defeating the Supermicro reboot-time disk shuffle.
+   - `robust_mount` helper uses `mountpoint -q` as ground truth, treats `already mounted` / `File exists` / `Operation in progress` / `target service is already running` as race signals (re-check, possibly already mounted), retries up to 5× with 3s backoff. Falls through to `die` only if the mountpoint genuinely isn't mounted at the end.
+
+2. **`/etc/systemd/system/lustre-startup.service`** — oneshot, `After=network-online.target opensm.service systemd-modules-load.service remote-fs-pre.target`, `RemainAfterExit=yes`, `TimeoutStartSec=600`, journal-attached.
+
+The playbook also comments out the MGS line in `/etc/fstab` on Head-1 and the MDT lines on both heads. The orchestrator is the single source of truth for those; OST fstab entries on compute remain (orchestrator's race-tolerance covers them).
+
+### Test progression
+
+Iterative debugging on Head-1 + Compute-1 before cluster rollout:
+
+1. **First reboot of Compute-1**: service ran but failed in retry loop. fstab brought OSTs up under the script's nose, mount(8) returned "File exists"; `mountpoint -q` had a TOCTOU race against in-progress mount. **Fix**: `robust_mount` re-checks `mountpoint -q` after each attempt; treats race output as success-pending.
+2. **Second reboot of Compute-1**: clean. Service `active (exited)` SUCCESS in ~30 s. OST race ("Operation already in progress" on `/mnt/ost1`) handled — re-check showed mounted, moved on.
+3. **First reboot of Head-1**: MGS-mount race (fstab + script collision: kernel auto-loop'd the image while the script was binding `/dev/loop10`). Same TOCTOU class. **Fix**: applied `robust_mount` to MGS too. Also: MDT mount failed because `/dev/sda` is the boot disk after this particular reboot, not the MDT. **Fix**: `find_mdt_dev` looks up by volume label.
+4. **Second reboot of Head-1**: clean. Service `active (exited)` SUCCESS in ~75 s end-to-end. Trace: bind loop10 → mount MGS via loop10 → discover `/dev/sdb` by label `lustrefs-MDT0000` → mount MDT0 → wait for MDT recovery (Lustre semantic: 9 surviving clients reconnecting) → mount client.
+
+### Cluster rollout
+
+Deployed to remaining 8 nodes (Head-2 + Compute-2..8) via the same playbook. Idempotent re-run on all 10 nodes verified — every node returns `active`, no mount changes since everything was already up.
+
+### Trade-offs documented
+
+- **MDT recovery window**: Lustre defaults to a 3-5 min recovery period on every MDT mount (defensive for crash scenarios). On a clean cold boot there is no pending state to recover, making the wait pure waste. Mitigation: `-o abort_recov` mount flag in the orchestrator skips the window. Cost is brief eviction of surviving clients on single-node-reboot — they reconnect in seconds (no stale state). Strictly faster.
+
+### Whole-cluster cold-boot validation (later afternoon)
+
+Three full shutdown→IPMI-power-on cycles run via `playbooks/common/shutdown.yml` + `playbooks/common/startup.yml`:
+
+**Test #1**: Surfaced a bug — most scripts hung indefinitely in `wait_for_mgs`. Root cause: `lctl ping` can wedge for arbitrarily long on cold boot while RDMA queue pairs are still establishing. The script's outer 180s timeout never fired because `lctl ping` never returned. Fix: wrap every `lctl` call in `timeout(1)` so each individual call is bounded (5s for `list_nids`, 10s for `ping`), and the outer timeout actually triggers.
+
+**Test #2**: All scripts progressed past MGS-wait, reached `start_client`, and blocked there for the full ~5 min MDT recovery window. Root cause: Lustre's default recovery is defensive overkill for clean cold boots. Fix: `-o abort_recov` flag on the MDT mount in `start_mdt`.
+
+**Test #3 (validated)**: All 10 services `active` 56s after SSH was ready, 4:26 total wall time from `IPMI power on` to fully operational. Of that 4:26, ~3:30 is Supermicro POST + IPMI ramp + initial network — the orchestrator itself only contributes ~56s. MDT recovery cut from ~3 min to ~25 s by `abort_recov`.
+
+| Test | Symptom | Fix |
+|---|---|---|
+| 1 | `lctl ping` wedges, scripts hang forever | Wrap `lctl` calls in `timeout(1)` |
+| 2 | All clients block on MDT recovery for ~5 min | `-o abort_recov` on MDT mount |
+| 3 | ✅ All 10 active in 56 s | — |
+
+### Outcome
+
+Lustre verdict flipped: from "rejected for cold-boot fragility" to **selected as production target**. The five-filesystem elimination story now reads: each prior candidate failed exactly one of {performance, redundancy, RDMA, stability}; Lustre + FLR + `lustre-startup.service` is the only solution that meets all four on this hardware.
+
+### Files touched
+
+**Created:**
+- `lustre/playbooks/setup_lustre_startup.yml` — the deploy playbook (script + systemd unit + fstab cleanup)
+
+**Updated:**
+- `docs/Lustre.md` — verdict flipped, Phase 6 stabilization documented
+- `lustre/README.md` — cold-boot warning replaced with stabilization note + automatic recovery procedure
+- `CLAUDE.md` — repository overview updated with Lustre as selected target
+- `README.md` — top-level FS verdict table: Lustre row flipped to SELECTED
+- `lustre/log.md` — this entry

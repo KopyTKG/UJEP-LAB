@@ -1,172 +1,130 @@
 ::include{file=../shared/ansible_base.md}
 
 > [!NOTE]
-> This Lustre implementation requires Rocky Linux 8.10 (or RHEL 8.10 compatible) for proper Lustre server support.
+> **Cold-boot stabilized 2026-05-07** via `lustre-startup.service` (deployed by `playbooks/setup_lustre_startup.yml`). The orchestrator binds `/dev/loop10` for the MGS, finds the MDT disk by Lustre volume label (handles Supermicro `/dev/sda↔sdb` shuffle), serializes OST mounts to dodge the ldiskfs init race, and uses `mountpoint -q` as ground truth so `mount(8)` race output (`already mounted`, `File exists`, `Operation in progress`) doesn't false-fail. Validated by reboot on Head-1 (~75 s incl. MDT recovery) and Compute-1 (~30 s).
 
-## Lustre Architecture
+## Architecture
 
-**Lustre Components:**
+| Role | Nodes | Storage |
+|---|---|---|
+| MGS (Management Server) | Rocky-Head-1 | `/var/lib/lustre/mgt.img` → `/dev/loop10` → `/mnt/mgt` |
+| MDS (Metadata) | Rocky-Head-1, Rocky-Head-2 | `/dev/sd*` (one 128 GB SSD each) → `/mnt/mdt0`, `/mnt/mdt1` |
+| OSS (Object Storage) | Rocky-Compute-1..8 | 2× 256 GB Samsung SSDs each → `/mnt/ost0` ... `/mnt/ost15` |
+| Clients | All 10 nodes | `/mnt/lustre` |
 
-- **MGS (Management Server)**: Rocky-Head-1 - Stores configuration information
-- **MDS (Metadata Servers)**: Rocky-Head-1 & Rocky-Head-2 - Handle namespace operations, file metadata
-- **OSS (Object Storage Servers)**: Rocky-Compute-1 through 8 - Store actual file data
-- **Clients**: All compute nodes also act as Lustre clients
+**Network**: LNET over o2ib (RDMA / InfiniBand). NID format `10.0.0.x@o2ib`. MGS NID `10.0.0.251@o2ib`.
 
-**RDMA Configuration:**
+**Filesystem name**: `lustrefs`. Total capacity: 3.7 TB raw (1.85 TB usable with 2-way FLR).
 
-- Lustre uses LNET (Lustre Networking) with o2ib (OpenFabrics InfiniBand) for RDMA
-- InfiniBand network: 10.0.0.0/24
-- RDMA capabilities via Mellanox ConnectX-5 EDR cards
+## Software stack
 
-## Installation Steps
+- Rocky Linux 9.7
+- Lustre kernel: `5.14.0-611.13.1_lustre.el9.x86_64` (must be `grubby --set-default` on every node)
+- Lustre version: 2.17.0
+- Stock IB modules from `5.14.0-611.16.1.el9_7.x86_64` copied into the Lustre kernel tree with **BTF stripped** (`strip --strip-debug --remove-section=.BTF`). Without this, `ib_core` fails to load. See `ROCKY9_RDMA_BREAKTHROUGH.md`.
+
+## Playbook layout
 
 > [!IMPORTANT]
-> All steps are done via Ansible playbooks located in the `playbooks/` directory.
+> All Ansible commands run from this directory. The vault password is read from `~/.ansible_vault_pass` (configured in `ansible.cfg`).
 
-0. `stage0_bootstrap.yml` - **Bootstrap fresh Rocky 8.10 install** (run this first on newly installed systems)
-   - Install Python 3.9 on all nodes
-   - Set Python 3.9 as default interpreter
-   - Verify connectivity
+### Lustre stages 0–6 (storage layer)
 
-1. `stage1_core_setup.yml` - Base system setup (imports shared playbooks)
-   - NTP, InfiniBand, OpenSM, hosts file, network routing
-   - Lustre firewall rules
-   - SSD discovery, formatting, and mounting for OSTs
+| Stage | Playbook | Purpose |
+|---|---|---|
+| 0 | `stage0_bootstrap.yml` | Python 3.9 bootstrap on fresh Rocky install |
+| 1 | `stage1_core_setup.yml` | NTP, InfiniBand, OpenSM, hosts, firewall, storage prep |
+| 2 | `stage2_install_lustre.yml` | Install Lustre RPMs + LNET configuration |
+| 3 | `stage3_configure_mgs.yml` | Format and start MGS (loop device on Head-1) |
+| 4 | `stage4_configure_mds.yml` | Format and start both MDTs |
+| 5 | `stage5_configure_oss.yml` | Format and start 16 OSTs |
+| 6 | `stage6_mount_clients.yml` | Mount `/mnt/lustre` on all clients |
 
-2. `stage2_install_lustre.yml` - Install Lustre packages and configure LNET
-   - Add Lustre repositories (server, client, e2fsprogs)
-   - Install lustre-server on head nodes (MGS/MDS) and compute nodes (OSS)
-   - Install lustre-client on all nodes
-   - Configure LNET for RDMA over InfiniBand (o2ib)
-   - Verify LNET connectivity between nodes
+### K8s migration stages (7–14)
 
-3. `stage3_configure_mgs.yml` - Set up Management Server (MGS)
-4. `stage4_configure_mds.yml` - Set up Metadata Servers (MDS)
-5. `stage5_configure_oss.yml` - Set up Object Storage Servers (OSS)
-6. `stage6_mount_clients.yml` - Mount Lustre filesystem on client nodes
+Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `stage7_deploy_k3s.yml`, `stage8_deploy_metallb.yml`, `stage9_deploy_ingress.yml`, `stage10_tls_and_dashboard.yml`, `stage11_deploy_monitoring.yml`).
 
-**Common Tools**
+| Stage | Playbook | Purpose |
+|---|---|---|
+| 7 | `stage7_uninstall_k3s.yml` | Idempotent K3s residue cleanup |
+| 8 | `stage8_k8s_prereqs.yml` | containerd, kubeadm/kubelet/kubectl, swap off, sysctl, firewall |
+| 9 | `stage9_control_plane_ha.yml` | keepalived VIP `192.168.1.250` + HAProxy on `:8443` |
+| 10 | `stage10_cluster_init.yml` | `kubeadm init/join` + Flannel CNI + Lustre StorageClass/PV |
+| 11 | `stage11_metallb.yml` | MetalLB L2 (pool `192.168.1.200-220`) |
+| 12 | `stage12_ingress.yml` | Nginx Ingress, LoadBalancer-typed |
+| 13 | `stage13_tls_dashboard.yml` | Self-signed CA + wildcard `*.lab.local` + Helm + Dashboard |
+| 14 | `stage14_helm_monitoring.yml` | kube-prometheus-stack via Helm |
 
-- `common/startup.yml` - Startup sequence for all nodes
-- `common/shutdown.yml` - Shutdown sequence for all nodes
-- `common/benchmark.yml` - Run FIO benchmarks on all compute nodes
-- `common/reboot.yml` - Reboot cluster nodes
+### Common utilities (`playbooks/common/`)
 
-**Diagnostics**
+- `startup.yml` — power-on via IPMI (does **not** orchestrate Lustre service mounts; that's a known gap)
+- `shutdown.yml`, `reboot.yml`, `hard-reboot.yml`, `update.yml`
+- `benchmark.yml`, `benchmark-ssd-baseline.yml`, `network-benchmarks.yml`, `setup-ssd-benchmarks.yml`
+- `lustre-tuning.yml` — performance tuning for o2ib
 
-- `diagnostics/check-lustre-status.yml` - Verify Lustre cluster health
-- `diagnostics/lustre-performance-tuning.yml` - Apply performance optimizations
+### Diagnostics (`playbooks/diagnostics/`)
 
-## Quick Commands
+- `check-lustre-status.yml`
+- `lustre-performance-tuning.yml`
 
-**Check Lustre status:**
-
-```bash
-lctl list_nids              # List network IDs
-lctl ping <nid>             # Ping a Lustre node
-lfs df -h                   # Show Lustre filesystem usage
-lctl get_param version      # Check Lustre version
-```
-
-**Mount Lustre manually:**
+## Quick reference
 
 ```bash
-mount -t lustre <MGS_NID>:/<fsname> /mnt/lustre
-# Example: mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre
+# Health
+lctl list_nids                 # Local LNET NIDs
+lctl ping 10.0.0.251@o2ib      # Reach MGS over RDMA
+lfs df -h                      # Lustre capacity
+lctl dl                        # Local Lustre devices
+lctl get_param -n version      # Lustre version
+
+# Manual mount
+mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre
+
+# FLR (file-level replication)
+lfs mirror create -N2 <path>      # 2-way mirror
+lfs mirror resync <path>          # Re-sync mirrors
+lfs mirror verify -v <path>       # Verify checksums match
 ```
 
-**Benchmark:**
+## Cold-boot recovery
+
+Automatic via `lustre-startup.service` on every node. To force a re-run:
 
 ```bash
-cd /home/kopy/Documents/UJEP-LAB/lustre
-ansible-playbook playbooks/common/benchmark.yml
+ansible -i hosts.ini all -m shell -a "systemctl restart lustre-startup.service" --become
 ```
 
-## Performance Testing
-
-Performance benchmarks using FIO for I/O performance testing across all 8 compute nodes.
-
-> [!NOTE]
-> Current deployment uses TCP transport over Ethernet (192.168.1.x@tcp) due to InfiniBand kernel module incompatibility in the Lustre kernel.
-
-**Cluster Configuration:**
-- 16 OSTs across 8 compute nodes (OST0-13, OST18-19)
-- Total Capacity: 3.7TB
-- 2 MDTs (Rocky-Head-1, Rocky-Head-2)
-- 1 MGS (Rocky-Head-1)
-- Transport: TCP over Ethernet
-
-## Benchmark Results (All 8 Nodes Operational)
-
-**Date:** 2026-01-08
-
-### Write Performance
+To inspect what happened on boot:
 
 ```bash
-TASK [Show Write Bandwidth (MB/s)] *********************************************
-ok: [Rocky-Compute-1] => {
-    "msg": "Host Rocky-Compute-1 Write Speed: 36.1318359375 MB/s"
-}
-ok: [Rocky-Compute-2] => {
-    "msg": "Host Rocky-Compute-2 Write Speed: 231.765625 MB/s"
-}
-ok: [Rocky-Compute-3] => {
-    "msg": "Host Rocky-Compute-3 Write Speed: 239.384765625 MB/s"
-}
-ok: [Rocky-Compute-4] => {
-    "msg": "Host Rocky-Compute-4 Write Speed: 219.166015625 MB/s"
-}
-ok: [Rocky-Compute-5] => {
-    "msg": "Host Rocky-Compute-5 Write Speed: 189.3466796875 MB/s"
-}
-ok: [Rocky-Compute-6] => {
-    "msg": "Host Rocky-Compute-6 Write Speed: 140.345703125 MB/s"
-}
-ok: [Rocky-Compute-7] => {
-    "msg": "Host Rocky-Compute-7 Write Speed: 471.0615234375 MB/s"
-}
-ok: [Rocky-Compute-8] => {
-    "msg": "Host Rocky-Compute-8 Write Speed: 35.953125 MB/s"
-}
+journalctl -u lustre-startup.service -b
+systemctl status lustre-startup.service
 ```
 
-**Aggregate Write Throughput: ~1,563 MB/s (1.5 GB/s)**
-
-### Read Performance
+If the service ever fails, it stops loudly (no more `nofail`-hidden failures). Manual recovery as a fallback:
 
 ```bash
-TASK [Show Read Bandwidth (MB/s)] **********************************************
-ok: [Rocky-Compute-1] => {
-    "msg": "Host Rocky-Compute-1 Read Speed: 73.9443359375 MB/s"
-}
-ok: [Rocky-Compute-2] => {
-    "msg": "Host Rocky-Compute-2 Read Speed: 516.2587890625 MB/s"
-}
-ok: [Rocky-Compute-3] => {
-    "msg": "Host Rocky-Compute-3 Read Speed: 523.3994140625 MB/s"
-}
-ok: [Rocky-Compute-4] => {
-    "msg": "Host Rocky-Compute-4 Read Speed: 518.7265625 MB/s"
-}
-ok: [Rocky-Compute-5] => {
-    "msg": "Host Rocky-Compute-5 Read Speed: 516.5517578125 MB/s"
-}
-ok: [Rocky-Compute-6] => {
-    "msg": "Host Rocky-Compute-6 Read Speed: 516.6494140625 MB/s"
-}
-ok: [Rocky-Compute-7] => {
-    "msg": "Host Rocky-Compute-7 Read Speed: 510.4677734375 MB/s"
-}
-ok: [Rocky-Compute-8] => {
-    "msg": "Host Rocky-Compute-8 Read Speed: 78.1259765625 MB/s"
-}
+# Single-node manual recovery (script does this in dependency order)
+losetup /dev/loop10 /var/lib/lustre/mgt.img            # Head-1 only
+mount -t lustre /dev/loop10 /mnt/mgt                   # Head-1 only
+mount -t lustre $(blkid -L lustrefs-MDT0000) /mnt/mdt0 # Head-1
+mount -t lustre $(blkid -L lustrefs-MDT0001) /mnt/mdt1 # Head-2
+mount -a                                               # OSTs from fstab on compute
+mount -t lustre 10.0.0.251@o2ib:/lustrefs /mnt/lustre  # client
 ```
 
-**Aggregate Read Throughput: ~3,254 MB/s (3.2 GB/s)**
+Do **not** add `nofail` to the MGS fstab line — it propagates to ldiskfs and causes a silent `-22 EINVAL`. The current setup keeps fstab out of the MGS/MDT mount path entirely (commented out by the deploy playbook); only the orchestrator handles them.
 
-### Performance Notes
+## Performance (basic dd, RDMA enabled)
 
-- Compute-2 through Compute-7 show consistent high performance (140-523 MB/s)
-- Compute-1 and Compute-8 exhibit lower performance, likely due to being freshly integrated
-- Overall performance of 1.5 GB/s write and 3.2 GB/s read is excellent for TCP transport
-- Future RDMA optimization could significantly improve performance further
+Single-node: 165 MB/s write, 331 MB/s read (limited by Samsung SSD IOPS, not RDMA).
+Aggregate (8 nodes parallel): 1.38 GB/s write, 2.77 GB/s read.
+With FLR 2-way mirroring: ~17% write penalty.
+
+LNET error counters were zero across the test — RDMA is working as intended.
+
+## See also
+
+- `ROCKY9_RDMA_BREAKTHROUGH.md` — full technical writeup of BTF stripping and the RDMA enablement.
+- `log.md` — chronological session log.
+- `../docs/Lustre.md` — project-level evaluation and verdict.

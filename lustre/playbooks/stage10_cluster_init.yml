@@ -1,0 +1,241 @@
+---
+# Stage 10: kubeadm init/join + Flannel CNI + Lustre StorageClass
+# - kubeadm init on Rocky-Head-1 with VIP control-plane endpoint
+# - Rocky-Head-2 joins as control-plane (tainted, no workloads)
+# - Compute nodes join as workers
+# - Flannel CNI with pod CIDR 10.42.0.0/16
+# - Lustre hostPath StorageClass + PV bound to /mnt/lustre
+
+- name: Initialize control plane on Head-1
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    vip: "192.168.1.250"
+    cp_endpoint: "192.168.1.250:8443"
+    pod_cidr: "10.42.0.0/16"
+    service_cidr: "10.43.0.0/16"
+    k8s_version: "1.32.4"
+
+  tasks:
+    - name: Check if cluster already initialized
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeadm_done
+
+    - name: Pre-pull kubeadm images
+      command: kubeadm config images pull --kubernetes-version v{{ k8s_version }}
+      when: not kubeadm_done.stat.exists
+
+    - name: Render kubeadm config
+      copy:
+        dest: /root/kubeadm-config.yaml
+        mode: "0600"
+        content: |
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: ClusterConfiguration
+          kubernetesVersion: v{{ k8s_version }}
+          controlPlaneEndpoint: "{{ cp_endpoint }}"
+          networking:
+            podSubnet: "{{ pod_cidr }}"
+            serviceSubnet: "{{ service_cidr }}"
+          apiServer:
+            certSANs:
+              - "{{ vip }}"
+              - 192.168.1.251
+              - 192.168.1.252
+              - 10.0.0.251
+              - 10.0.0.252
+              - Rocky-Head-1
+              - Rocky-Head-2
+          ---
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: InitConfiguration
+          localAPIEndpoint:
+            advertiseAddress: 192.168.1.251
+            bindPort: 6443
+          nodeRegistration:
+            taints:
+              - key: node-role.kubernetes.io/control-plane
+                effect: NoSchedule
+
+    - name: kubeadm init
+      command: >
+        kubeadm init
+        --config=/root/kubeadm-config.yaml
+        --upload-certs
+      when: not kubeadm_done.stat.exists
+      register: kubeadm_init
+
+    - name: Ensure /root/.kube exists
+      file:
+        path: /root/.kube
+        state: directory
+        mode: "0700"
+
+    - name: Copy admin kubeconfig for root
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+        mode: "0600"
+
+    - name: Generate worker join command
+      command: kubeadm token create --print-join-command
+      register: worker_join_cmd
+      changed_when: false
+
+    - name: Generate fresh certificate key for CP join
+      command: kubeadm init phase upload-certs --upload-certs
+      register: upload_certs
+      changed_when: false
+
+    - name: Extract certificate key
+      set_fact:
+        cert_key: "{{ upload_certs.stdout_lines[-1] }}"
+
+    - name: Build control-plane join command
+      set_fact:
+        cp_join_cmd: "{{ worker_join_cmd.stdout }} --control-plane --certificate-key {{ cert_key }}"
+
+- name: Join Head-2 as control plane
+  hosts: Rocky-Head-2
+  become: yes
+
+  tasks:
+    - name: Check if already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: head2_joined
+
+    - name: Join as control plane
+      command: "{{ hostvars['Rocky-Head-1'].cp_join_cmd }} --apiserver-advertise-address 192.168.1.252"
+      when: not head2_joined.stat.exists
+
+    - name: Ensure /root/.kube exists
+      file:
+        path: /root/.kube
+        state: directory
+        mode: "0700"
+
+    - name: Copy admin kubeconfig for root
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+        mode: "0600"
+
+- name: Join compute nodes as workers
+  hosts: compute
+  become: yes
+
+  tasks:
+    - name: Check if already joined
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: worker_joined
+
+    - name: Join cluster
+      command: "{{ hostvars['Rocky-Head-1'].worker_join_cmd.stdout }}"
+      when: not worker_joined.stat.exists
+
+- name: Deploy Flannel CNI + Lustre StorageClass
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    pod_cidr: "10.42.0.0/16"
+
+  tasks:
+    - name: Wait for API server
+      command: kubectl get nodes
+      register: nodes_check
+      retries: 30
+      delay: 5
+      until: nodes_check.rc == 0
+
+    - name: Apply Flannel manifest
+      shell: |
+        curl -sSL https://raw.githubusercontent.com/flannel-io/flannel/v0.26.2/Documentation/kube-flannel.yml \
+          | sed 's|10.244.0.0/16|{{ pod_cidr }}|g' \
+          | kubectl apply -f -
+      args:
+        executable: /bin/bash
+
+    - name: Wait for all nodes Ready
+      shell: |
+        kubectl get nodes --no-headers | awk '{print $2}' | grep -c '^Ready$'
+      register: ready_count
+      retries: 60
+      delay: 10
+      until: ready_count.stdout | int >= 10
+
+    - name: Label compute nodes as workers
+      command: kubectl label node {{ item | lower }} node-role.kubernetes.io/worker=worker --overwrite
+      loop: "{{ groups['compute'] }}"
+
+    - name: Apply Lustre StorageClass + PV
+      copy:
+        dest: /root/lustre-storage.yaml
+        mode: "0644"
+        content: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: lustre-storage
+          ---
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: lustre
+            annotations:
+              storageclass.kubernetes.io/is-default-class: "true"
+          provisioner: kubernetes.io/no-provisioner
+          volumeBindingMode: WaitForFirstConsumer
+          ---
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: lustre-shared
+          spec:
+            capacity:
+              storage: 3500Gi
+            accessModes:
+              - ReadWriteMany
+            persistentVolumeReclaimPolicy: Retain
+            storageClassName: lustre
+            hostPath:
+              path: /mnt/lustre
+              type: Directory
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/worker
+                        operator: Exists
+
+    - name: kubectl apply Lustre storage
+      command: kubectl apply -f /root/lustre-storage.yaml
+
+    - name: Show cluster
+      command: kubectl get nodes -o wide
+      register: cluster_status
+      changed_when: false
+
+    - name: Final summary
+      debug:
+        msg: |
+          ============================================================
+          Kubernetes Cluster Up
+          ============================================================
+          API endpoint: https://192.168.1.250:8443
+          Control plane: Rocky-Head-1, Rocky-Head-2 (tainted)
+          Workers: Rocky-Compute-1..8
+          CNI: Flannel ({{ pod_cidr }})
+          Storage: Lustre at /mnt/lustre (StorageClass=lustre, default)
+
+          Fetch kubeconfig:
+            scp Rocky-Head-1:/etc/kubernetes/admin.conf ~/.kube/ujep-config
+
+          {{ cluster_status.stdout }}
+          ============================================================

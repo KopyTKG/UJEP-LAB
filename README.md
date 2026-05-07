@@ -33,4 +33,14 @@
 <td>NFS with Pacemaker and TargetCLI is fast and easy to set up, but for the period of testing, Head server decides to nuke them self after every reboot.
 </td>
 </tr>
+<tr>
+<td>GlusterFS</td>
+<td>NOPE</td>
+<td>RDMA support was removed in recent versions, leaving only IPoIB which negates the InfiniBand fabric advantage.</td>
+</tr>
+<tr>
+<td>Lustre</td>
+<td>SELECTED</td>
+<td>RDMA over InfiniBand achieved via BTF-stripped stock IB modules; FLR for node-level redundancy; cold-boot stabilized via <code>lustre-startup.service</code> (binds the loop10 MGS, discovers MDT by volume label, race-tolerant OST mount). The only candidate that meets performance + redundancy + RDMA + stability simultaneously. See <a href="docs/Lustre.md">docs/Lustre.md</a>.</td>
+</tr>
 </table>

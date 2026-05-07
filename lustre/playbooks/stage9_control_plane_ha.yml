@@ -1,0 +1,125 @@
+---
+# Stage 9: Control-plane HA (keepalived VIP + HAProxy fronting kube-apiserver)
+# VIP 192.168.1.250 floats between Rocky-Head-1 (MASTER) and Rocky-Head-2 (BACKUP).
+# HAProxy listens on :8443 → backend :6443 on both heads.
+# Cluster's control-plane endpoint will be 192.168.1.250:8443.
+
+- name: Configure HAProxy + keepalived on head nodes
+  hosts: controller
+  become: yes
+
+  vars:
+    vip: "192.168.1.250"
+    vip_iface: "eno1"
+    vrrp_router_id: 51
+    vrrp_auth_pass: "ujep-k8s"
+
+  tasks:
+    - name: Install HAProxy + keepalived
+      dnf:
+        name:
+          - haproxy
+          - keepalived
+        state: present
+
+    - name: Detect primary ethernet interface
+      set_fact:
+        vip_iface_detected: "{{ ansible_default_ipv4.interface }}"
+
+    - name: Write HAProxy config
+      copy:
+        dest: /etc/haproxy/haproxy.cfg
+        mode: "0644"
+        content: |
+          global
+            log /dev/log local0
+            maxconn 4096
+            daemon
+
+          defaults
+            mode tcp
+            log global
+            option tcplog
+            option dontlognull
+            timeout connect 5s
+            timeout client  30s
+            timeout server  30s
+
+          frontend k8s-api
+            bind *:8443
+            default_backend k8s-api-backend
+
+          backend k8s-api-backend
+            balance roundrobin
+            option tcp-check
+            server head1 192.168.1.251:6443 check fall 3 rise 2
+            server head2 192.168.1.252:6443 check fall 3 rise 2
+
+    - name: Allow HAProxy to bind non-local addresses (for VIP failover)
+      copy:
+        dest: /etc/sysctl.d/99-haproxy.conf
+        content: "net.ipv4.ip_nonlocal_bind = 1\n"
+        mode: "0644"
+
+    - name: Reload sysctl
+      command: sysctl --system
+
+    - name: Write keepalived config
+      copy:
+        dest: /etc/keepalived/keepalived.conf
+        mode: "0644"
+        content: |
+          vrrp_script chk_haproxy {
+            script "/usr/bin/killall -0 haproxy"
+            interval 2
+            weight 2
+          }
+
+          vrrp_instance VI_1 {
+            state {{ 'MASTER' if inventory_hostname == 'Rocky-Head-1' else 'BACKUP' }}
+            interface {{ vip_iface_detected }}
+            virtual_router_id {{ vrrp_router_id }}
+            priority {{ 110 if inventory_hostname == 'Rocky-Head-1' else 100 }}
+            advert_int 1
+            authentication {
+              auth_type PASS
+              auth_pass {{ vrrp_auth_pass }}
+            }
+            virtual_ipaddress {
+              {{ vip }}
+            }
+            track_script {
+              chk_haproxy
+            }
+          }
+
+    - name: Open VIP frontend port + VRRP in firewall
+      command: firewall-cmd --permanent --add-{{ item }}
+      loop:
+        - "port=8443/tcp"
+        - "rich-rule=rule protocol value=vrrp accept"
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
+
+    - name: Enable + start HAProxy
+      systemd:
+        name: haproxy
+        enabled: yes
+        state: restarted
+
+    - name: Enable + start keepalived
+      systemd:
+        name: keepalived
+        enabled: yes
+        state: restarted
+
+    - name: Wait for VIP to be reachable
+      wait_for:
+        host: "{{ vip }}"
+        port: 8443
+        timeout: 30
+      delegate_to: localhost
+      become: no
+      run_once: yes

@@ -1,0 +1,86 @@
+---
+# Stage 11: MetalLB load balancer (L2 mode)
+# Same pool as before: 192.168.1.200-220
+
+- name: Deploy MetalLB
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    metallb_version: "v0.14.9"
+    pool_start: "192.168.1.200"
+    pool_end: "192.168.1.220"
+
+  tasks:
+    - name: Check for existing MetalLB namespace
+      command: kubectl get namespace metallb-system
+      register: metallb_ns
+      failed_when: false
+      changed_when: false
+
+    - name: Apply MetalLB manifest
+      command: >
+        kubectl apply -f
+        https://raw.githubusercontent.com/metallb/metallb/{{ metallb_version }}/config/manifests/metallb-native.yaml
+      when: metallb_ns.rc != 0
+
+    - name: Wait for MetalLB controller
+      command: >
+        kubectl wait --for=condition=ready pod
+        -l app=metallb,component=controller
+        -n metallb-system --timeout=180s
+      retries: 5
+      delay: 10
+      register: ctrl_ready
+      until: ctrl_ready.rc == 0
+
+    - name: Wait for MetalLB speaker
+      command: >
+        kubectl wait --for=condition=ready pod
+        -l app=metallb,component=speaker
+        -n metallb-system --timeout=180s
+      retries: 5
+      delay: 10
+      register: speaker_ready
+      until: speaker_ready.rc == 0
+
+    - name: Configure IP pool + L2 advertisement
+      copy:
+        dest: /root/metallb-config.yaml
+        mode: "0644"
+        content: |
+          apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: lab-pool
+            namespace: metallb-system
+          spec:
+            addresses:
+              - {{ pool_start }}-{{ pool_end }}
+          ---
+          apiVersion: metallb.io/v1beta1
+          kind: L2Advertisement
+          metadata:
+            name: lab-l2
+            namespace: metallb-system
+          spec:
+            ipAddressPools:
+              - lab-pool
+
+    - name: kubectl apply MetalLB config
+      command: kubectl apply -f /root/metallb-config.yaml
+
+- name: Open MetalLB memberlist ports
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Open port 7946
+      command: firewall-cmd --permanent --add-port={{ item }}
+      loop:
+        - 7946/tcp
+        - 7946/udp
+      ignore_errors: yes
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
