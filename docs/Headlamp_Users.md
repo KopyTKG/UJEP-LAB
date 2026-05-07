@@ -158,3 +158,36 @@ kubectl delete namespace "$NS"
 - `kubectl get clusterrole view -o yaml` — read-only verbs only
 - Headlamp docs on auth: <https://headlamp.dev/docs/latest/installation/in-cluster/>
 - Kubernetes RBAC docs: <https://kubernetes.io/docs/reference/access-authn-authz/rbac/>
+
+---
+
+## Provisioned accounts
+
+> [!CAUTION]
+> The tokens below are bearer credentials. Anyone holding the string IS that user with that user's permissions. Do **not** share them outside the lab. Rotate (`kubectl create token --duration=...`) if exposure is suspected — the previous token remains valid for the duration it was issued for, but new tokens carry no relation to old ones, so any token-leak surface should be re-issued and the namespace-bound SA can be deleted to invalidate everything.
+
+Issued 2026-05-07 on cluster `https://192.168.1.250:8443`.
+
+| Role | ServiceAccount | Namespace | Scope | Expires |
+|---|---|---|---|---|
+| Admin | `admin-user` | `headlamp` | cluster-admin | 2027-05-07 |
+| Student | `student` | `student-default` | ns admin in `student-default` + cluster `view` | 2027-05-07 |
+| Guest | `guest` | `headlamp` | cluster `view` | 2026-06-06 |
+
+### Admin token
+
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6IjEtYlJJUTRoV1I2R3g1LW0wTHZRQXM0aXVaVU5mRVRpRFJuTm1hbkoyVGsifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxODA5NjgyMjczLCJpYXQiOjE3NzgxNDYyNzMsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiZTI1YmQ4YzUtYWRkOS00MTZiLWE2NzYtMjFlMTY5Y2RmNjM5Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJoZWFkbGFtcCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiNDJmMDQ3MzgtZDFiOC00MjE2LTg2MTktMzY5MzAwOTQyM2I5In19LCJuYmYiOjE3NzgxNDYyNzMsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpoZWFkbGFtcDphZG1pbi11c2VyIn0.HB5fzS1PQI9xhnt7NTCFYw3U07emdU0PB4vHhr8ANWs_RxjOwHjW6beGfnopf2v4fKqmp35HvEdLFTHdzdXjn8WolQsuj3_izVCZgC6wGATlpmj0WtFAjAlcV9WyfAGYy-_NEzwP4lMryOagd1YXOLXMZTo4NAJB9VLG3dcjHfOv4h2osDJlHY9XrCqDBmXz17n6vFPLC4g2dHnRswJ3Bibk9x3S7tDKU0C0jGRFrtXY4JkMWxCXnxCTOs2mFzGCiB-7ZKBUCf-aocTbRe48unTVosmoA-EXVKNiHfkHA4HfHw_yq2dIcGxQ9K0Aj1x5ffpFHvyL916VipLqjpKQCg
+```
+
+### Student token
+
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6IjEtYlJJUTRoV1I2R3g1LW0wTHZRQXM0aXVaVU5mRVRpRFJuTm1hbkoyVGsifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxODA5NjgyMjczLCJpYXQiOjE3NzgxNDYyNzMsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiMTlkZjQxYjUtMGI4MC00MzI3LTgyMDktZThjMDc3ZmRmN2E3Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJzdHVkZW50LWRlZmF1bHQiLCJzZXJ2aWNlYWNjb3VudCI6eyJuYW1lIjoic3R1ZGVudCIsInVpZCI6IjMwZjEyNzRlLTM1MjYtNDkyMy1hYjkwLWVmN2M5NDZhNWI1MSJ9fSwibmJmIjoxNzc4MTQ2MjczLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6c3R1ZGVudC1kZWZhdWx0OnN0dWRlbnQifQ.NlxtN9OMHCHQR-efX-z4YH_3UirTNb4JMTapb_WnyMlenYgN5XOU6rzTySaotOff4I1PBCudB9z1sFb6e9U2QMF07r1y3JBCqdhziW60ye89mHO1cmlrKtJNnbVe7eCZCRb9L1skg17GzpeOEX4ANu4HZJjbpj6MRY8JkLEWfAX-je6LOz5jh7FI7M5xN3MBuHy7wZ0aOWK7xcZcMcOb4wEdNdUYBlQiDOjJY2_3SFtJ_HZs6kVwpAnNHvOO9h0gEiXsvvAueNLnngwdNE5pQE9sl4G2_NnBFmRgWku9SRvobPdCNMaoPWIGkp1I2L23PL9GD9M1sax6lxfyM4H2JQ
+```
+
+### Guest token
+
+```
+eyJhbGciOiJSUzI1NiIsImtpZCI6IjEtYlJJUTRoV1I2R3g1LW0wTHZRQXM0aXVaVU5mRVRpRFJuTm1hbkoyVGsifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzgwNzM4MjczLCJpYXQiOjE3NzgxNDYyNzMsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiMDBhYzc4ZGQtYTNmNy00YmJjLWIyOGUtOWRjODNiNjFmYTQ4Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJoZWFkbGFtcCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJndWVzdCIsInVpZCI6IjllNTEwMzJkLTViODItNDk3NC05ZmQxLTQ4OGUwNjcxODZkNyJ9fSwibmJmIjoxNzc4MTQ2MjczLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6aGVhZGxhbXA6Z3Vlc3QifQ.jH8hhttgjmexZg0ETWSOVnWijunGJMq57IVM1saG-96KIvRmqaLKgwIEwl47Hh2-r5kssvHvNVf6-nvM0_3utwA-EYkif7Zu2Gpq4pjkseZHENmPld_t5akub774cIrr6menSTiungfPKGokDRu49atrAn1pamkYoERTqMlXva-q4N4t4JHocMGJcFc5cnPx8x39EW-Pk_itKesqO-VZp6m4Hd6hUwXwCn95G_eXXKit_E5phTj5r7-jGtyom97L_jwASnjZqlXK2Fxbm9U76wCLFuSXHt04WQ3oVhwv22lr0IqFpQt2EdAGpmmdOUKPR0ylVN9bGoQ9rIJU9XZqbA
+```
