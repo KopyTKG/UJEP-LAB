@@ -1,0 +1,106 @@
+---
+# Stage 15: Rancher Manager
+# Deploys cert-manager (Rancher dependency for its internal webhook certs) + Rancher
+# Manager itself, behind the existing nginx Ingress + lab-tls wildcard cert.
+# After this runs, https://rancher.lab.local/ serves the Rancher UI.
+
+- name: Deploy Rancher Manager
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    rancher_namespace: cattle-system
+    rancher_hostname: "rancher.lab.local"
+    rancher_replicas: 1
+    rancher_bootstrap_password: "ujep-rancher-init"
+    cert_manager_version: "v1.16.2"
+
+  tasks:
+    # --- 1. cert-manager (Rancher needs it for its own internal certs) ---
+    - name: Check if cert-manager is already deployed
+      command: kubectl get namespace cert-manager
+      register: cm_ns
+      failed_when: false
+      changed_when: false
+
+    - name: Install cert-manager CRDs + controller
+      command: >
+        kubectl apply -f
+        https://github.com/cert-manager/cert-manager/releases/download/{{ cert_manager_version }}/cert-manager.yaml
+      when: cm_ns.rc != 0
+
+    - name: Wait for cert-manager webhook
+      command: >
+        kubectl wait --for=condition=available deployment/cert-manager-webhook
+        -n cert-manager --timeout=300s
+      retries: 5
+      delay: 10
+      register: cm_ready
+      until: cm_ready.rc == 0
+
+    # --- 2. Rancher namespace + TLS secret ---
+    - name: Create cattle-system namespace
+      shell: kubectl create namespace {{ rancher_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Copy lab-tls cert into cattle-system as tls-rancher-ingress
+      # Rancher's chart with ingress.tls.source=secret expects this exact name.
+      shell: |
+        kubectl get secret lab-tls -n default -o yaml \
+          | sed -e 's/namespace: default/namespace: {{ rancher_namespace }}/' \
+                -e 's/name: lab-tls/name: tls-rancher-ingress/' \
+                -e '/resourceVersion:/d' -e '/uid:/d' -e '/creationTimestamp:/d' \
+          | kubectl apply -f -
+
+    # --- 3. Rancher helm install ---
+    - name: Add Rancher helm repo
+      command: helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+      register: helm_add
+      failed_when: helm_add.rc != 0 and 'already exists' not in helm_add.stderr
+      changed_when: "'has been added' in helm_add.stdout"
+
+    - name: Update helm repos
+      command: helm repo update
+
+    - name: Install/upgrade Rancher
+      command: >
+        helm upgrade --install rancher rancher-stable/rancher
+        --namespace {{ rancher_namespace }}
+        --set hostname={{ rancher_hostname }}
+        --set replicas={{ rancher_replicas }}
+        --set bootstrapPassword={{ rancher_bootstrap_password }}
+        --set ingress.tls.source=secret
+        --set ingress.ingressClassName=nginx
+        --set tls=ingress
+
+    - name: Wait for Rancher deployment to be available
+      command: >
+        kubectl wait --for=condition=available deployment/rancher
+        -n {{ rancher_namespace }} --timeout=600s
+      retries: 5
+      delay: 30
+      register: rancher_ready
+      until: rancher_ready.rc == 0
+
+    - name: Show Rancher status
+      shell: |
+        kubectl get pods -n {{ rancher_namespace }}
+        echo '---'
+        kubectl get ingress -n {{ rancher_namespace }}
+      register: rancher_status
+      changed_when: false
+
+    - name: Display access info
+      debug:
+        msg: |
+          ============================================================
+          Rancher Manager Deployed
+          ============================================================
+          URL: https://{{ rancher_hostname }}/
+          Bootstrap password: {{ rancher_bootstrap_password }}
+            (you'll be forced to change this on first login)
+
+          Add to your workstation /etc/hosts:
+            192.168.1.200  {{ rancher_hostname }}
+
+          {{ rancher_status.stdout }}
+          ============================================================
