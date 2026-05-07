@@ -70,10 +70,8 @@
         name: containerd.io
         state: present
 
-    - name: Generate default containerd config
+    - name: Generate default containerd config (force-overwrite — Docker pkg ships with CRI disabled)
       shell: containerd config default > /etc/containerd/config.toml
-      args:
-        creates: /etc/containerd/config.toml
 
     - name: Enable SystemdCgroup in containerd
       replace:

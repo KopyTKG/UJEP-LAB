@@ -93,11 +93,16 @@
             }
           }
 
-    - name: Open VIP frontend port + VRRP in firewall
-      command: firewall-cmd --permanent --add-{{ item }}
-      loop:
-        - "port=8443/tcp"
-        - "rich-rule=rule protocol value=vrrp accept"
+    - name: Open VIP frontend port in firewall
+      command: firewall-cmd --permanent --add-port=8443/tcp
+      ignore_errors: yes
+
+    - name: Open VRRP multicast in firewall
+      # Use shell so the single-quoted rich-rule string is passed as one argument.
+      # firewall-cmd's --add-rich-rule= takes a quoted expression containing spaces;
+      # the command module splits on whitespace and breaks it.
+      shell: |
+        firewall-cmd --permanent --add-rich-rule='rule protocol value="vrrp" accept'
       ignore_errors: yes
 
     - name: Reload firewall
