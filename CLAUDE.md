@@ -140,7 +140,7 @@ ansible-playbook playbooks/<playbook-name>.yml --ask-vault-pass
 
 Working K3s deployment on Lustre, abandoned in favor of full kubeadm. Files retained for reference: `stage7_deploy_k3s.yml`, `stage8_deploy_metallb.yml`, `stage9_deploy_ingress.yml`, `stage10_tls_and_dashboard.yml`, `stage11_deploy_monitoring.yml`.
 
-### Kubeadm deployment (Stages 7–14) — written, not yet executed
+### Kubeadm deployment (Stages 7–15) — deployed 2026-05-07
 
 7. `stage7_uninstall_k3s.yml` — idempotent K3s residue cleanup
 8. `stage8_k8s_prereqs.yml` — containerd + kubeadm/kubelet/kubectl, swap off, sysctl, firewall
@@ -148,8 +148,11 @@ Working K3s deployment on Lustre, abandoned in favor of full kubeadm. Files reta
 10. `stage10_cluster_init.yml` — `kubeadm init/join` + Flannel CNI + Lustre StorageClass/PV
 11. `stage11_metallb.yml` — MetalLB L2 (pool `192.168.1.200-220`)
 12. `stage12_ingress.yml` — Nginx Ingress, LoadBalancer-typed
-13. `stage13_tls_dashboard.yml` — self-signed CA + wildcard `*.lab.local` + Helm + Dashboard
+13. `stage13_tls.yml` — self-signed CA + wildcard `*.lab.local` + Helm install
 14. `stage14_helm_monitoring.yml` — kube-prometheus-stack via Helm
+15. `stage15_rancher.yml` — Rancher Manager for cluster + user management UI
+
+User management is via Rancher. Headlamp was originally deployed in stage 13 but retired in favor of Rancher's built-in multi-backend authentication (local users, OIDC, AD, GitHub) which fits the school-cluster use case. The TLS cert generation and Helm install pieces of stage 13 remain because they're shared infrastructure for stages 14 and 15.
 
 **Lustre-specific commands:**
 

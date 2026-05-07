@@ -40,7 +40,7 @@
 | 5 | `stage5_configure_oss.yml` | Format and start 16 OSTs |
 | 6 | `stage6_mount_clients.yml` | Mount `/mnt/lustre` on all clients |
 
-### K8s migration stages (7–14)
+### K8s migration stages (7–15)
 
 Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `stage7_deploy_k3s.yml`, `stage8_deploy_metallb.yml`, `stage9_deploy_ingress.yml`, `stage10_tls_and_dashboard.yml`, `stage11_deploy_monitoring.yml`).
 
@@ -52,8 +52,9 @@ Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `sta
 | 10 | `stage10_cluster_init.yml` | `kubeadm init/join` + Flannel CNI + Lustre StorageClass/PV |
 | 11 | `stage11_metallb.yml` | MetalLB L2 (pool `192.168.1.200-220`) |
 | 12 | `stage12_ingress.yml` | Nginx Ingress, LoadBalancer-typed |
-| 13 | `stage13_tls_dashboard.yml` | Self-signed CA + wildcard `*.lab.local` + Helm + Dashboard |
+| 13 | `stage13_tls.yml` | Self-signed CA + wildcard `*.lab.local` + Helm install |
 | 14 | `stage14_helm_monitoring.yml` | kube-prometheus-stack via Helm |
+| 15 | `stage15_rancher.yml` | Rancher Manager (cluster + user management UI) |
 
 ### Common utilities (`playbooks/common/`)
 

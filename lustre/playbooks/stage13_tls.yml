@@ -1,0 +1,147 @@
+---
+# Stage 13: Self-signed TLS + Helm
+# - Generates lab CA + wildcard cert for *.lab.local (used by stages 14, 15 and any
+#   future workload that needs HTTPS).
+# - Installs Helm (used by stages 14, 15).
+# - Publishes the wildcard cert as the `lab-tls` secret in the `default` namespace,
+#   from where downstream stages copy it into their own namespaces.
+#
+# Originally also deployed Headlamp here, but Headlamp + the manual ServiceAccount
+# user system was retired in favor of Rancher (stage 15) which has its own
+# multi-backend user management. The Helm and TLS pieces remain because Rancher
+# and the monitoring stack both need them.
+
+- name: Generate lab CA + wildcard TLS + install Helm
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    cert_dir: /etc/kubernetes/lab-tls
+    lab_domain: lab.local
+    cert_days: 3650
+
+  tasks:
+    # --- 1. CA + WILDCARD CERT ---
+    - name: Create cert dir
+      file:
+        path: "{{ cert_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Generate CA key
+      command: openssl genrsa -out {{ cert_dir }}/ca.key 4096
+      args:
+        creates: "{{ cert_dir }}/ca.key"
+
+    - name: Generate CA cert
+      command: >
+        openssl req -x509 -new -nodes
+        -key {{ cert_dir }}/ca.key
+        -sha256 -days {{ cert_days }}
+        -out {{ cert_dir }}/ca.crt
+        -subj "/CN=UJEP-Lab-CA/O=UJEP-Lab"
+      args:
+        creates: "{{ cert_dir }}/ca.crt"
+
+    - name: Generate server key
+      command: openssl genrsa -out {{ cert_dir }}/tls.key 2048
+      args:
+        creates: "{{ cert_dir }}/tls.key"
+
+    - name: Write SAN config
+      copy:
+        dest: "{{ cert_dir }}/san.cnf"
+        mode: "0644"
+        content: |
+          [req]
+          distinguished_name = req_dn
+          req_extensions = v3_req
+          prompt = no
+
+          [req_dn]
+          CN = *.{{ lab_domain }}
+          O = UJEP-Lab
+
+          [v3_req]
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = *.{{ lab_domain }}
+          DNS.2 = grafana.{{ lab_domain }}
+          DNS.3 = prometheus.{{ lab_domain }}
+          DNS.4 = rancher.{{ lab_domain }}
+          IP.1 = 192.168.1.200
+          IP.2 = 192.168.1.201
+          IP.3 = 192.168.1.202
+
+    - name: Generate CSR
+      command: >
+        openssl req -new
+        -key {{ cert_dir }}/tls.key
+        -out {{ cert_dir }}/tls.csr
+        -config {{ cert_dir }}/san.cnf
+      args:
+        creates: "{{ cert_dir }}/tls.csr"
+
+    - name: Sign server cert
+      command: >
+        openssl x509 -req
+        -in {{ cert_dir }}/tls.csr
+        -CA {{ cert_dir }}/ca.crt
+        -CAkey {{ cert_dir }}/ca.key
+        -CAcreateserial
+        -out {{ cert_dir }}/tls.crt
+        -days 730 -sha256
+        -extensions v3_req
+        -extfile {{ cert_dir }}/san.cnf
+      args:
+        creates: "{{ cert_dir }}/tls.crt"
+
+    # --- 2. PUBLISH AS K8S SECRET (downstream stages copy from here) ---
+    - name: Create lab-tls secret in default namespace
+      shell: >
+        kubectl create secret tls lab-tls
+        --cert={{ cert_dir }}/tls.crt
+        --key={{ cert_dir }}/tls.key
+        -n default --dry-run=client -o yaml |
+        kubectl apply -f -
+
+    # --- 3. INSTALL HELM ---
+    # The upstream get-helm-3 install script has a PATH-validation step that false-negatives
+    # in non-interactive shells (helm gets installed but the script's `command -v helm`
+    # check fails and exits 1). Install via direct tarball instead.
+    - name: Check for helm
+      stat:
+        path: /usr/local/bin/helm
+      register: helm_bin
+
+    - name: Install Helm (direct tarball)
+      shell: |
+        set -e
+        cd /tmp
+        curl -fsSL https://get.helm.sh/helm-v3.20.2-linux-amd64.tar.gz -o helm.tgz
+        tar -xzf helm.tgz
+        install -m 0755 linux-amd64/helm /usr/local/bin/helm
+        rm -rf helm.tgz linux-amd64
+      args:
+        executable: /bin/bash
+      when: not helm_bin.stat.exists
+
+    - name: Symlink helm into /usr/bin (ansible's non-login shell PATH lacks /usr/local/bin)
+      file:
+        src: /usr/local/bin/helm
+        dest: /usr/bin/helm
+        state: link
+        force: yes
+
+    - name: Show summary
+      debug:
+        msg: |
+          ============================================================
+          TLS + Helm ready
+          ============================================================
+          Lab CA:        {{ cert_dir }}/ca.crt   (import into browser/system trust)
+          Wildcard cert: {{ cert_dir }}/tls.crt  (covers *.{{ lab_domain }})
+          K8s secret:    lab-tls in `default` ns (downstream stages copy this)
+          Helm:          /usr/local/bin/helm (symlinked to /usr/bin/helm)
+          ============================================================
