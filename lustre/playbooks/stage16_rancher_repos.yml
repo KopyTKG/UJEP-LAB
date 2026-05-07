@@ -1,0 +1,83 @@
+---
+# Stage 16: Curated Helm chart repos for the Rancher catalog
+# Adds a set of generally-useful Helm repos to Rancher's "Apps & Marketplace".
+# Users (especially Project Members in student projects) can then browse and
+# install charts via the Rancher UI without first needing to add a repo.
+#
+# Modify the `repos` list to add or remove sources. Re-running this playbook
+# is idempotent — existing ClusterRepos with the same name are left alone
+# (use `helm repo update` semantics in Rancher to refresh).
+
+- name: Seed Rancher's chart catalog
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    repos:
+      - name: bitnami
+        url: https://charts.bitnami.com/bitnami
+      - name: prometheus-community
+        url: https://prometheus-community.github.io/helm-charts
+      - name: grafana
+        url: https://grafana.github.io/helm-charts
+      - name: jetstack
+        url: https://charts.jetstack.io
+      - name: jupyterhub
+        url: https://jupyterhub.github.io/helm-chart
+      - name: gitea
+        url: https://dl.gitea.com/charts
+      - name: harbor
+        url: https://helm.goharbor.io
+      - name: minio
+        url: https://charts.min.io
+      - name: argo
+        url: https://argoproj.github.io/argo-helm
+
+  tasks:
+    - name: Wait for Rancher CRDs to be ready
+      command: kubectl get crd clusterrepos.catalog.cattle.io
+      register: crd_check
+      retries: 10
+      delay: 5
+      until: crd_check.rc == 0
+
+    - name: Apply ClusterRepo objects
+      shell: |
+        cat <<'YAML' | kubectl apply -f -
+        apiVersion: catalog.cattle.io/v1
+        kind: ClusterRepo
+        metadata:
+          name: {{ item.name }}
+        spec:
+          url: {{ item.url }}
+        YAML
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Wait for all ClusterRepos to reach Downloaded state
+      shell: |
+        kubectl get clusterrepo {{ item.name }} -o jsonpath='{.status.conditions[?(@.type=="Downloaded")].status}'
+      register: repo_status
+      retries: 30
+      delay: 10
+      until: repo_status.stdout == "True"
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Show summary
+      shell: kubectl get clusterrepos
+      register: repos_summary
+      changed_when: false
+
+    - name: Display
+      debug:
+        msg: |
+          ============================================================
+          Rancher chart catalog seeded
+          ============================================================
+          {{ repos_summary.stdout }}
+
+          Browse: Rancher UI -> Apps -> Charts -> filter by repo
+          ============================================================

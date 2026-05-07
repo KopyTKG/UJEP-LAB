@@ -55,6 +55,7 @@ Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `sta
 | 13 | `stage13_tls.yml` | Self-signed CA + wildcard `*.lab.local` + Helm install |
 | 14 | `stage14_helm_monitoring.yml` | kube-prometheus-stack via Helm |
 | 15 | `stage15_rancher.yml` | Rancher Manager (cluster + user management UI) |
+| 16 | `stage16_rancher_repos.yml` | Curated Helm chart catalog (bitnami, grafana, jupyterhub, gitea, harbor, minio, argo, etc.) |
 
 ### Common utilities (`playbooks/common/`)
 
