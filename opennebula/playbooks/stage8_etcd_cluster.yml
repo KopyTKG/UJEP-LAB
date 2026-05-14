@@ -104,6 +104,16 @@
             - "/tmp/etcd-{{ etcd_version }}.tar.gz"
             - "/tmp/etcd-{{ etcd_version }}-linux-amd64"
 
+    - name: Symlink etcdctl + etcdutl into /usr/bin (ansible's non-login shell PATH lacks /usr/local/bin)
+      file:
+        src: "/usr/local/bin/{{ item }}"
+        dest: "/usr/bin/{{ item }}"
+        state: link
+        force: yes
+      loop:
+        - etcdctl
+        - etcdutl
+
     - name: Write etcd config
       copy:
         dest: "{{ etcd_conf_dir }}/etcd.conf.yml"
