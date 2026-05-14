@@ -30,6 +30,10 @@ Originally framed around OpenNebula on Lustre. Pivoted to Kubernetes (originally
 - **GlusterFS** (rejected): RDMA support removed in current versions.
 - **Lustre** (selected): RDMA + FLR + cold-boot stabilization via `lustre-startup.service`. Hits all four hard requirements (performance, redundancy, stability, RDMA) where each prior candidate failed exactly one. `docs/Lustre.md`.
 
+**Workload-layer alternatives investigated (do not re-litigate):**
+
+- **oVirt** (rejected 2026-05-14): Considered as a KVM-clustering alternative to Kubernetes. Killed by two compounding issues — (1) VDSM's `xleases` writes use 256512 B block size which fails `O_DIRECT` 4 KiB alignment on Lustre (open ovirt-users thread, no maintainer follow-up, zero success stories), and (2) the only RDMA-capable POSIX domain alternative is GlusterFS whose RDMA transport was removed upstream. Project itself is in maintenance mode post-RHV EOL (~1 release/year). `docs/oVirt.md`.
+
 ## Repository Structure
 
 ```
