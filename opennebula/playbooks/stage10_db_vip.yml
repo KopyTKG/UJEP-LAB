@@ -76,7 +76,12 @@
             stats refresh 5s
 
           listen postgres_primary
-            bind *:{{ pg_port }}
+            # Bind to the VIP only — Patroni's postgres already owns 0.0.0.0:5432
+            # on both heads, so we'd port-conflict if we bound to *. ip_nonlocal_bind
+            # is enabled below so we can bind to the VIP even on the standby head
+            # (where the VIP isn't actually assigned yet — VRRP will eventually
+            # raise it here on failover and connections will start flowing).
+            bind {{ db_vip }}:{{ pg_port }}
             mode tcp
             option httpchk GET /primary
             http-check expect status 200
