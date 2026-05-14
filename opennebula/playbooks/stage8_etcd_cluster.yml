@@ -1,0 +1,209 @@
+---
+# Stage 8: 3-node etcd cluster (DCS for Patroni)
+#
+# etcd is the distributed key-value store Patroni uses to coordinate leader
+# election and stash cluster state. 3 nodes is the minimum for proper quorum
+# (can survive 1 node loss). Members:
+#
+#   etcd-1 → Rocky-Head-1   10.0.0.251  (IPoIB)
+#   etcd-2 → Rocky-Head-2   10.0.0.252  (IPoIB)
+#   etcd-3 → Rocky-Compute-1 10.0.0.1   (IPoIB)
+#
+# Ports: 2379 (client API), 2380 (peer-to-peer). Traffic stays on the IPoIB
+# fabric (sub-ms RTT) so consensus latency is well below the default
+# heartbeat interval. No TLS for now — all traffic is on the internal IB
+# network. Can be added in a hardening pass later.
+#
+# Installed from upstream binary release (etcd is not in EPEL 9). Static
+# cluster — no DNS discovery, no etcd-bootstrap dance.
+
+- name: Install etcd from upstream binary release
+  hosts: etcd_cluster
+  become: yes
+  gather_facts: no
+
+  vars:
+    etcd_version: "v3.5.17"
+    etcd_user: etcd
+    etcd_data_dir: /var/lib/etcd
+    etcd_conf_dir: /etc/etcd
+
+    # Static cluster member map.  Each node's identity is derived from
+    # its hostname (we map by inventory_hostname).
+    etcd_members:
+      Rocky-Head-1:
+        name: etcd-1
+        peer_ip: 10.0.0.251
+      Rocky-Head-2:
+        name: etcd-2
+        peer_ip: 10.0.0.252
+      Rocky-Compute-1:
+        name: etcd-3
+        peer_ip: 10.0.0.1
+
+    etcd_initial_cluster: >-
+      etcd-1=http://10.0.0.251:2380,etcd-2=http://10.0.0.252:2380,etcd-3=http://10.0.0.1:2380
+
+  tasks:
+    - name: Create etcd system user
+      user:
+        name: "{{ etcd_user }}"
+        system: yes
+        home: "{{ etcd_data_dir }}"
+        shell: /sbin/nologin
+        create_home: no
+
+    - name: Create etcd dirs
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ etcd_user }}"
+        group: "{{ etcd_user }}"
+        mode: "0750"
+      loop:
+        - "{{ etcd_data_dir }}"
+        - "{{ etcd_conf_dir }}"
+
+    - name: Check if etcd binary already installed at correct version
+      command: /usr/local/bin/etcd --version
+      register: etcd_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Download + install etcd {{ etcd_version }}
+      when: etcd_installed.rc != 0 or etcd_version not in etcd_installed.stdout
+      block:
+        - name: Download etcd tarball
+          get_url:
+            url: "https://github.com/etcd-io/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+            dest: "/tmp/etcd-{{ etcd_version }}.tar.gz"
+            mode: "0644"
+
+        - name: Extract etcd
+          unarchive:
+            src: "/tmp/etcd-{{ etcd_version }}.tar.gz"
+            dest: /tmp/
+            remote_src: yes
+
+        - name: Install etcd + etcdctl into /usr/local/bin
+          copy:
+            src: "/tmp/etcd-{{ etcd_version }}-linux-amd64/{{ item }}"
+            dest: "/usr/local/bin/{{ item }}"
+            mode: "0755"
+            remote_src: yes
+          loop:
+            - etcd
+            - etcdctl
+            - etcdutl
+
+        - name: Clean up tarball + extracted dir
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "/tmp/etcd-{{ etcd_version }}.tar.gz"
+            - "/tmp/etcd-{{ etcd_version }}-linux-amd64"
+
+    - name: Write etcd config
+      copy:
+        dest: "{{ etcd_conf_dir }}/etcd.conf.yml"
+        owner: "{{ etcd_user }}"
+        group: "{{ etcd_user }}"
+        mode: "0640"
+        content: |
+          # Managed by Ansible (stage8_etcd_cluster.yml)
+          name: '{{ etcd_members[inventory_hostname].name }}'
+          data-dir: '{{ etcd_data_dir }}'
+          listen-peer-urls: 'http://{{ etcd_members[inventory_hostname].peer_ip }}:2380'
+          listen-client-urls: 'http://{{ etcd_members[inventory_hostname].peer_ip }}:2379,http://127.0.0.1:2379'
+          initial-advertise-peer-urls: 'http://{{ etcd_members[inventory_hostname].peer_ip }}:2380'
+          advertise-client-urls: 'http://{{ etcd_members[inventory_hostname].peer_ip }}:2379'
+          initial-cluster: '{{ etcd_initial_cluster }}'
+          initial-cluster-token: 'ujep-lab-patroni'
+          initial-cluster-state: 'new'
+          enable-v2: false
+          auto-compaction-mode: periodic
+          auto-compaction-retention: '1h'
+      notify: restart etcd
+
+    - name: Install etcd systemd unit
+      copy:
+        dest: /etc/systemd/system/etcd.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=etcd key-value store
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=notify
+          User={{ etcd_user }}
+          Group={{ etcd_user }}
+          ExecStart=/usr/local/bin/etcd --config-file={{ etcd_conf_dir }}/etcd.conf.yml
+          Restart=on-failure
+          RestartSec=5
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+      notify:
+        - reload systemd
+        - restart etcd
+
+    - name: Open etcd ports on IPoIB interface
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - 2379/tcp
+        - 2380/tcp
+
+    - name: Enable + start etcd
+      systemd:
+        name: etcd
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart etcd
+      systemd:
+        name: etcd
+        state: restarted
+
+
+- name: Cluster health check
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Wait for etcd cluster quorum (give members ~30 s to find each other)
+      command: etcdctl --endpoints=http://10.0.0.251:2379,http://10.0.0.252:2379,http://10.0.0.1:2379 endpoint health --cluster
+      register: etcd_health
+      retries: 15
+      delay: 2
+      until: etcd_health.rc == 0
+      changed_when: false
+
+    - name: List cluster members
+      command: etcdctl --endpoints=http://127.0.0.1:2379 member list -w table
+      register: etcd_members_out
+      changed_when: false
+
+    - name: Show summary
+      debug:
+        msg: |
+          ============================================================
+          etcd cluster healthy
+          ============================================================
+          {{ etcd_health.stdout }}
+
+          {{ etcd_members_out.stdout }}
+          ============================================================

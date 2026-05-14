@@ -1,0 +1,113 @@
+---
+# Stage 7: OpenNebula prerequisites (all nodes)
+#
+# - EPEL + CRB repos (CRB = "CodeReady Builder" = the Rocky 9 name for what
+#   used to be PowerTools — needed for several libvirt/qemu dependencies).
+# - OpenNebula 6.10 Community Edition repo from downloads.opennebula.io.
+# - SELinux to permissive cluster-wide. OpenNebula 6.x is known to have
+#   unresolved policy gaps with KVM + shared filesystems; their docs
+#   explicitly recommend permissive/disabled for non-production. We pick
+#   permissive (logs but doesn't block) so we can audit if anything wants
+#   to be tightened later.
+# - Firewall ports:
+#     Frontend (heads): 2616 oned-rpc, 9869 sunstone, 2474 fireedge, 5030 oneflow
+#     KVM hosts (compute): 5900-6500 VNC range, 16509 libvirt, 49152-49215 migration
+
+- name: OpenNebula prerequisites (all nodes)
+  hosts: all
+  become: yes
+
+  vars:
+    opennebula_version: "6.10"
+
+  tasks:
+    - name: Enable CRB repo (Rocky 9 successor to PowerTools)
+      command: dnf config-manager --set-enabled crb
+      changed_when: false  # idempotent — no harm if already enabled
+
+    - name: Install EPEL
+      dnf:
+        name: epel-release
+        state: present
+
+    - name: Add OpenNebula {{ opennebula_version }} Community repo
+      yum_repository:
+        name: opennebula
+        description: OpenNebula Community Edition {{ opennebula_version }}
+        baseurl: "https://downloads.opennebula.io/repo/{{ opennebula_version }}/RedHat/$releasever/$basearch"
+        gpgkey: https://downloads.opennebula.io/repo/repo2.key
+        gpgcheck: yes
+        repo_gpgcheck: yes
+        enabled: yes
+        file: opennebula
+
+    - name: Force repo metadata refresh
+      command: dnf -y makecache --refresh
+      changed_when: false
+
+    - name: Set SELinux to permissive (runtime)
+      command: setenforce 0
+      failed_when: false  # ok if already permissive/disabled
+      changed_when: false
+
+    - name: Set SELinux to permissive (persistent across reboots)
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: "^SELINUX="
+        line: "SELINUX=permissive"
+        backrefs: no
+
+
+- name: Firewall — frontend ports (heads)
+  hosts: mds  # Rocky-Head-1, Rocky-Head-2
+  become: yes
+  tasks:
+    - name: Open OpenNebula frontend ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - 2616/tcp   # oned RPC
+        - 9869/tcp   # Sunstone Web UI
+        - 2474/tcp   # FireEdge (new UI)
+        - 5030/tcp   # OneFlow / OneGate
+
+
+- name: Firewall — KVM host ports (compute)
+  hosts: oss  # Rocky-Compute-1..8
+  become: yes
+  tasks:
+    - name: Open VNC range (one port per running VM)
+      firewalld:
+        port: 5900-6500/tcp
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+    - name: Open libvirt remote and migration ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - 16509/tcp        # libvirtd remote
+        - 49152-49215/tcp  # qemu migration data channel
+
+
+- name: Sanity check
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Confirm OpenNebula repo is reachable
+      command: dnf info opennebula
+      register: one_pkg
+      changed_when: false
+      failed_when: one_pkg.rc != 0
+
+    - name: Per-node summary
+      debug:
+        msg: "{{ inventory_hostname }}: OpenNebula {{ opennebula_version }} repo reachable, SELinux permissive, firewall configured."

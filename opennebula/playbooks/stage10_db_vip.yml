@@ -1,0 +1,213 @@
+---
+# Stage 10: HAProxy + keepalived VIP for Postgres clients
+#
+# Clients (OpenNebula's oned, future Sunstone HA replicas, anything else that
+# wants to talk to Postgres) shouldn't have to know which head is currently
+# the Patroni leader.  This stage gives them one stable endpoint:
+#
+#     192.168.1.249:5432  →  always reaches the current Postgres primary
+#
+# How:
+#   - HAProxy on each head listens on :5432, checks both Patroni REST APIs
+#     at :8008/primary, and only forwards to whichever head returns HTTP 200
+#     (= the current leader).  Failover happens automatically as Patroni
+#     repoints — no HAProxy reconfig needed.
+#   - keepalived (VRRP) places the VIP 192.168.1.249 on the head whose
+#     local HAProxy is alive.  If the VIP-holding head dies, the other
+#     head takes the VIP within ~1 s.  Different layer from Patroni
+#     failover; together they cover (a) DB primary loss, and (b) loss of
+#     the VIP-holder head.
+#
+# Same pattern that worked for the K8s control-plane VIP in `lustre/playbooks/
+# stage9_control_plane_ha.yml` — only the backend protocol (Postgres TCP +
+# HTTP health check) is different.
+
+- name: HAProxy + keepalived VIP for Postgres
+  hosts: opennebula_frontend  # Rocky-Head-1, Rocky-Head-2
+  become: yes
+
+  vars:
+    db_vip: "192.168.1.249"
+    db_vip_cidr: "192.168.1.249/24"
+    vrrp_router_id: 52         # different from K8s stage 9's 51 to avoid future collisions
+    vrrp_auth_pass: "ujep-one-vrrp"
+    patroni_rest_port: 8008
+    pg_port: 5432
+
+  tasks:
+    - name: Detect default ethernet interface (for VRRP binding)
+      set_fact:
+        vip_iface_detected: "{{ ansible_default_ipv4.interface }}"
+
+    - name: Install HAProxy + keepalived
+      dnf:
+        name:
+          - haproxy
+          - keepalived
+        state: present
+
+    - name: HAProxy config — Postgres leader-only TCP forward
+      copy:
+        dest: /etc/haproxy/haproxy.cfg
+        mode: "0644"
+        content: |
+          global
+            log /dev/log local0
+            maxconn 4096
+            daemon
+
+          defaults
+            mode tcp
+            log global
+            option tcplog
+            option dontlognull
+            timeout connect 5s
+            timeout client  30m
+            timeout server  30m
+            timeout check   3s
+
+          # HAProxy stats — useful for spotting which head is currently
+          # serving the VIP and the Patroni leader health.
+          listen stats
+            bind *:7000
+            mode http
+            stats enable
+            stats uri /
+            stats refresh 5s
+
+          listen postgres_primary
+            bind *:{{ pg_port }}
+            mode tcp
+            option httpchk GET /primary
+            http-check expect status 200
+            default-server inter 3s fall 2 rise 2 on-marked-down shutdown-sessions
+            server head-1 10.0.0.251:{{ pg_port }} check port {{ patroni_rest_port }}
+            server head-2 10.0.0.252:{{ pg_port }} check port {{ patroni_rest_port }}
+      notify: restart haproxy
+
+    - name: keepalived config
+      copy:
+        dest: /etc/keepalived/keepalived.conf
+        mode: "0644"
+        content: |
+          vrrp_script chk_haproxy {
+            script "/usr/bin/killall -0 haproxy"
+            interval 2
+            weight 2
+            fall 2
+            rise 2
+          }
+
+          vrrp_instance VI_DB {
+            state {{ 'MASTER' if inventory_hostname == 'Rocky-Head-1' else 'BACKUP' }}
+            interface {{ vip_iface_detected }}
+            virtual_router_id {{ vrrp_router_id }}
+            priority {{ 110 if inventory_hostname == 'Rocky-Head-1' else 100 }}
+            advert_int 1
+            authentication {
+              auth_type PASS
+              auth_pass {{ vrrp_auth_pass }}
+            }
+            virtual_ipaddress {
+              {{ db_vip_cidr }}
+            }
+            track_script {
+              chk_haproxy
+            }
+          }
+      notify: restart keepalived
+
+    - name: Open HAProxy + stats ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - "{{ pg_port }}/tcp"
+        - 7000/tcp        # HAProxy stats
+
+    # VRRP needs a rich-rule (it's protocol 112, not TCP/UDP).
+    # Shell module to avoid ansible's command-module tokenization of the rich rule string.
+    - name: Allow VRRP between heads
+      shell: |
+        firewall-cmd --permanent --add-rich-rule='rule protocol value="vrrp" accept'
+        firewall-cmd --reload
+      changed_when: true
+
+    - name: Allow HAProxy to bind to non-local IP (so it can listen on the VIP before VRRP raises it)
+      sysctl:
+        name: net.ipv4.ip_nonlocal_bind
+        value: "1"
+        state: present
+        sysctl_set: yes
+        reload: yes
+
+    - name: Enable + start HAProxy
+      systemd:
+        name: haproxy
+        state: started
+        enabled: yes
+
+    - name: Enable + start keepalived
+      systemd:
+        name: keepalived
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart haproxy
+      systemd:
+        name: haproxy
+        state: restarted
+
+    - name: restart keepalived
+      systemd:
+        name: keepalived
+        state: restarted
+
+
+- name: VIP verification
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Wait for VIP to come up on Head-1
+      wait_for:
+        host: "192.168.1.249"
+        port: 5432
+        timeout: 30
+
+    - name: Test Postgres via VIP (should reach current Patroni leader)
+      shell: |
+        PGPASSWORD=ujep-one-init psql -h 192.168.1.249 -U oneadmin -d opennebula -tAc "SELECT 'reached: ' || inet_server_addr()"
+      register: vip_test
+      changed_when: false
+
+    - name: Show VIP state + which head is leader
+      shell: |
+        ip -4 addr show | grep -E '192.168.1.249' || echo 'VIP not on this host'
+        echo '---patroni---'
+        patronictl -c /etc/patroni/patroni.yml list
+      register: vip_state
+      changed_when: false
+
+    - name: Display
+      debug:
+        msg: |
+          ============================================================
+          Postgres VIP active
+          ============================================================
+          VIP test (via 192.168.1.249:5432):
+            {{ vip_test.stdout }}
+
+          {{ vip_state.stdout }}
+
+          OpenNebula's oned.conf (stage 11) will point at:
+            SERVER = "192.168.1.249", PORT = 5432
+
+          Failover paths now covered:
+            - Postgres primary dies     → Patroni promotes other head (~30 s)
+            - VIP-holder head dies      → keepalived raises VIP on other head (~1 s)
+            - Both happen at once       → both layers recover independently
+          ============================================================

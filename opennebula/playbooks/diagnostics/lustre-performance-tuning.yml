@@ -1,0 +1,58 @@
+---
+- name: Apply Lustre RDMA Performance Tuning
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Set LNET router buffer sizes for better RDMA performance
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_set: yes
+        reload: yes
+      loop:
+        - { key: 'net.core.rmem_max', value: '134217728' }
+        - { key: 'net.core.wmem_max', value: '134217728' }
+        - { key: 'net.ipv4.tcp_rmem', value: '4096 87380 134217728' }
+        - { key: 'net.ipv4.tcp_wmem', value: '4096 65536 134217728' }
+        - { key: 'net.core.netdev_max_backlog', value: '300000' }
+        - { key: 'net.ipv4.tcp_no_metrics_save', value: '1' }
+
+    - name: Display tuning applied
+      debug:
+        msg: "RDMA performance tuning applied to {{ inventory_hostname }}"
+
+- name: OSS-specific performance tuning
+  hosts: oss
+  become: yes
+
+  tasks:
+    - name: Set OSS read cache size (if applicable)
+      shell: lctl set_param obdfilter.*.read_cache_enable=1
+      ignore_errors: yes
+
+    - name: Set OSS write cache size (if applicable)
+      shell: lctl set_param obdfilter.*.writethrough_cache_enable=1
+      ignore_errors: yes
+
+    - name: Display OSS tuning applied
+      debug:
+        msg: "OSS-specific performance tuning applied to {{ inventory_hostname }}"
+
+- name: Client-specific performance tuning
+  hosts: lustre_clients
+  become: yes
+
+  tasks:
+    - name: Set client max_rpcs_in_flight for better parallelism
+      shell: lctl set_param osc.*.max_rpcs_in_flight=32
+      ignore_errors: yes
+
+    - name: Set client max_dirty_mb for better write performance
+      shell: lctl set_param osc.*.max_dirty_mb=256
+      ignore_errors: yes
+
+    - name: Display client tuning applied
+      debug:
+        msg: "Client-specific performance tuning applied to {{ inventory_hostname }}"

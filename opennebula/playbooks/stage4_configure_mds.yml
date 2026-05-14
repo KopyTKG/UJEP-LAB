@@ -1,0 +1,104 @@
+---
+# Lustre Stage 4: Configure Metadata Servers (MDS)
+# Sets up Lustre Metadata Targets (MDT) on Rocky-Head-1 and Rocky-Head-2
+
+- name: Configure Lustre Metadata Servers (MDS)
+  hosts: mds
+  become: yes
+
+  vars:
+    filesystem_name: "lustrefs"
+    mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
+    mdt_mount_base: "/mnt/mdt"
+  tasks:
+    # --- 1. DETERMINE MDT INDEX AND DEVICE ---
+    - name: Find the non-OS disk for MDT
+      shell: |
+        # Find which physical disk holds the root filesystem (works with LVM)
+        ROOT_DEV=$(findmnt -n -o SOURCE /)
+        if [[ "$ROOT_DEV" == /dev/mapper/* ]]; then
+          VG=$(lvs --noheadings -o vg_name "$ROOT_DEV" 2>/dev/null | tr -d ' ')
+          OS_DISK=$(pvs --noheadings -o pv_name -S "vg_name=$VG" 2>/dev/null | tr -d ' ' | sed 's|/dev/||;s/[0-9]*$//')
+        else
+          OS_DISK=$(lsblk -ndo PKNAME "$ROOT_DEV" | head -1)
+        fi
+        for d in sda sdb; do
+          if [ "$d" != "$OS_DISK" ]; then echo "/dev/$d"; break; fi
+        done
+      register: mdt_disk_result
+      changed_when: false
+
+    - name: Set MDT index for Rocky-Head-1
+      set_fact:
+        mdt_index: 0
+        mdt_device: "{{ mdt_disk_result.stdout }}"
+      when: inventory_hostname == "Rocky-Head-1"
+
+    - name: Set MDT index for Rocky-Head-2
+      set_fact:
+        mdt_index: 1
+        mdt_device: "{{ mdt_disk_result.stdout }}"
+      when: inventory_hostname == "Rocky-Head-2"
+
+    - name: Set MDT mount point
+      set_fact:
+        mdt_mount: "{{ mdt_mount_base }}{{ mdt_index }}"
+
+    # --- 2. PREPARE MDT DEVICE ---
+    - name: Unmount MDT device if mounted
+      command: umount {{ mdt_device }}
+      register: umount_result
+      failed_when: false
+      changed_when: umount_result.rc == 0
+
+    - name: Format MDT with Lustre filesystem
+      command: >
+        mkfs.lustre --mdt
+        --fsname={{ filesystem_name }}
+        --mgsnode={{ mgs_nid }}
+        --index={{ mdt_index }}
+        --backfstype=ldiskfs
+        --reformat
+        {{ mdt_device }}
+      register: mdt_format
+      changed_when: "'Writing CONFIGS/mountdata' in mdt_format.stdout"
+
+    # --- 3. CREATE MDT MOUNT POINT ---
+    - name: Create MDT mount directory
+      file:
+        path: "{{ mdt_mount }}"
+        state: directory
+        mode: "0755"
+
+    # --- 4. MOUNT MDT ---
+    - name: Mount MDT
+      command: mount -t lustre {{ mdt_device }} {{ mdt_mount }}
+      register: mdt_mount_result
+      changed_when: mdt_mount_result.rc == 0
+
+    - name: Add MDT to /etc/fstab for persistence
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ mdt_device }}  {{ mdt_mount }}  lustre  defaults,_netdev,nofail  0 0"
+        state: present
+        backup: yes
+
+    # --- 5. VERIFY MDS STATUS ---
+    - name: Check MDS status
+      command: lctl dl
+      register: mds_status
+      changed_when: false
+
+    - name: Display MDS status
+      debug:
+        msg: "{{ mds_status.stdout_lines }}"
+
+    - name: Verify MDT is mounted
+      shell: mount | grep {{ mdt_mount }}
+      register: mdt_check
+      changed_when: false
+      failed_when: mdt_check.rc != 0
+
+    - name: Display MDT mount info
+      debug:
+        msg: "MDT{{ mdt_index }} successfully mounted: {{ mdt_check.stdout }}"

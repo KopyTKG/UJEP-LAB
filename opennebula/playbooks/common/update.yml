@@ -1,0 +1,17 @@
+---
+- name: Update All Cluster Nodes
+  hosts: cluster
+  become: yes
+
+  tasks:
+    - name: Update all packages
+      dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      register: update_result
+
+    - name: Show update results
+      debug:
+        msg: "Updates installed on {{ inventory_hostname }}"
+      when: update_result.changed

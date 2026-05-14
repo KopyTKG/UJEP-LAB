@@ -1,0 +1,116 @@
+---
+# Hard Reboot Cluster via IPMI
+# This playbook performs a hard reset (power cycle) of all cluster nodes using IPMI
+# Use this when nodes are unresponsive or hung
+# WARNING: This is a forceful reboot - filesystems may not be cleanly unmounted
+
+- name: Hard Reboot Cluster via IPMI
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    ipmi_password: "{{ lookup('env', 'IPMI_PASSWORD') | default('ADMIN', true) }}"
+    ipmi_username: "ADMIN"
+
+  tasks:
+    - name: Display warning
+      debug:
+        msg: |
+          ⚠️  WARNING: Performing HARD RESET via IPMI
+          This will forcefully power cycle all nodes without graceful shutdown
+          Press Ctrl+C within 10 seconds to abort...
+
+    - name: Wait for confirmation
+      pause:
+        seconds: 10
+
+    - name: Check if ipmitool is installed
+      command: which ipmitool
+      register: ipmitool_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install ipmitool if needed
+      package:
+        name: ipmitool
+        state: present
+      become: yes
+      when: ipmitool_check.rc != 0
+
+    - name: Hard reset Head-1 via IPMI
+      command: >
+        ipmitool -I lanplus -H {{ hostvars['Rocky-Head-1'].ipmi_host }}
+        -U {{ ipmi_username }}
+        -P {{ ipmi_password }}
+        chassis power reset
+      delegate_to: localhost
+      register: head1_reset
+      failed_when: false
+
+    - name: Hard reset Head-2 via IPMI
+      command: >
+        ipmitool -I lanplus -H {{ hostvars['Rocky-Head-2'].ipmi_host }}
+        -U {{ ipmi_username }}
+        -P {{ ipmi_password }}
+        chassis power reset
+      delegate_to: localhost
+      register: head2_reset
+      failed_when: false
+
+    - name: Hard reset all compute nodes via IPMI
+      command: >
+        ipmitool -I lanplus -H {{ hostvars[item].ipmi_host }}
+        -U {{ ipmi_username }}
+        -P {{ ipmi_password }}
+        chassis power reset
+      delegate_to: localhost
+      loop:
+        - Rocky-Compute-1
+        - Rocky-Compute-2
+        - Rocky-Compute-3
+        - Rocky-Compute-4
+        - Rocky-Compute-5
+        - Rocky-Compute-6
+        - Rocky-Compute-7
+        - Rocky-Compute-8
+      register: compute_reset
+      failed_when: false
+
+    - name: Display reset results
+      debug:
+        msg: |
+          Head-1 reset: {{ head1_reset.stdout | default('Failed') }}
+          Head-2 reset: {{ head2_reset.stdout | default('Failed') }}
+          Compute nodes: {{ compute_reset.results | map(attribute='stdout') | list }}
+
+    - name: Wait for nodes to start booting
+      pause:
+        seconds: 10
+        prompt: "Waiting for nodes to begin boot sequence..."
+
+    - name: Check IPMI power status of all nodes
+      command: >
+        ipmitool -I lanplus -H {{ hostvars[item].ipmi_host }}
+        -U {{ ipmi_username }}
+        -P {{ ipmi_password }}
+        chassis power status
+      delegate_to: localhost
+      loop:
+        - Rocky-Head-1
+        - Rocky-Head-2
+        - Rocky-Compute-1
+        - Rocky-Compute-2
+        - Rocky-Compute-3
+        - Rocky-Compute-4
+        - Rocky-Compute-5
+        - Rocky-Compute-6
+        - Rocky-Compute-7
+        - Rocky-Compute-8
+      register: power_status
+      failed_when: false
+
+    - name: Display power status
+      debug:
+        msg: "{{ item.item }}: {{ item.stdout }}"
+      loop: "{{ power_status.results }}"
+      when: item.stdout is defined

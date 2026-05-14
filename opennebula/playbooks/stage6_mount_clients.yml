@@ -1,0 +1,118 @@
+---
+# Lustre Stage 6: Mount Lustre Filesystem on Clients
+# Mounts the Lustre filesystem on all nodes at /mnt/lustre
+
+- name: Mount Lustre Filesystem on All Nodes
+  hosts: lustre_clients
+  become: yes
+
+  vars:
+    filesystem_name: "lustrefs"
+    mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
+    mount_point: "/mnt/lustre"
+
+  tasks:
+    # --- 1. CREATE CLIENT MOUNT POINT ---
+    - name: Create Lustre client mount directory
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: "0755"
+
+    # --- 2. MOUNT LUSTRE FILESYSTEM ---
+    - name: Mount Lustre filesystem
+      command: mount -t lustre {{ mgs_nid }}:/{{ filesystem_name }} {{ mount_point }}
+      register: lustre_mount_result
+      changed_when: lustre_mount_result.rc == 0
+      failed_when: false
+
+    - name: Check if mount succeeded
+      shell: mount | grep "{{ mount_point }}"
+      register: mount_check
+      changed_when: false
+      failed_when: mount_check.rc != 0
+
+    - name: Display mount info
+      debug:
+        msg: "Lustre mounted on {{ inventory_hostname }}: {{ mount_check.stdout }}"
+
+    # --- 3. ADD TO FSTAB FOR PERSISTENCE ---
+    - name: Add Lustre mount to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ mgs_nid }}:/{{ filesystem_name }}  {{ mount_point }}  lustre  defaults,_netdev,nofail  0 0"
+        state: present
+        backup: yes
+
+    # --- 4. VERIFY FILESYSTEM ---
+    - name: Check Lustre filesystem status
+      command: lfs df -h
+      register: lfs_df
+      changed_when: false
+
+    - name: Display filesystem status
+      debug:
+        msg: "{{ lfs_df.stdout_lines }}"
+
+    - name: Test write to Lustre
+      shell: |
+        echo "Test from {{ inventory_hostname }} at $(date)" > {{ mount_point }}/test_{{ inventory_hostname }}.txt
+        cat {{ mount_point }}/test_{{ inventory_hostname }}.txt
+      register: write_test
+      changed_when: false
+
+    - name: Display write test result
+      debug:
+        msg: "Write test successful: {{ write_test.stdout }}"
+
+- name: Verify RDMA Performance
+  hosts: lustre_clients[0]
+  become: yes
+
+  vars:
+    mount_point: "/mnt/lustre"
+
+  tasks:
+    - name: Check LNET statistics
+      command: lnetctl stats show
+      register: lnet_stats
+      changed_when: false
+
+    - name: Display LNET statistics
+      debug:
+        msg: "{{ lnet_stats.stdout_lines }}"
+
+    - name: List all Lustre NIDs in cluster
+      shell: lctl list_nids
+      register: all_nids
+      changed_when: false
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['all'] }}"
+
+    - name: Display cluster NIDs
+      debug:
+        msg: "Lustre cluster NIDs (RDMA o2ib): {{ all_nids.results | map(attribute='stdout') | list }}"
+
+    - name: Show Lustre configuration
+      command: lctl get_param -n version
+      register: lustre_version
+      changed_when: false
+
+    - name: Display Lustre version
+      debug:
+        msg: "Lustre version: {{ lustre_version.stdout }}"
+
+    - name: Final status summary
+      debug:
+        msg: |
+          ============================================================
+          Lustre Filesystem Successfully Configured with RDMA!
+          ============================================================
+          - Filesystem: lustrefs
+          - Transport: RDMA over InfiniBand (10.0.0.x@o2ib)
+          - MGS: Rocky-Head-1 (10.0.0.251@o2ib)
+          - MDS: Rocky-Head-1, Rocky-Head-2 (2 MDTs)
+          - OSS: Rocky-Compute-1 through 8 (16 OSTs, ~3.8TB total)
+          - Mount Point: /mnt/lustre
+          - All nodes using RDMA for high-performance storage access
+          ============================================================

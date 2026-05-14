@@ -1,0 +1,95 @@
+---
+- name: Check Lustre Cluster Status
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if Lustre kernel modules are loaded
+      shell: lsmod | grep lustre
+      register: lustre_modules
+      ignore_errors: yes
+
+    - name: Display loaded Lustre modules
+      debug:
+        msg: "{{ lustre_modules.stdout_lines }}"
+      when: lustre_modules.rc == 0
+
+    - name: Check LNET status
+      command: lctl list_nids
+      register: lnet_nids
+      ignore_errors: yes
+
+    - name: Display LNET NIDs
+      debug:
+        msg: "Node {{ inventory_hostname }} LNET NIDs: {{ lnet_nids.stdout_lines }}"
+      when: lnet_nids.rc == 0
+
+    - name: Check Lustre version
+      command: lctl get_param version
+      register: lustre_version
+      ignore_errors: yes
+
+    - name: Display Lustre version
+      debug:
+        msg: "{{ lustre_version.stdout }}"
+      when: lustre_version.rc == 0
+
+- name: Check MGS Status
+  hosts: mgs
+  become: yes
+
+  tasks:
+    - name: Check MGS service status
+      command: lctl get_param mgs.*.num_exports
+      register: mgs_status
+      ignore_errors: yes
+
+    - name: Display MGS status
+      debug:
+        msg: "{{ mgs_status.stdout }}"
+      when: mgs_status.rc == 0
+
+- name: Check MDS Status
+  hosts: mds
+  become: yes
+
+  tasks:
+    - name: Check MDS service status
+      command: lctl get_param mdt.*.num_exports
+      register: mds_status
+      ignore_errors: yes
+
+    - name: Display MDS status
+      debug:
+        msg: "{{ mds_status.stdout }}"
+      when: mds_status.rc == 0
+
+- name: Check OSS Status
+  hosts: oss
+  become: yes
+
+  tasks:
+    - name: Check OSS service status
+      command: lctl get_param obdfilter.*.num_exports
+      register: oss_status
+      ignore_errors: yes
+
+    - name: Display OSS status
+      debug:
+        msg: "{{ oss_status.stdout }}"
+      when: oss_status.rc == 0
+
+- name: Check Client Mounts
+  hosts: lustre_clients
+  become: yes
+
+  tasks:
+    - name: Check Lustre filesystem mounts
+      command: lfs df -h
+      register: lustre_df
+      ignore_errors: yes
+
+    - name: Display Lustre filesystem usage
+      debug:
+        msg: "{{ lustre_df.stdout_lines }}"
+      when: lustre_df.rc == 0

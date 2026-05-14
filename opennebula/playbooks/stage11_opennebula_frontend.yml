@@ -1,0 +1,153 @@
+---
+# Stage 11: OpenNebula frontend on Rocky-Head-1
+#
+# Installs the full opennebula frontend package set and configures oned to
+# use the HA PostgreSQL cluster from stages 8-10 via the VIP 192.168.1.249.
+# After this runs:
+#   - Sunstone UI on http://<head-1-ip>:9869/
+#   - FireEdge UI on http://<head-1-ip>:2474/
+#   - `sudo -u oneadmin oneuser list` works
+#   - oned state lives in the HA Postgres cluster — leader failover is
+#     transparent to oned (libpq reconnects to the VIP)
+#
+# HA on the oned side itself (Raft consensus + Sunstone on Head-2 too) is
+# deferred to stage 12.  This stage gets a single working frontend up.
+
+- name: OpenNebula frontend on Rocky-Head-1
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    one_db_name: opennebula
+    one_db_user: oneadmin
+    one_db_password: "ujep-one-init"   # matches the Postgres user from stage 9
+    one_db_host: "192.168.1.249"       # the Postgres VIP from stage 10
+    one_db_port: 5432
+    one_admin_password: "ujep-one-init" # OpenNebula login password (forced change on first UI login)
+
+  handlers:
+    - name: restart opennebula
+      systemd:
+        name: opennebula
+        state: restarted
+
+  tasks:
+    # --- 1. Sanity check: VIP reachable before we install anything ---
+    - name: Verify Postgres VIP reachable
+      wait_for:
+        host: "{{ one_db_host }}"
+        port: "{{ one_db_port }}"
+        timeout: 10
+
+    # --- 2. OpenNebula packages ---
+    - name: Install OpenNebula frontend package set
+      dnf:
+        name:
+          - opennebula
+          - opennebula-sunstone
+          - opennebula-fireedge
+          - opennebula-flow
+          - opennebula-gate
+          - opennebula-provision
+          - opennebula-rubygems
+        state: present
+
+    # --- 3. Stop services before reconfig (idempotent re-run safety) ---
+    - name: Stop OpenNebula services before reconfig
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - opennebula
+        - opennebula-sunstone
+        - opennebula-fireedge
+        - opennebula-flow
+        - opennebula-gate
+      failed_when: false
+
+    # --- 4. Switch oned.conf from SQLite default to PostgreSQL ---
+    - name: Comment out any uncommented SQLite DB stanza
+      replace:
+        path: /etc/one/oned.conf
+        regexp: '^(DB = \[ BACKEND = "sqlite".*)$'
+        replace: '#\1'
+
+    - name: Inject PostgreSQL DB stanza into oned.conf
+      blockinfile:
+        path: /etc/one/oned.conf
+        marker: "# {mark} ANSIBLE MANAGED — DB"
+        block: |
+          DB = [ BACKEND = "postgresql",
+                 SERVER  = "{{ one_db_host }}",
+                 PORT    = {{ one_db_port }},
+                 USER    = "{{ one_db_user }}",
+                 PASSWD  = "{{ one_db_password }}",
+                 DB_NAME = "{{ one_db_name }}",
+                 CONNECTIONS = 25,
+                 COMPARE_BINARY = "no" ]
+      notify: restart opennebula
+
+    # --- 5. oneadmin auth file — read by oned at first start to bootstrap admin user ---
+    - name: Set OpenNebula oneadmin credentials
+      copy:
+        dest: /var/lib/one/.one/one_auth
+        owner: oneadmin
+        group: oneadmin
+        mode: "0600"
+        content: "oneadmin:{{ one_admin_password }}\n"
+
+    # --- 6. Start services ---
+    - name: Enable + start OpenNebula services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      loop:
+        - opennebula
+        - opennebula-sunstone
+        - opennebula-fireedge
+        - opennebula-flow
+        - opennebula-gate
+
+    - name: Wait for oned to accept commands
+      command: sudo -u oneadmin oneuser list
+      register: oneuser_check
+      retries: 30
+      delay: 5
+      until: oneuser_check.rc == 0
+      changed_when: false
+
+    # --- 7. Sanity: confirm oned actually wrote to Postgres ---
+    - name: Confirm OpenNebula schema landed in Postgres
+      shell: |
+        PGPASSWORD={{ one_db_password }} psql -h {{ one_db_host }} -U {{ one_db_user }} -d {{ one_db_name }} -tAc "\dt" | wc -l
+      register: schema_check
+      changed_when: false
+
+    - name: Show summary
+      debug:
+        msg: |
+          ============================================================
+          OpenNebula frontend deployed on Rocky-Head-1
+          ============================================================
+          Sunstone (classic UI): http://192.168.1.251:9869/
+          FireEdge (new UI):     http://192.168.1.251:2474/
+
+          Login:  oneadmin
+          Pass:   {{ one_admin_password }}    (change after first login)
+
+          Backend:  PostgreSQL HA cluster via VIP {{ one_db_host }}:{{ one_db_port }}
+                    (DB `{{ one_db_name }}`, user `{{ one_db_user }}`)
+                    OpenNebula schema tables created: {{ schema_check.stdout }}
+
+          Quick checks from this host:
+            sudo -u oneadmin oneuser list
+            sudo -u oneadmin onehost list       # empty until KVM stage
+            sudo -u oneadmin onedatastore list  # default DSes; relocated to Lustre later
+
+          Current oneuser table:
+          {{ oneuser_check.stdout }}
+
+          Next: stage 12 (oned Raft HA on Head-2), then KVM hosts on compute.
+          ============================================================

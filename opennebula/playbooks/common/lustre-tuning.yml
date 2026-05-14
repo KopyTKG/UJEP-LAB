@@ -1,0 +1,133 @@
+---
+# Lustre Performance Tuning
+# Targets the main bottlenecks: write-back cache, RPCs in flight, stripe config, read-ahead
+
+- name: Tune Lustre OSS Servers
+  hosts: oss
+  become: yes
+  tasks:
+    # --- OSS TUNING ---
+    # Increase max dirty cache on OST (default 32MB, raise to 256MB)
+    # This allows more write data to be cached before flushing to disk
+    - name: Increase OST write-back cache (brw_size)
+      shell: |
+        lctl set_param obdfilter.*.brw_size=4
+      ignore_errors: yes
+
+    # Increase number of IO threads on OSS
+    - name: Tune OSS IO threads
+      shell: |
+        lctl set_param ost.OSS.ost_io.threads_max=512
+      ignore_errors: yes
+
+    # Increase journal commit interval for better write batching
+    - name: Tune ldiskfs commit interval
+      shell: |
+        for dev in /mnt/ost*; do
+          tunefs=$(basename $dev)
+          lctl set_param obdfilter.$tunefs.sync_journal=0 2>/dev/null || true
+        done
+      changed_when: false
+
+    - name: Show OSS tuning applied
+      shell: |
+        lctl get_param obdfilter.*.brw_size 2>/dev/null | head -2
+        lctl get_param ost.OSS.ost_io.threads_max 2>/dev/null
+      register: oss_tune
+      ignore_errors: yes
+
+    - name: Display OSS tuning
+      debug:
+        msg: "{{ oss_tune.stdout_lines | default(['tuning applied']) }}"
+
+- name: Tune Lustre Clients
+  hosts: lustre_clients
+  become: yes
+  tasks:
+    # --- CLIENT WRITE TUNING ---
+    # Increase max dirty pages (default 32MB -> 256MB)
+    # More dirty pages = more write aggregation before flush
+    - name: Increase max dirty MB on client
+      shell: |
+        lctl set_param llite.*.max_cached_mb=256
+      ignore_errors: yes
+
+    # Increase max RPCs in flight per OST (default 8 -> 32)
+    # Allows more parallel IO operations
+    - name: Increase max RPCs in flight
+      shell: |
+        lctl set_param osc.*.max_rpcs_in_flight=32
+      ignore_errors: yes
+
+    # Increase max dirty RPCs (default 8 -> 32)
+    - name: Increase max dirty RPCs in flight
+      shell: |
+        lctl set_param osc.*.max_dirty_mb=64
+      ignore_errors: yes
+
+    # Increase max pages per RPC (default 256 -> 1024 for 4MB RPCs)
+    - name: Increase max pages per RPC
+      shell: |
+        lctl set_param osc.*.max_pages_per_rpc=1024
+      ignore_errors: yes
+
+    # --- CLIENT READ TUNING ---
+    # Increase read-ahead (default 40MB -> 256MB)
+    - name: Increase read-ahead
+      shell: |
+        lctl set_param llite.*.max_read_ahead_mb=256
+      ignore_errors: yes
+
+    # Increase read-ahead per file (default 40MB -> 128MB)
+    - name: Increase per-file read-ahead
+      shell: |
+        lctl set_param llite.*.max_read_ahead_per_file_mb=128
+      ignore_errors: yes
+
+    # --- STRIPE TUNING ---
+    # Stripe across 4 OSTs with 4MB stripe size for good throughput
+    # FLR mirroring handles redundancy separately via lfs mirror create
+    - name: Set default stripe count
+      shell: |
+        lfs setstripe -c 4 -S 4M /mnt/lustre
+      ignore_errors: yes
+
+    - name: Show client tuning applied
+      shell: |
+        echo "--- RPCs in flight ---"
+        lctl get_param osc.*.max_rpcs_in_flight 2>/dev/null | head -2
+        echo "--- Max dirty MB ---"
+        lctl get_param osc.*.max_dirty_mb 2>/dev/null | head -2
+        echo "--- Max pages per RPC ---"
+        lctl get_param osc.*.max_pages_per_rpc 2>/dev/null | head -2
+        echo "--- Read-ahead ---"
+        lctl get_param llite.*.max_read_ahead_mb 2>/dev/null
+        echo "--- Stripe ---"
+        lfs getstripe -d /mnt/lustre
+      register: client_tune
+      ignore_errors: yes
+
+    - name: Display client tuning
+      debug:
+        msg: "{{ client_tune.stdout_lines | default(['tuning applied']) }}"
+
+- name: Tune LNET
+  hosts: all
+  become: yes
+  tasks:
+    # Increase LNET peer credits for more concurrent transfers
+    - name: Tune LNET peer credits
+      shell: |
+        lnetctl set peer_credits 32 2>/dev/null || true
+        lnetctl set credits 256 2>/dev/null || true
+      changed_when: false
+
+    - name: Show LNET tuning
+      shell: |
+        lnetctl net show 2>/dev/null | head -20 || lctl get_param -n nis 2>/dev/null
+      register: lnet_tune
+      changed_when: false
+
+    - name: Display LNET tuning
+      debug:
+        msg: "{{ lnet_tune.stdout_lines | default(['tuning applied']) }}"

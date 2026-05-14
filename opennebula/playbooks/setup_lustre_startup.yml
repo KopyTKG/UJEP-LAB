@@ -1,0 +1,242 @@
+---
+# Deploys /usr/local/sbin/lustre-startup + lustre-startup.service.
+# Role is detected by hostname:
+#   Rocky-Head-1: losetup loop10, mount MGS, mount MDT0, mount client
+#   Rocky-Head-2: wait for MGS, mount MDT1, mount client
+#   Rocky-Compute-N: wait for MGS, mount OSTs (serially, not parallel), mount client
+#
+# To deploy on a subset for testing:
+#   ansible-playbook playbooks/setup_lustre_startup.yml --limit "Rocky-Head-1,Rocky-Compute-1"
+
+- name: Deploy lustre-startup orchestrator
+  hosts: all
+  become: yes
+
+  vars:
+    mgs_nid: "10.0.0.251@o2ib"
+    fsname: "lustrefs"
+    mgt_image: "/var/lib/lustre/mgt.img"
+    mgt_loop: "/dev/loop10"
+    mgt_mount: "/mnt/mgt"
+    client_mount: "/mnt/lustre"
+
+  tasks:
+    - name: Install lustre-startup script
+      copy:
+        dest: /usr/local/sbin/lustre-startup
+        mode: "0755"
+        owner: root
+        group: root
+        content: |
+          #!/bin/bash
+          # Lustre orchestrated startup. Brings the filesystem up in dependency order
+          # based on node role detected from hostname. Idempotent: re-running is safe.
+          set -uo pipefail
+
+          MGS_NID="{{ mgs_nid }}"
+          FSNAME="{{ fsname }}"
+          MGT_IMAGE="{{ mgt_image }}"
+          MGT_LOOP="{{ mgt_loop }}"
+          MGT_MOUNT="{{ mgt_mount }}"
+          CLIENT_MOUNT="{{ client_mount }}"
+          HOSTNAME="$(hostname)"
+
+          log() { logger -t lustre-startup -s "$*"; }
+          die() { log "FATAL: $*"; exit 1; }
+
+          wait_for_lnet() {
+              local timeout=60 count=0
+              log "Waiting for LNET..."
+              # Wrap lctl in 'timeout' — RDMA queue init can wedge lctl indefinitely on cold boot
+              while ! timeout 5 lctl list_nids >/dev/null 2>&1; do
+                  count=$((count+5))
+                  [ $count -ge $timeout ] && die "LNET not up after ${timeout}s"
+                  sleep 1
+              done
+              log "LNET ready: $(timeout 5 lctl list_nids | tr '\n' ' ')"
+          }
+
+          wait_for_mgs() {
+              local timeout=300 count=0
+              log "Waiting for MGS at ${MGS_NID}..."
+              # 'timeout 10' bounds each lctl ping — without it, a wedged RDMA QP can hang forever
+              # and the script's own timeout never fires.
+              while ! timeout 10 lctl ping "$MGS_NID" >/dev/null 2>&1; do
+                  count=$((count+10))
+                  [ $count -ge $timeout ] && die "MGS not reachable after ${timeout}s"
+                  sleep 2
+              done
+              log "MGS reachable"
+          }
+
+          # Race-tolerant mount helper. Uses mountpoint(8) as ground truth, not mount(8) exit code.
+          robust_mount() {
+              local mp="$1"
+              shift
+              local mount_args=("$@")
+              if mountpoint -q "$mp"; then
+                  log "$mp already mounted"
+                  return 0
+              fi
+              local tries=0 max=5 out
+              while [ $tries -lt $max ]; do
+                  out=$(mount "${mount_args[@]}" "$mp" 2>&1)
+                  if mountpoint -q "$mp"; then
+                      log "$mp mounted"
+                      return 0
+                  fi
+                  if echo "$out" | grep -qE "already mounted|File exists|in progress|target service is already running"; then
+                      log "$mp mount race ($out), re-checking"
+                      sleep 1
+                      mountpoint -q "$mp" && { log "$mp mounted (post-race)"; return 0; }
+                  fi
+                  tries=$((tries+1))
+                  log "$mp mount failed (attempt ${tries}/${max}): ${out}"
+                  sleep 3
+              done
+              die "Could not mount $mp after $max attempts"
+          }
+
+          start_mgs() {
+              if mountpoint -q "$MGT_MOUNT"; then
+                  log "MGS already mounted at ${MGT_MOUNT}"
+                  return 0
+              fi
+              if ! losetup "$MGT_LOOP" 2>/dev/null | grep -q "$(basename "$MGT_IMAGE")"; then
+                  log "Binding ${MGT_LOOP} -> ${MGT_IMAGE}"
+                  losetup -d "$MGT_LOOP" 2>/dev/null || true
+                  losetup "$MGT_LOOP" "$MGT_IMAGE" || die "losetup failed"
+              fi
+              # NOTE: explicit no-options mount; 'nofail' would propagate to ldiskfs (-22)
+              robust_mount "$MGT_MOUNT" -t lustre "$MGT_LOOP"
+          }
+
+          # Find MDT block device by Lustre volume label (handles /dev/sda<->sdb swap on Supermicro blades)
+          find_mdt_dev() {
+              local label="$1"
+              local dev
+              dev=$(blkid -L "$label" 2>/dev/null) && [ -n "$dev" ] && { echo "$dev"; return 0; }
+              # Fallback: scan all sd* disks for the volume label
+              for d in /dev/sd?; do
+                  if tune2fs -l "$d" 2>/dev/null | grep -q "Filesystem volume name: *${label}"; then
+                      echo "$d"; return 0
+                  fi
+              done
+              return 1
+          }
+
+          start_mdt() {
+              local label dev mp
+              case "$HOSTNAME" in
+                  Rocky-Head-1) label="lustrefs-MDT0000"; mp="/mnt/mdt0" ;;
+                  Rocky-Head-2) label="lustrefs-MDT0001"; mp="/mnt/mdt1" ;;
+                  *) return 0 ;;
+              esac
+              dev=$(find_mdt_dev "$label") || die "Cannot find MDT disk with label ${label}"
+              log "Found MDT disk: ${dev} (label=${label})"
+              # 'abort_recov' skips the MDT recovery window. On clean cold boot there's no pending
+              # client state to replay, so the wait is pure waste. On single-node reboot, surviving
+              # clients get briefly evicted and reconnect in seconds (no stale state to lose).
+              # Trade-off: small I/O hiccup on surviving clients vs. multi-minute cold-boot wait.
+              robust_mount "$mp" -t lustre -o abort_recov "$dev"
+          }
+
+          start_osts() {
+              # Serial mount of all /mnt/ost* fstab entries to avoid ldiskfs init race.
+              local mountpoints
+              mountpoints=$(awk '$2 ~ /^\/mnt\/ost[0-9]+$/ && $3 == "lustre" {print $2}' /etc/fstab | sort)
+              [ -z "$mountpoints" ] && { log "No OST entries in fstab"; return 0; }
+              for mp in $mountpoints; do
+                  robust_mount "$mp"
+              done
+          }
+
+          start_client() {
+              mkdir -p "$CLIENT_MOUNT"
+              robust_mount "$CLIENT_MOUNT" -t lustre "${MGS_NID}:/${FSNAME}"
+          }
+
+          log "Lustre startup begin (host=${HOSTNAME})"
+
+          wait_for_lnet
+
+          case "$HOSTNAME" in
+              Rocky-Head-1)
+                  start_mgs
+                  sleep 5
+                  start_mdt
+                  start_client
+                  ;;
+              Rocky-Head-2)
+                  wait_for_mgs
+                  start_mdt
+                  start_client
+                  ;;
+              Rocky-Compute-*)
+                  wait_for_mgs
+                  start_osts
+                  start_client
+                  ;;
+              *)
+                  die "Unknown role for hostname '${HOSTNAME}'"
+                  ;;
+          esac
+
+          log "Lustre startup complete"
+
+    - name: Install lustre-startup.service unit
+      copy:
+        dest: /etc/systemd/system/lustre-startup.service
+        mode: "0644"
+        owner: root
+        group: root
+        content: |
+          [Unit]
+          Description=Lustre orchestrated startup
+          After=network-online.target opensm.service systemd-modules-load.service remote-fs-pre.target
+          Wants=network-online.target
+          ConditionPathExists=/usr/local/sbin/lustre-startup
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/lustre-startup
+          RemainAfterExit=yes
+          TimeoutStartSec=600
+          StandardOutput=journal
+          StandardError=journal
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Comment out MGS fstab line on Head-1 (script handles MGS)
+      replace:
+        path: /etc/fstab
+        regexp: '^(/dev/loop10\s+/mnt/mgt\s.*)$'
+        replace: '# managed by lustre-startup.service: \1'
+      when: inventory_hostname == 'Rocky-Head-1'
+
+    - name: Comment out MDT fstab lines on heads (script handles MDTs)
+      replace:
+        path: /etc/fstab
+        regexp: '^(/dev/sd[ab]\s+/mnt/mdt[01]\s.*)$'
+        replace: '# managed by lustre-startup.service: \1'
+      when: inventory_hostname in groups['controller']
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable lustre-startup.service (do not start yet)
+      systemd:
+        name: lustre-startup.service
+        enabled: yes
+
+    - name: Show service status
+      command: systemctl status lustre-startup.service --no-pager
+      register: svc_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display
+      debug:
+        msg: "{{ svc_status.stdout_lines }}"

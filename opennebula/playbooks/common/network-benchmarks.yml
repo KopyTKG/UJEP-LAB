@@ -1,0 +1,174 @@
+---
+- name: Network Performance Benchmarks - IPoIB and RDMA
+  hosts: compute
+  become: yes
+  serial: 1
+  vars:
+    test_duration: 30
+    ib_network: "10.0.0"
+
+  tasks:
+    # --- STEP 1: INSTALL TOOLS ---
+    - name: Install network benchmark tools
+      dnf:
+        name:
+          - iperf3
+          - perftest  # RDMA performance tools
+        state: present
+
+    # --- STEP 2: IPoIB TESTS (TCP over InfiniBand) ---
+    - name: Open firewall for iperf3
+      ansible.posix.firewalld:
+        port: 5201/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+      ignore_errors: yes
+
+    - name: Start iperf3 server on this node
+      shell: "iperf3 -s -p 5201 -D"
+      ignore_errors: yes
+
+    - name: Wait for iperf3 server to start
+      wait_for:
+        port: 5201
+        timeout: 10
+        host: 0.0.0.0
+
+    - name: Run IPoIB bandwidth test to next node
+      shell: |
+        NEXT_NODE=$(( ({{ ansible_host.split('.')[3] | int }} % 8) + 1 ))
+        iperf3 -c {{ ib_network }}.${NEXT_NODE} -p 5201 -t {{ test_duration }} -J > /tmp/iperf3_ipoib_to_node${NEXT_NODE}.json
+      register: iperf3_result
+      ignore_errors: yes
+
+    - name: Run parallel IPoIB test (4 streams)
+      shell: |
+        NEXT_NODE=$(( ({{ ansible_host.split('.')[3] | int }} % 8) + 1 ))
+        iperf3 -c {{ ib_network }}.${NEXT_NODE} -p 5201 -t {{ test_duration }} -P 4 -J > /tmp/iperf3_ipoib_parallel_to_node${NEXT_NODE}.json
+      register: iperf3_parallel
+      ignore_errors: yes
+
+    - name: Stop iperf3 server
+      shell: "pkill -9 iperf3"
+      ignore_errors: yes
+
+    # --- STEP 3: RDMA BANDWIDTH TESTS ---
+    - name: Open firewall for RDMA tests
+      ansible.posix.firewalld:
+        port: "{{ item }}/tcp"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - 18515
+        - 18516
+        - 18517
+      ignore_errors: yes
+
+    - name: Start RDMA write bandwidth server
+      shell: "ib_write_bw -d mlx5_0 -p 18515 > /tmp/rdma_write_server.log 2>&1 &"
+      async: 0
+      poll: 0
+
+    - name: Wait for RDMA server to start
+      pause:
+        seconds: 5
+
+    - name: Run RDMA write bandwidth test
+      shell: |
+        NEXT_NODE=$(( ({{ ansible_host.split('.')[3] | int }} % 8) + 1 ))
+        ib_write_bw -d mlx5_0 -p 18515 {{ ib_network }}.${NEXT_NODE} -D {{ test_duration }} --report_gbits > /tmp/rdma_write_bw_to_node${NEXT_NODE}.txt
+      register: rdma_write
+      ignore_errors: yes
+
+    - name: Stop RDMA write server
+      shell: "pkill -9 ib_write_bw"
+      ignore_errors: yes
+
+    - name: Start RDMA read bandwidth server
+      shell: "ib_read_bw -d mlx5_0 -p 18516 > /tmp/rdma_read_server.log 2>&1 &"
+      async: 0
+      poll: 0
+
+    - name: Wait for RDMA server to start
+      pause:
+        seconds: 5
+
+    - name: Run RDMA read bandwidth test
+      shell: |
+        NEXT_NODE=$(( ({{ ansible_host.split('.')[3] | int }} % 8) + 1 ))
+        ib_read_bw -d mlx5_0 -p 18516 {{ ib_network }}.${NEXT_NODE} -D {{ test_duration }} --report_gbits > /tmp/rdma_read_bw_to_node${NEXT_NODE}.txt
+      register: rdma_read
+      ignore_errors: yes
+
+    - name: Stop RDMA read server
+      shell: "pkill -9 ib_read_bw"
+      ignore_errors: yes
+
+    # --- STEP 4: RDMA LATENCY TESTS ---
+    - name: Start RDMA latency server
+      shell: "ib_write_lat -d mlx5_0 -p 18517 > /tmp/rdma_lat_server.log 2>&1 &"
+      async: 0
+      poll: 0
+
+    - name: Wait for latency server to start
+      pause:
+        seconds: 5
+
+    - name: Run RDMA latency test
+      shell: |
+        NEXT_NODE=$(( ({{ ansible_host.split('.')[3] | int }} % 8) + 1 ))
+        ib_write_lat -d mlx5_0 -p 18517 {{ ib_network }}.${NEXT_NODE} -D {{ test_duration }} > /tmp/rdma_write_lat_to_node${NEXT_NODE}.txt
+      register: rdma_lat
+      ignore_errors: yes
+
+    - name: Stop RDMA latency server
+      shell: "pkill -9 ib_write_lat"
+      ignore_errors: yes
+
+    - name: Display results summary
+      debug:
+        msg: |
+          Network benchmarks completed on {{ inventory_hostname }}
+          Results in /tmp:
+          - iperf3_ipoib_*.json (TCP/IP bandwidth)
+          - rdma_write_bw_*.txt (RDMA write bandwidth)
+          - rdma_read_bw_*.txt (RDMA read bandwidth)
+          - rdma_write_lat_*.txt (RDMA latency)
+
+- name: Collect and Display Results Summary
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Parse iperf3 results
+      shell: |
+        if [ -f /tmp/iperf3_ipoib_to_node*.json ]; then
+          cat /tmp/iperf3_ipoib_to_node*.json | grep -A 5 "sender" | tail -1 || echo "No results"
+        fi
+      register: iperf_summary
+      changed_when: false
+
+    - name: Parse RDMA write bandwidth
+      shell: |
+        if [ -f /tmp/rdma_write_bw_to_node*.txt ]; then
+          grep -E "BW average|Bandwidth" /tmp/rdma_write_bw_to_node*.txt | tail -1 || echo "No results"
+        fi
+      register: rdma_write_summary
+      changed_when: false
+
+    - name: Parse RDMA read bandwidth
+      shell: |
+        if [ -f /tmp/rdma_read_bw_to_node*.txt ]; then
+          grep -E "BW average|Bandwidth" /tmp/rdma_read_bw_to_node*.txt | tail -1 || echo "No results"
+        fi
+      register: rdma_read_summary
+      changed_when: false
+
+    - name: Display node summary
+      debug:
+        msg: |
+          {{ inventory_hostname }} Results:
+          IPoIB: {{ iperf_summary.stdout }}
+          RDMA Write: {{ rdma_write_summary.stdout }}
+          RDMA Read: {{ rdma_read_summary.stdout }}

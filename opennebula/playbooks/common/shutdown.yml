@@ -1,0 +1,15 @@
+---
+- name: Gracefully Shutdown Lustre Cluster
+  hosts: cluster
+  become: yes
+  serial: 1
+
+  tasks:
+    - name: Unmount Lustre filesystems on clients
+      command: umount -l /mnt/lustre
+      ignore_errors: yes
+      when: inventory_hostname in groups['lustre_clients']
+
+    - name: Shutdown the node
+      community.general.shutdown:
+        delay: 1

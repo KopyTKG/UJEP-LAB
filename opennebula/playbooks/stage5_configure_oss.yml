@@ -1,0 +1,125 @@
+---
+# Lustre Stage 5: Configure Object Storage Servers (OSS)
+# Sets up Lustre Object Storage Targets (OST) on all compute nodes (2 OSTs per node = 16 total)
+
+- name: Configure Lustre Object Storage Servers (OSS)
+  hosts: oss
+  become: yes
+  serial: 1  # Configure nodes one at a time to avoid index conflicts
+
+  vars:
+    filesystem_name: "lustrefs"
+    mgs_nid: "10.0.0.251@o2ib"  # Rocky-Head-1 MGS NID (using RDMA over InfiniBand)
+    ost_mount_base: "/mnt/ost"
+
+  tasks:
+    # --- 1. DISCOVER SAMSUNG SSDs ---
+    - name: Find Samsung SSD devices
+      shell: >
+        ls -1 /dev/disk/by-id/ata-SAMSUNG_MZ7TY256HDHP-* | grep -v part
+      register: ssd_devices
+      changed_when: false
+
+    - name: Verify we have 2 SSDs per node
+      assert:
+        that:
+          - ssd_devices.stdout_lines | length == 2
+        fail_msg: "Expected 2 Samsung SSDs, found {{ ssd_devices.stdout_lines | length }}"
+        success_msg: "Found 2 Samsung SSDs on {{ inventory_hostname }}"
+
+    # --- 2. CALCULATE OST INDICES ---
+    # Rocky-Compute-1: OST0-1, Compute-2: OST2-3, ..., Compute-8: OST14-15
+    - name: Extract compute node number
+      set_fact:
+        compute_num: "{{ inventory_hostname | regex_replace('Rocky-Compute-', '') | int }}"
+
+    - name: Calculate base OST index
+      set_fact:
+        base_ost_index: "{{ ((compute_num | int) - 1) * 2 }}"
+
+    # --- 3. FORMAT AND MOUNT OSTs ---
+    - name: Unmount OST devices if mounted
+      command: umount {{ item }}
+      loop: "{{ ssd_devices.stdout_lines }}"
+      register: umount_result
+      failed_when: false
+      changed_when: umount_result.rc == 0
+
+    - name: Format first OST
+      command: >
+        mkfs.lustre --ost
+        --fsname={{ filesystem_name }}
+        --mgsnode={{ mgs_nid }}
+        --index={{ base_ost_index }}
+        --backfstype=ldiskfs
+        --reformat
+        {{ ssd_devices.stdout_lines[0] }}
+      register: ost0_format
+      changed_when: "'Writing CONFIGS/mountdata' in ost0_format.stdout"
+
+    - name: Format second OST
+      command: >
+        mkfs.lustre --ost
+        --fsname={{ filesystem_name }}
+        --mgsnode={{ mgs_nid }}
+        --index={{ base_ost_index | int + 1 }}
+        --backfstype=ldiskfs
+        --reformat
+        {{ ssd_devices.stdout_lines[1] }}
+      register: ost1_format
+      changed_when: "'Writing CONFIGS/mountdata' in ost1_format.stdout"
+
+    # --- 4. CREATE OST MOUNT POINTS ---
+    - name: Create OST mount directories
+      file:
+        path: "{{ ost_mount_base }}{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ base_ost_index }}"
+        - "{{ base_ost_index | int + 1 }}"
+
+    # --- 5. MOUNT OSTs ---
+    - name: Mount first OST
+      command: mount -t lustre {{ ssd_devices.stdout_lines[0] }} {{ ost_mount_base }}{{ base_ost_index }}
+      register: ost0_mount_result
+      changed_when: ost0_mount_result.rc == 0
+
+    - name: Mount second OST
+      command: mount -t lustre {{ ssd_devices.stdout_lines[1] }} {{ ost_mount_base }}{{ base_ost_index | int + 1 }}
+      register: ost1_mount_result
+      changed_when: ost1_mount_result.rc == 0
+
+    # --- 6. ADD TO FSTAB ---
+    - name: Add first OST to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ ssd_devices.stdout_lines[0] }}  {{ ost_mount_base }}{{ base_ost_index }}  lustre  defaults,_netdev,nofail  0 0"
+        state: present
+        backup: yes
+
+    - name: Add second OST to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ ssd_devices.stdout_lines[1] }}  {{ ost_mount_base }}{{ base_ost_index | int + 1 }}  lustre  defaults,_netdev,nofail  0 0"
+        state: present
+
+    # --- 7. VERIFY OSS STATUS ---
+    - name: Check OSS status
+      command: lctl dl
+      register: oss_status
+      changed_when: false
+
+    - name: Display OSS status
+      debug:
+        msg: "{{ oss_status.stdout_lines }}"
+
+    - name: Verify OSTs are mounted
+      shell: mount | grep {{ ost_mount_base }}
+      register: ost_check
+      changed_when: false
+      failed_when: ost_check.rc != 0
+
+    - name: Display OST mount info
+      debug:
+        msg: "OSTs on {{ inventory_hostname }}: {{ ost_check.stdout_lines }}"
