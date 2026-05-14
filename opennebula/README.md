@@ -57,8 +57,19 @@ onedatastore list                 # List datastores
 onevm list                        # List VMs
 journalctl -u opennebula -f       # oned logs
 
-# Sunstone Web UI
-https://rocky-head-1.lab.local:9869/   # or whichever hostname/IP
+# Sunstone Web UI (classic)
+http://rocky-head-1.lab.local:9869/    # or http://192.168.1.251:9869/
+
+# FireEdge Web UI (newer, React-based)
+http://rocky-head-1.lab.local:2616/fireedge/sunstone
+
+# Port map (heads, post-stage-10):
+#   2633  oned XML-RPC  (KVM hosts connect here)
+#   9869  Sunstone UI
+#   2616  FireEdge UI   (NOT 2474 — 2474 is OneFlow, localhost-only by default)
+#   2474  OneFlow       (localhost only)
+#   5030  OneGate       (localhost only)
+#   2101  event manager (localhost only)
 ```
 
 ## Workload-layer rejection history

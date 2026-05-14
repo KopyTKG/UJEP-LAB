@@ -159,7 +159,8 @@
           OpenNebula frontend deployed on Rocky-Head-1
           ============================================================
           Sunstone (classic UI): http://192.168.1.251:9869/
-          FireEdge (new UI):     http://192.168.1.251:2474/
+          FireEdge (new UI):     http://192.168.1.251:2616/fireedge/sunstone
+                                 (2474 is OneFlow, NOT FireEdge — common confusion)
 
           Login:  oneadmin
           Pass:   {{ one_admin_password }}   (change after first login)

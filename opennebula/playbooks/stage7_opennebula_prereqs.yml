@@ -69,10 +69,12 @@
         immediate: yes
         state: enabled
       loop:
-        - 2616/tcp   # oned RPC
-        - 9869/tcp   # Sunstone Web UI
-        - 2474/tcp   # FireEdge (new UI)
-        - 5030/tcp   # OneFlow / OneGate
+        - 2633/tcp   # oned XML-RPC (KVM hosts connect here)
+        - 9869/tcp   # Sunstone Web UI (classic)
+        - 2616/tcp   # FireEdge Web UI (new) — listens on 0.0.0.0 by default
+        # Localhost-only on default install (not opened):
+        #   2474 = OneFlow, 5030 = OneGate, 2101 = event manager
+        #   Open them later if remote access becomes needed.
 
 
 - name: Firewall — KVM host ports (compute)
