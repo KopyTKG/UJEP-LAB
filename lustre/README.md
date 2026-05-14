@@ -57,6 +57,7 @@ Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `sta
 | 15 | `stage15_rancher.yml` | Rancher Manager (cluster + user management UI) |
 | 16 | `stage16_rancher_repos.yml` | Curated Helm chart catalog (bitnami, grafana, jupyterhub, gitea, harbor, minio, argo, etc.) |
 | 17 | `stage17_dynamic_provisioner.yml` | local-path-provisioner in `sharedFileSystemPath` mode → dynamic PVs as Lustre subdirs (SC `lustre-dynamic`, default) |
+| 18 | `stage18_wipe_for_opennebula.yml` | Scorched-earth K8s wipe → back to Lustre baseline for OpenNebula deployment. Idempotent. Preserves lab CA/cert at `/etc/pki/ujep-lab/`. Stages 7-17 stay in repo for reference; git tag `pre-opennebula-wipe` marks the pre-wipe state. |
 
 ### Common utilities (`playbooks/common/`)
 

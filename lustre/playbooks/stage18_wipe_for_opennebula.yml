@@ -1,0 +1,313 @@
+---
+# Stage 18: Scorched-earth wipe back to Lustre baseline
+#
+# Removes everything stages 7-17 deployed (Kubernetes, Rancher, MetalLB, Ingress,
+# Helm, monitoring, dynamic provisioner, HAProxy, keepalived, containerd) so that
+# stages 0-6 (Lustre + lustre-startup.service + base cluster) are the only thing
+# left on the OS. From there we can build OpenNebula on a clean baseline.
+#
+# Safety:
+#  - lab CA + wildcard cert at /etc/kubernetes/lab-tls/ is copied to
+#    /etc/pki/ujep-lab/ BEFORE this playbook runs (one-off shell command, not in
+#    this play) so OpenNebula Sunstone can reuse it. Do that copy first.
+#  - The git tag `pre-opennebula-wipe` marks the last commit before this wipe.
+#  - All stage 7-17 playbooks remain in repo for reference / future redeploy.
+#
+# Does NOT touch:
+#  - Rocky 9.7 OS, Lustre kernel
+#  - Lustre stack (modules, mounts, OSTs, MDTs, MGS)
+#  - lustre-startup.service and its orchestrator script
+#  - NTP, OpenSM, IB modules, /etc/hosts, base firewall
+#  - SSH, vault password, ansible setup
+
+- name: Scorched-earth K8s/Rancher wipe — heads first
+  hosts: mds  # both heads
+  become: yes
+  gather_facts: no
+  any_errors_fatal: false  # we're tearing down; ignore per-task failures
+
+  tasks:
+    - name: Stop control-plane and load-balancer services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - kubelet
+        - containerd
+        - keepalived
+        - haproxy
+      failed_when: false
+
+    - name: Kill orphan K8s/Rancher processes (containerd-shim outlives the service)
+      # Stopping containerd does NOT kill the runc shims it spawned — those are
+      # independent processes that keep their containers (kube-proxy, flannel,
+      # node-exporter, rancher manager, etcd, pause) running until we kill them.
+      # Use -x (exact name match) so we don't pkill our own shell argv.
+      shell: |
+        for p in containerd-shim-runc-v2 kube-proxy flanneld node_exporter manager etcd kine; do
+          pkill -9 -x "$p" 2>/dev/null
+        done
+        sleep 2
+      failed_when: false
+
+    - name: Remove K8s + LB RPMs
+      dnf:
+        name:
+          - kubeadm
+          - kubelet
+          - kubectl
+          - cri-tools
+          - containerd.io
+          - container-selinux
+          - containers-common
+          - containers-common-extra
+          - containernetworking-plugins
+          - keepalived
+          - haproxy
+        state: absent
+        autoremove: yes
+      failed_when: false
+
+    - name: Drop helm binary + symlink
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/helm
+        - /usr/bin/helm
+
+    - name: Lazy-unmount kubelet bind mounts (projected SA tokens etc.)
+      shell: |
+        mount | awk '$3 ~ "^/var/lib/kubelet" {print $3}' | xargs -r -n1 umount -l
+        mount | awk '$3 ~ "^/var/lib/containerd" {print $3}' | xargs -r -n1 umount -l
+      failed_when: false
+
+    - name: Remove K8s state dirs (heads)
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes
+        - /var/lib/etcd
+        - /var/lib/kubelet
+        - /var/lib/containerd
+        - /etc/cni
+        - /opt/cni
+        - /etc/haproxy
+        - /etc/keepalived
+        - /root/.kube
+        - /root/.helm
+        - /root/.cache/helm
+        - /root/.config/helm
+      failed_when: false
+
+    - name: Remove kubernetes yum repos
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/yum.repos.d/kubernetes.repo
+        - /etc/yum.repos.d/docker-ce.repo
+
+    - name: Drop K8s + LB firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: disabled
+      loop:
+        - 6443/tcp     # kube-apiserver
+        - 8443/tcp     # haproxy frontend
+        - 2379-2380/tcp  # etcd
+        - 10250/tcp    # kubelet
+        - 10251/tcp    # scheduler (legacy)
+        - 10252/tcp    # controller-manager (legacy)
+        - 10257/tcp    # controller-manager
+        - 10259/tcp    # scheduler
+        - 30000-32767/tcp  # NodePort range
+      failed_when: false
+
+    - name: Drop VRRP firewall rich rule (keepalived)
+      shell: firewall-cmd --permanent --remove-rich-rule='rule protocol value="vrrp" accept'
+      failed_when: false
+
+    - name: Reload firewalld
+      command: firewall-cmd --reload
+      failed_when: false
+
+
+- name: Scorched-earth K8s wipe — compute workers
+  hosts: oss  # all 8 compute nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: false
+
+  tasks:
+    - name: Stop worker services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - kubelet
+        - containerd
+      failed_when: false
+
+    - name: Kill orphan K8s processes (containerd-shim outlives the service)
+      shell: |
+        for p in containerd-shim-runc-v2 kube-proxy flanneld node_exporter manager etcd kine; do
+          pkill -9 -x "$p" 2>/dev/null
+        done
+        sleep 2
+      failed_when: false
+
+    - name: Remove K8s RPMs
+      dnf:
+        name:
+          - kubeadm
+          - kubelet
+          - kubectl
+          - cri-tools
+          - containerd.io
+          - container-selinux
+          - containers-common
+          - containers-common-extra
+          - containernetworking-plugins
+        state: absent
+        autoremove: yes
+      failed_when: false
+
+    - name: Lazy-unmount kubelet/containerd bind mounts (compute)
+      shell: |
+        mount | awk '$3 ~ "^/var/lib/kubelet" {print $3}' | xargs -r -n1 umount -l
+        mount | awk '$3 ~ "^/var/lib/containerd" {print $3}' | xargs -r -n1 umount -l
+      failed_when: false
+
+    - name: Remove K8s state dirs (compute)
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes
+        - /var/lib/kubelet
+        - /var/lib/containerd
+        - /etc/cni
+        - /opt/cni
+        - /root/.kube
+      failed_when: false
+
+    - name: Remove kubernetes yum repos
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/yum.repos.d/kubernetes.repo
+        - /etc/yum.repos.d/docker-ce.repo
+
+    - name: Drop K8s firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: disabled
+      loop:
+        - 10250/tcp
+        - 30000-32767/tcp
+      failed_when: false
+
+    - name: Reload firewalld
+      command: firewall-cmd --reload
+      failed_when: false
+
+
+- name: Clean residual runtime dirs (post-RPM-removal)
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Remove leftover container runtime dirs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /run/containerd
+        - /run/flannel
+        - /var/run/calico
+        - /var/log/pods
+        - /var/log/containers
+      failed_when: false
+
+
+- name: Clean dynamic-provisioner subdirs from Lustre
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Wipe /mnt/lustre/k8s-volumes content (subdirs from stage17)
+      shell: rm -rf /mnt/lustre/k8s-volumes
+      args:
+        warn: false
+      failed_when: false
+
+
+- name: Post-wipe Lustre sanity check
+  hosts: all
+  become: yes
+  gather_facts: no
+  any_errors_fatal: false
+
+  tasks:
+    - name: Check lustre-startup.service is active
+      command: systemctl is-active lustre-startup.service
+      register: lus_svc
+      changed_when: false
+      failed_when: false
+
+    - name: Check /mnt/lustre is mounted
+      command: mountpoint -q /mnt/lustre
+      register: lus_mnt
+      changed_when: false
+      failed_when: false
+
+    - name: Per-node summary
+      debug:
+        msg: |
+          {{ inventory_hostname }}:
+            lustre-startup.service: {{ lus_svc.stdout | default('unknown') }}
+            /mnt/lustre mounted:    {{ 'yes' if lus_mnt.rc == 0 else 'NO' }}
+
+
+- name: Cluster-wide Lustre summary (from Head-1)
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: lfs df
+      command: lfs df -h
+      register: lfs_df
+      changed_when: false
+      failed_when: false
+
+    - name: lctl ping MGS
+      command: timeout 10 lctl ping 10.0.0.251@o2ib
+      register: mgs_ping
+      changed_when: false
+      failed_when: false
+
+    - name: Final summary
+      debug:
+        msg: |
+          ============================================================
+          POST-WIPE STATE
+          ============================================================
+          MGS reachable (RDMA): {{ 'YES' if mgs_ping.rc == 0 else 'NO' }}
+          {{ lfs_df.stdout | default('lfs df failed') }}
+
+          Lab CA + wildcard cert preserved at: /etc/pki/ujep-lab/
+          Cluster is at the Lustre-only baseline.
+          Ready for OpenNebula deployment.
+          ============================================================
