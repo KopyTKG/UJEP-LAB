@@ -38,13 +38,14 @@
 | Stage | Playbook | Purpose |
 |---|---|---|
 | 7 | `stage7_opennebula_prereqs.yml` | EPEL + CRB, OpenNebula 6.10 repo, SELinux permissive, firewall ports |
-| 8 | `stage8_etcd_cluster.yml` | 3-node etcd cluster (Head-1, Head-2, Compute-1) — DCS for Patroni |
-| 9 | `stage9_patroni_postgres.yml` | PostgreSQL 16 + Patroni on both heads; synchronous streaming replication; auto-failover via etcd Raft |
-| 10 | `stage10_db_vip.yml` | HAProxy + keepalived VIP `192.168.1.249:5432` routing to whichever head Patroni reports as primary |
-| 11 | `stage11_opennebula_frontend.yml` | OpenNebula frontend on Head-1 pointing at the DB VIP |
-| 12+ | (to be written) | oned Raft HA on Head-2, KVM hosts on compute, Lustre datastore, TLS, test VM, users/groups |
+| 8 | `stage8_mariadb_galera.yml` | 3-node MariaDB Galera cluster (Head-1, Head-2, Compute-1) — wsrep multi-primary synchronous replication, own quorum |
+| 9 | `stage9_db_vip.yml` | HAProxy single-writer pattern + keepalived VIP `192.168.1.249:3306` — clients see one stable endpoint regardless of which Galera node is currently active |
+| 10 | `stage10_opennebula_frontend.yml` | OpenNebula 6.10 frontend on Head-1 pointing at the DB VIP via MySQL backend |
+| 11+ | (to be written) | oned Raft HA on Head-2, KVM hosts on compute, Lustre datastore, TLS, test VM, users/groups |
 
-**Why etcd + Patroni instead of vanilla streaming replication?** Because 2-node Postgres replication without an external arbiter has no safe way to do automatic failover (can't distinguish "primary died" from "primary partitioned"). A 3-node etcd cluster (heads + one compute) provides the quorum-based arbiter, so Patroni can elect a new leader without risking split-brain. The third etcd member is lightweight — etcd uses <100 MB RAM and minimal CPU; co-locating it with KVM workload on Compute-1 is fine.
+**Why MariaDB Galera and not PostgreSQL?** Earlier rev of stages 8-10 used PostgreSQL 16 + Patroni + etcd. Works beautifully — but **OpenNebula 6.10 doesn't actually support a PostgreSQL backend** (`DB BACKEND must be sqlite or mysql`). MariaDB Galera is OpenNebula's officially documented HA DB pattern. It also turns out simpler — Galera's wsrep does its own consensus (no external etcd needed) and supports multi-primary synchronous replication out of the box. The 3-node topology (heads + Compute-1) gives quorum-safe failover. Compute-1 is lightly loaded by the DB role and stays available for KVM workload.
+
+A `cleanup_pg_etcd_layer.yml` exists in `playbooks/` to roll back the earlier PG/Patroni/etcd state (one-off; not part of normal deploy flow).
 
 ## Quick reference
 

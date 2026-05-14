@@ -1,17 +1,18 @@
 ---
-# Stage 11: OpenNebula frontend on Rocky-Head-1
+# Stage 10: OpenNebula frontend on Rocky-Head-1
 #
-# Installs the full opennebula frontend package set and configures oned to
-# use the HA PostgreSQL cluster from stages 8-10 via the VIP 192.168.1.249.
+# Installs the OpenNebula 6.10 frontend package set and configures oned to
+# use the MariaDB Galera cluster from stage 8 via the VIP 192.168.1.249:3306.
+#
 # After this runs:
 #   - Sunstone UI on http://<head-1-ip>:9869/
 #   - FireEdge UI on http://<head-1-ip>:2474/
 #   - `sudo -u oneadmin oneuser list` works
-#   - oned state lives in the HA Postgres cluster — leader failover is
-#     transparent to oned (libpq reconnects to the VIP)
+#   - oned state lives in the Galera cluster — node failover is transparent
+#     to oned (HAProxy reroutes to next backup; oned's mysql client reconnects)
 #
-# HA on the oned side itself (Raft consensus + Sunstone on Head-2 too) is
-# deferred to stage 12.  This stage gets a single working frontend up.
+# oned HA itself (multiple oned instances in Raft) is deferred to a later
+# stage.  This stage gets a single working frontend up against the HA DB.
 
 - name: OpenNebula frontend on Rocky-Head-1
   hosts: Rocky-Head-1
@@ -20,10 +21,10 @@
   vars:
     one_db_name: opennebula
     one_db_user: oneadmin
-    one_db_password: "ujep-one-init"   # matches the Postgres user from stage 9
-    one_db_host: "192.168.1.249"       # the Postgres VIP from stage 10
-    one_db_port: 5432
-    one_admin_password: "ujep-one-init" # OpenNebula login password (forced change on first UI login)
+    one_db_password: "ujep-one-init"
+    one_db_host: "192.168.1.249"   # MariaDB VIP from stage 9
+    one_db_port: 3306
+    one_admin_password: "ujep-one-init"  # OpenNebula login password (force change at first UI login)
 
   handlers:
     - name: restart opennebula
@@ -32,12 +33,20 @@
         state: restarted
 
   tasks:
-    # --- 1. Sanity check: VIP reachable before we install anything ---
-    - name: Verify Postgres VIP reachable
+    # --- 1. Sanity check: VIP reachable + Galera cluster healthy ---
+    - name: Verify MariaDB VIP reachable
       wait_for:
         host: "{{ one_db_host }}"
         port: "{{ one_db_port }}"
         timeout: 10
+
+    - name: Verify Galera cluster is in Primary state
+      shell: |
+        mysql -h {{ one_db_host }} -u {{ one_db_user }} -p'{{ one_db_password }}' -BNe "
+          SHOW STATUS LIKE 'wsrep_cluster_status'" | awk '{print $2}'
+      register: cluster_check
+      changed_when: false
+      failed_when: cluster_check.stdout != "Primary"
 
     # --- 2. OpenNebula packages ---
     - name: Install OpenNebula frontend package set
@@ -65,19 +74,35 @@
         - opennebula-gate
       failed_when: false
 
-    # --- 4. Switch oned.conf from SQLite default to PostgreSQL ---
-    - name: Comment out any uncommented SQLite DB stanza
+    # --- 4. Switch oned.conf from SQLite default to MariaDB/MySQL ---
+    # The default DB stanza is a multi-line block:
+    #   DB = [ BACKEND = "sqlite",
+    #          TIMEOUT = 2500 ]
+    # Earlier attempts that commented only the first line orphaned the trailing
+    # `]` and crashed the parser. Do the whole block in one shot via multiline
+    # regex.  On re-runs the SQLite block is gone, the first replace is a no-op,
+    # and the second replace keeps an existing MySQL stanza in sync with vars.
+    - name: Replace SQLite stanza with MySQL HA config (in place)
       replace:
         path: /etc/one/oned.conf
-        regexp: '^(DB = \[ BACKEND = "sqlite".*)$'
-        replace: '#\1'
+        regexp: '(?m)^DB = \[ BACKEND = "sqlite",\n\s+TIMEOUT = 2500 \]'
+        replace: |-
+          DB = [ BACKEND = "mysql",
+                 SERVER  = "{{ one_db_host }}",
+                 PORT    = {{ one_db_port }},
+                 USER    = "{{ one_db_user }}",
+                 PASSWD  = "{{ one_db_password }}",
+                 DB_NAME = "{{ one_db_name }}",
+                 CONNECTIONS = 25,
+                 COMPARE_BINARY = "no" ]
+      notify: restart opennebula
 
-    - name: Inject PostgreSQL DB stanza into oned.conf
-      blockinfile:
+    - name: Keep MySQL DB stanza in sync with current vars
+      replace:
         path: /etc/one/oned.conf
-        marker: "# {mark} ANSIBLE MANAGED — DB"
-        block: |
-          DB = [ BACKEND = "postgresql",
+        regexp: '(?ms)^DB = \[ BACKEND = "mysql",.*?COMPARE_BINARY = "no" \]'
+        replace: |-
+          DB = [ BACKEND = "mysql",
                  SERVER  = "{{ one_db_host }}",
                  PORT    = {{ one_db_port }},
                  USER    = "{{ one_db_user }}",
@@ -118,11 +143,13 @@
       until: oneuser_check.rc == 0
       changed_when: false
 
-    # --- 7. Sanity: confirm oned actually wrote to Postgres ---
-    - name: Confirm OpenNebula schema landed in Postgres
+    # --- 7. Sanity: confirm oned actually wrote to the Galera DB ---
+    - name: Confirm OpenNebula schema landed in MariaDB
       shell: |
-        PGPASSWORD={{ one_db_password }} psql -h {{ one_db_host }} -U {{ one_db_user }} -d {{ one_db_name }} -tAc "\dt" | wc -l
-      register: schema_check
+        mysql -h {{ one_db_host }} -u {{ one_db_user }} -p'{{ one_db_password }}' -BNe "
+          SELECT COUNT(*) FROM information_schema.tables
+          WHERE table_schema='{{ one_db_name }}'"
+      register: schema_count
       changed_when: false
 
     - name: Show summary
@@ -135,11 +162,11 @@
           FireEdge (new UI):     http://192.168.1.251:2474/
 
           Login:  oneadmin
-          Pass:   {{ one_admin_password }}    (change after first login)
+          Pass:   {{ one_admin_password }}   (change after first login)
 
-          Backend:  PostgreSQL HA cluster via VIP {{ one_db_host }}:{{ one_db_port }}
+          Backend:  MariaDB Galera HA cluster via VIP {{ one_db_host }}:{{ one_db_port }}
                     (DB `{{ one_db_name }}`, user `{{ one_db_user }}`)
-                    OpenNebula schema tables created: {{ schema_check.stdout }}
+                    OpenNebula schema tables created: {{ schema_count.stdout }}
 
           Quick checks from this host:
             sudo -u oneadmin oneuser list
@@ -149,5 +176,5 @@
           Current oneuser table:
           {{ oneuser_check.stdout }}
 
-          Next: stage 12 (oned Raft HA on Head-2), then KVM hosts on compute.
+          Next: oned HA on Head-2, KVM hosts on compute, Lustre as datastore.
           ============================================================

@@ -1,0 +1,237 @@
+---
+# Cleanup: roll back the postgres + Patroni + etcd stack
+#
+# Background: stages 8-10 originally provisioned etcd → Patroni + PostgreSQL
+# 16 → HAProxy/keepalived VIP for postgres, intending OpenNebula to use PG as
+# its DB backend.  OpenNebula 6.10 turned out to support only sqlite and
+# mysql — no postgres — so the entire postgres stack is unused.  We pivoted
+# to MariaDB Galera for HA DB (officially supported, same 3-node topology).
+#
+# This playbook tears down the obsolete runtime state so we have a clean
+# baseline for the Galera stack.  Lustre, lustre-startup.service, base
+# cluster, lab CA — all untouched.  HAProxy + keepalived RPMs are kept
+# (they'll be reconfigured for Galera by the new stage 9).
+#
+# One-off; not part of normal deployment flow.
+
+- name: Stop + remove OpenNebula on Head-1 (failed install — reinstall later)
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Stop OpenNebula services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - opennebula
+        - opennebula-sunstone
+        - opennebula-fireedge
+        - opennebula-flow
+        - opennebula-gate
+      failed_when: false
+
+    - name: dnf remove opennebula packages
+      dnf:
+        name:
+          - opennebula
+          - opennebula-sunstone
+          - opennebula-fireedge
+          - opennebula-flow
+          - opennebula-gate
+          - opennebula-provision
+          - opennebula-rubygems
+          - opennebula-common
+        state: absent
+        autoremove: yes
+      failed_when: false
+
+    - name: Wipe OpenNebula state dirs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/one
+        - /var/lib/one
+        - /var/log/one
+        - /var/run/one
+
+
+- name: Stop + remove Patroni + PostgreSQL on heads
+  hosts: patroni  # Rocky-Head-1, Rocky-Head-2
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Stop Patroni + Postgres
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - patroni
+        - postgresql-16
+      failed_when: false
+
+    - name: dnf remove Patroni + Postgres
+      dnf:
+        name:
+          - patroni
+          - patroni-etcd
+          - postgresql16-server
+          - postgresql16-contrib
+          - postgresql16
+          - postgresql16-libs
+          - python3-psycopg2
+        state: absent
+        autoremove: yes
+      failed_when: false
+
+    - name: Wipe Postgres + Patroni state
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/patroni
+        - /var/lib/pgsql
+        - /usr/pgsql-16
+
+    - name: Drop Postgres + Patroni firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: disabled
+      loop:
+        - 5432/tcp
+        - 8008/tcp
+      failed_when: false
+
+    - name: Remove PGDG repo (not needed for Galera)
+      file:
+        path: "/etc/yum.repos.d/{{ item }}"
+        state: absent
+      loop:
+        - pgdg-redhat-all.repo
+        - pgdg-redhat-common-repo.repo
+
+
+- name: Stop HAProxy + keepalived (will be reconfigured for Galera)
+  hosts: opennebula_frontend
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Stop the postgres-aware HAProxy/keepalived (configs become obsolete)
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - haproxy
+        - keepalived
+      failed_when: false
+
+    - name: Wipe their configs so stage 9 writes fresh
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/haproxy/haproxy.cfg
+        - /etc/keepalived/keepalived.conf
+
+
+- name: Stop + remove etcd on all 3 members
+  hosts: etcd_cluster  # Head-1, Head-2, Compute-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Stop etcd
+      systemd:
+        name: etcd
+        state: stopped
+        enabled: no
+      failed_when: false
+
+    - name: Remove etcd systemd unit
+      file:
+        path: /etc/systemd/system/etcd.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove etcd binaries
+      file:
+        path: "/usr/local/bin/{{ item }}"
+        state: absent
+      loop:
+        - etcd
+        - etcdctl
+        - etcdutl
+
+    - name: Remove etcd symlinks
+      file:
+        path: "/usr/bin/{{ item }}"
+        state: absent
+      loop:
+        - etcdctl
+        - etcdutl
+
+    - name: Remove etcd dirs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/etcd
+        - /var/lib/etcd
+
+    - name: Remove etcd user
+      user:
+        name: etcd
+        state: absent
+        remove: yes
+      failed_when: false
+
+    - name: Drop etcd firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: disabled
+      loop:
+        - 2379/tcp
+        - 2380/tcp
+      failed_when: false
+
+    - name: Drop VRRP rich rule (added by old stage 10)
+      shell: |
+        firewall-cmd --permanent --remove-rich-rule='rule protocol value="vrrp" accept' 2>/dev/null
+        firewall-cmd --reload
+      failed_when: false
+      when: inventory_hostname in groups['opennebula_frontend']
+
+
+- name: Sanity check — baseline restored
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Lustre still up?
+      command: mountpoint -q /mnt/lustre
+      register: lus_mnt
+      changed_when: false
+      failed_when: false
+
+    - name: No orphan PG/Patroni/etcd processes?
+      shell: |
+        ps -eo comm | sort -u | grep -E '^(patroni|postgres|etcd|haproxy|keepalived|oned|sunstone)$' || echo CLEAN
+      register: orphan_check
+      changed_when: false
+
+    - name: Per-node summary
+      debug:
+        msg: |
+          {{ inventory_hostname }}:
+            lustre: {{ 'OK' if lus_mnt.rc == 0 else 'FAIL' }}
+            orphans: {{ orphan_check.stdout }}

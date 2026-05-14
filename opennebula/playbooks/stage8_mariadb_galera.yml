@@ -1,0 +1,253 @@
+---
+# Stage 8: MariaDB Galera 3-node cluster
+#
+# 3-node multi-primary synchronous cluster — Galera's wsrep protocol handles
+# its own consensus/quorum, no external DCS needed.  Members:
+#
+#   node-1 → Rocky-Head-1     10.0.0.251  (IPoIB)
+#   node-2 → Rocky-Head-2     10.0.0.252  (IPoIB)
+#   node-3 → Rocky-Compute-1  10.0.0.1    (IPoIB)
+#
+# Surviving 1 node loss = still quorum.  This is OpenNebula's officially
+# documented HA DB pattern.
+#
+# Bind strategy: each node binds to 127.0.0.1 + its IPoIB IP only — port
+# 3306 on the 192.168.1.0/24 side stays free so HAProxy (stage 9) can put
+# the VIP there.
+#
+# After this runs:
+#   - mariadb active on all 3 nodes, wsrep_cluster_size = 3
+#   - opennebula database exists, oneadmin@'%' created with full privs
+#   - galera ports open: 3306 (mysql), 4567 (cluster), 4568 (IST), 4444 (SST)
+#
+# Bootstrap sequence is staggered: galera_new_cluster on Head-1 first, then
+# the other two join via SST (rsync).
+
+- name: Install MariaDB + Galera (all 3 nodes)
+  hosts: galera  # Rocky-Head-1, Rocky-Head-2, Rocky-Compute-1
+  become: yes
+
+  vars:
+    galera_cluster_name: ujep-galera
+    galera_cluster_address: "gcomm://10.0.0.251,10.0.0.252,10.0.0.1"
+
+  tasks:
+    - name: Install MariaDB server + Galera plugin + Python connector
+      dnf:
+        name:
+          - mariadb-server
+          - mariadb-server-galera
+          - mariadb-backup     # for mariabackup SST (fallback to rsync)
+          - rsync
+          - python3-PyMySQL    # for system Python 3.9
+          - python3.12-pip     # ansible discovered Python 3.12 as its interpreter (came in with the PG/Patroni stack we wiped); make sure pip is there too
+        state: present
+
+    - name: Ensure PyMySQL is available to ansible's actual Python interpreter
+      # The python3-PyMySQL RPM installs into system Python 3.9, but ansible's
+      # auto-discovered interpreter on these heads is /usr/bin/python3.12 (it
+      # got pulled in earlier and stuck around). community.mysql modules need
+      # PyMySQL importable from the interpreter ansible is actually using.
+      pip:
+        name: PyMySQL
+        executable: pip3.12
+      when: ansible_python_interpreter is not defined or 'python3.12' in (ansible_python.executable | default(''))
+      failed_when: false
+
+    - name: Drop any earlier my.cnf.d/opennebula.cnf (old MariaDB-on-H1 attempt)
+      file:
+        path: /etc/my.cnf.d/opennebula.cnf
+        state: absent
+
+    - name: Write Galera config
+      copy:
+        dest: /etc/my.cnf.d/galera.cnf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          # Managed by Ansible (stage8_mariadb_galera.yml)
+          [mysqld]
+          # Bind only to the IPoIB IP. Loopback access goes via the unix
+          # socket /var/lib/mysql/mysql.sock — so local clients work without
+          # network binding. Port 3306 on Eth side stays free for HAProxy VIP.
+          bind-address = {{ ib_ip }}
+
+          # Standard InnoDB + binlog config Galera requires
+          default-storage-engine = innodb
+          binlog_format = ROW
+          innodb_autoinc_lock_mode = 2
+          innodb_doublewrite = 1
+          max_connections = 4096
+          collation-server = utf8mb4_unicode_ci
+          character-set-server = utf8mb4
+
+          # Galera-specific
+          wsrep_on = ON
+          wsrep_provider = /usr/lib64/galera/libgalera_smm.so
+          wsrep_cluster_name = "{{ galera_cluster_name }}"
+          wsrep_cluster_address = "{{ galera_cluster_address }}"
+          wsrep_node_address = {{ ib_ip }}
+          wsrep_node_name = "{{ inventory_hostname | lower }}"
+          wsrep_sst_method = rsync
+
+    - name: Open Galera ports (IPoIB only — VIP/HAProxy uses Eth)
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - 3306/tcp   # MariaDB client
+        - 4567/tcp   # Galera cluster (wsrep)
+        - 4568/tcp   # Galera IST (incremental state transfer)
+        - 4444/tcp   # Galera SST (state snapshot transfer)
+
+
+# --- Bootstrap sequence: staggered ---
+
+- name: Bootstrap Galera cluster on Head-1 (the first node only)
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Check if already bootstrapped (cluster running here?)
+      shell: |
+        systemctl is-active mariadb >/dev/null 2>&1 && \
+          mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_size'" 2>/dev/null | awk '{print $2}'
+      register: existing_size
+      changed_when: false
+      failed_when: false
+
+    - name: Stop mariadb (we're about to bootstrap)
+      systemd:
+        name: mariadb
+        state: stopped
+      when: existing_size.stdout == ""
+      failed_when: false
+
+    - name: Run galera_new_cluster (starts mariadb in bootstrap mode)
+      command: galera_new_cluster
+      when: existing_size.stdout == ""
+
+    - name: Wait for mariadb on Head-1 to accept connections
+      wait_for:
+        host: 10.0.0.251
+        port: 3306
+        timeout: 60
+
+
+- name: Join Head-2 and Compute-1 (one at a time, via SST)
+  hosts: Rocky-Head-2,Rocky-Compute-1
+  become: yes
+  gather_facts: no
+  serial: 1
+  tasks:
+    - name: Enable + start mariadb (joins cluster via SST)
+      systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: Wait for this node to accept connections
+      wait_for:
+        host: "{{ ib_ip }}"
+        port: 3306
+        timeout: 180   # SST can take a minute on first join
+
+
+- name: Finalise Head-1 systemd state + verify cluster
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Ensure mariadb is enabled on Head-1 (galera_new_cluster doesn't enable)
+      systemd:
+        name: mariadb
+        enabled: yes
+
+    - name: Verify cluster size = 3
+      shell: |
+        mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_size'" | awk '{print $2}'
+      register: cluster_size
+      changed_when: false
+      retries: 10
+      delay: 3
+      until: cluster_size.stdout == "3"
+
+    - name: Verify cluster is in Primary state (not partitioned)
+      shell: |
+        mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_status'" | awk '{print $2}'
+      register: cluster_status
+      changed_when: false
+      failed_when: cluster_status.stdout != "Primary"
+
+
+- name: Create OpenNebula database + oneadmin user
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+
+  vars:
+    one_db_name: opennebula
+    one_db_user: oneadmin
+    one_db_password: "ujep-one-init"
+
+  tasks:
+    - name: Create oneadmin DB user (reachable from any host in the cluster)
+      community.mysql.mysql_user:
+        name: "{{ one_db_user }}"
+        password: "{{ one_db_password }}"
+        host: '%'
+        priv: "{{ one_db_name }}.*:ALL"
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    - name: Create opennebula database
+      community.mysql.mysql_db:
+        name: "{{ one_db_name }}"
+        encoding: utf8mb4
+        collation: utf8mb4_unicode_ci
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    - name: Show full cluster status
+      shell: |
+        mysql -uroot -e "
+          SHOW STATUS WHERE Variable_name IN (
+            'wsrep_cluster_size',
+            'wsrep_cluster_status',
+            'wsrep_local_state_comment',
+            'wsrep_incoming_addresses',
+            'wsrep_ready'
+          );"
+      register: final_status
+      changed_when: false
+
+    - name: Display
+      debug:
+        msg: |
+          ============================================================
+          MariaDB Galera 3-node cluster ready
+          ============================================================
+          {{ final_status.stdout }}
+
+          DB:       {{ one_db_name }}
+          DB user:  {{ one_db_user }} (password: {{ one_db_password }})
+                    Reachable from any host (host pattern: '%')
+
+          Sync replication: ON (Galera default — every commit replicated
+                             to all nodes synchronously, zero data loss
+                             on single-node failure)
+
+          Connect from clients:
+            mysql -h <any-node-IPoIB> -P 3306 -u oneadmin -p {{ one_db_name }}
+
+            ...but normally clients go through the VIP (stage 9):
+            mysql -h 192.168.1.249 -P 3306 -u oneadmin -p {{ one_db_name }}
+
+          Failover test:
+            On any node: sudo systemctl stop mariadb
+            On another:  mysql -uroot -e "SHOW STATUS LIKE 'wsrep_cluster_size'"
+                         (should report 2, cluster stays in Primary state)
+          ============================================================

@@ -1,38 +1,36 @@
 ---
-# Stage 10: HAProxy + keepalived VIP for Postgres clients
+# Stage 9: HAProxy + keepalived VIP for MariaDB Galera clients
 #
-# Clients (OpenNebula's oned, future Sunstone HA replicas, anything else that
-# wants to talk to Postgres) shouldn't have to know which head is currently
-# the Patroni leader.  This stage gives them one stable endpoint:
+# Galera is multi-primary (every node can accept writes), but OpenNebula's
+# oned doesn't tolerate cross-node write conflicts well, so we use a
+# single-active-writer pattern: HAProxy routes ALL connections to Head-1
+# unless it's down, in which case it fails over to Head-2, then Compute-1.
+# Clients see one endpoint:
 #
-#     192.168.1.249:5432  →  always reaches the current Postgres primary
+#     192.168.1.249:3306  →  always reaches Head-1 (or first healthy alternate)
 #
-# How:
-#   - HAProxy on each head listens on :5432, checks both Patroni REST APIs
-#     at :8008/primary, and only forwards to whichever head returns HTTP 200
-#     (= the current leader).  Failover happens automatically as Patroni
-#     repoints — no HAProxy reconfig needed.
-#   - keepalived (VRRP) places the VIP 192.168.1.249 on the head whose
-#     local HAProxy is alive.  If the VIP-holding head dies, the other
-#     head takes the VIP within ~1 s.  Different layer from Patroni
-#     failover; together they cover (a) DB primary loss, and (b) loss of
-#     the VIP-holder head.
+# Why this stage exists:
+#   - Galera handles DB-layer HA on its own (wsrep consensus, 3-node quorum)
+#   - But oned needs a single stable endpoint to talk to
+#   - HAProxy with the `backup` flag on alternates gives us that: clients
+#     don't care which node is currently "active" from a write perspective
+#   - keepalived (VRRP) places the VIP itself on whichever head has its
+#     local HAProxy alive
 #
-# Same pattern that worked for the K8s control-plane VIP in `lustre/playbooks/
-# stage9_control_plane_ha.yml` — only the backend protocol (Postgres TCP +
-# HTTP health check) is different.
+# Two failure domains, covered independently:
+#   - Active Galera node dies   → HAProxy reroutes within seconds (TCP check)
+#   - VIP-holder head dies      → keepalived raises VIP on other head (~1 s)
 
-- name: HAProxy + keepalived VIP for Postgres
+- name: HAProxy + keepalived VIP for MariaDB Galera
   hosts: opennebula_frontend  # Rocky-Head-1, Rocky-Head-2
   become: yes
 
   vars:
     db_vip: "192.168.1.249"
     db_vip_cidr: "192.168.1.249/24"
-    vrrp_router_id: 52         # different from K8s stage 9's 51 to avoid future collisions
+    vrrp_router_id: 52
     vrrp_auth_pass: "ujep-one-vrrp"
-    patroni_rest_port: 8008
-    pg_port: 5432
+    mysql_port: 3306
 
   tasks:
     - name: Detect default ethernet interface (for VRRP binding)
@@ -46,7 +44,7 @@
           - keepalived
         state: present
 
-    - name: HAProxy config — Postgres leader-only TCP forward
+    - name: HAProxy config — single-writer MariaDB Galera with TCP healthcheck
       copy:
         dest: /etc/haproxy/haproxy.cfg
         mode: "0644"
@@ -66,8 +64,8 @@
             timeout server  30m
             timeout check   3s
 
-          # HAProxy stats — useful for spotting which head is currently
-          # serving the VIP and the Patroni leader health.
+          # HAProxy stats — useful for spotting which Galera node is currently
+          # serving and whether all 3 are healthy.
           listen stats
             bind *:7000
             mode http
@@ -75,19 +73,20 @@
             stats uri /
             stats refresh 5s
 
-          listen postgres_primary
-            # Bind to the VIP only — Patroni's postgres already owns 0.0.0.0:5432
-            # on both heads, so we'd port-conflict if we bound to *. ip_nonlocal_bind
-            # is enabled below so we can bind to the VIP even on the standby head
-            # (where the VIP isn't actually assigned yet — VRRP will eventually
-            # raise it here on failover and connections will start flowing).
-            bind {{ db_vip }}:{{ pg_port }}
+          listen mariadb_galera
+            # Bind to the VIP only — MariaDB on each Galera node binds to its
+            # own IPoIB IP, so port 3306 on 192.168.1.0/24 side is free for us.
+            # ip_nonlocal_bind is enabled below so the standby head can pre-bind.
+            bind {{ db_vip }}:{{ mysql_port }}
             mode tcp
-            option httpchk GET /primary
-            http-check expect status 200
+            option tcp-check
+            tcp-check connect
             default-server inter 3s fall 2 rise 2 on-marked-down shutdown-sessions
-            server head-1 10.0.0.251:{{ pg_port }} check port {{ patroni_rest_port }}
-            server head-2 10.0.0.252:{{ pg_port }} check port {{ patroni_rest_port }}
+            # Single-writer pattern: head-1 is primary, others are warm backups.
+            # When head-1 fails its TCP check, HAProxy promotes the next backup.
+            server galera-head-1     10.0.0.251:{{ mysql_port }} check
+            server galera-head-2     10.0.0.252:{{ mysql_port }} check backup
+            server galera-compute-1  10.0.0.1:{{ mysql_port }}   check backup
       notify: restart haproxy
 
     - name: keepalived config
@@ -129,18 +128,16 @@
         immediate: yes
         state: enabled
       loop:
-        - "{{ pg_port }}/tcp"
-        - 7000/tcp        # HAProxy stats
+        - "{{ mysql_port }}/tcp"
+        - 7000/tcp
 
-    # VRRP needs a rich-rule (it's protocol 112, not TCP/UDP).
-    # Shell module to avoid ansible's command-module tokenization of the rich rule string.
     - name: Allow VRRP between heads
       shell: |
         firewall-cmd --permanent --add-rich-rule='rule protocol value="vrrp" accept'
         firewall-cmd --reload
       changed_when: true
 
-    - name: Allow HAProxy to bind to non-local IP (so it can listen on the VIP before VRRP raises it)
+    - name: Allow HAProxy to bind to non-local IP
       sysctl:
         name: net.ipv4.ip_nonlocal_bind
         value: "1"
@@ -177,23 +174,30 @@
   become: yes
   gather_facts: no
   tasks:
-    - name: Wait for VIP to come up on Head-1
+    - name: Wait for VIP to come up
       wait_for:
         host: "192.168.1.249"
-        port: 5432
+        port: 3306
         timeout: 30
 
-    - name: Test Postgres via VIP (should reach current Patroni leader)
+    - name: Test MariaDB via VIP (should reach the active Galera node = Head-1)
       shell: |
-        PGPASSWORD=ujep-one-init psql -h 192.168.1.249 -U oneadmin -d opennebula -tAc "SELECT 'reached: ' || inet_server_addr()"
+        mysql -h 192.168.1.249 -u oneadmin -p'ujep-one-init' -BNe "
+          SELECT @@wsrep_node_name, @@hostname"
+        echo '---cluster_size (STATUS not SYSVAR)---'
+        mysql -h 192.168.1.249 -u oneadmin -p'ujep-one-init' -BNe "
+          SHOW STATUS LIKE 'wsrep_cluster_size'"
       register: vip_test
       changed_when: false
 
-    - name: Show VIP state + which head is leader
+    - name: Show VIP state + cluster
       shell: |
         ip -4 addr show | grep -E '192.168.1.249' || echo 'VIP not on this host'
-        echo '---patroni---'
-        patronictl -c /etc/patroni/patroni.yml list
+        echo '---wsrep---'
+        mysql -uroot -e "SHOW STATUS WHERE Variable_name IN (
+          'wsrep_cluster_size',
+          'wsrep_cluster_status',
+          'wsrep_incoming_addresses');"
       register: vip_state
       changed_when: false
 
@@ -201,18 +205,18 @@
       debug:
         msg: |
           ============================================================
-          Postgres VIP active
+          MariaDB VIP active
           ============================================================
-          VIP test (via 192.168.1.249:5432):
+          VIP test (via 192.168.1.249:3306):
+            wsrep_node_name | cluster_size | hostname
             {{ vip_test.stdout }}
 
           {{ vip_state.stdout }}
 
-          OpenNebula's oned.conf (stage 11) will point at:
-            SERVER = "192.168.1.249", PORT = 5432
+          OpenNebula's oned.conf (stage 10) will point at:
+            SERVER = "192.168.1.249", PORT = 3306, BACKEND = "mysql"
 
-          Failover paths now covered:
-            - Postgres primary dies     → Patroni promotes other head (~30 s)
+          Failover paths covered:
+            - Active Galera node dies   → HAProxy promotes next backup (~6 s = 2 checks × 3 s)
             - VIP-holder head dies      → keepalived raises VIP on other head (~1 s)
-            - Both happen at once       → both layers recover independently
           ============================================================
