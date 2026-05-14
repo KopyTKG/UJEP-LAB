@@ -152,6 +152,7 @@ Working K3s deployment on Lustre, abandoned in favor of full kubeadm. Files reta
 14. `stage14_helm_monitoring.yml` — kube-prometheus-stack via Helm
 15. `stage15_rancher.yml` — Rancher Manager for cluster + user management UI
 16. `stage16_rancher_repos.yml` — Curated Helm chart catalog seed (bitnami, grafana, jupyterhub, gitea, harbor, minio, argo, prometheus-community, jetstack)
+17. `stage17_dynamic_provisioner.yml` — local-path-provisioner (sharedFileSystemPath mode) backed by `/mnt/lustre/k8s-volumes`; new default StorageClass `lustre-dynamic` so charts requesting a fresh PVC actually get one
 
 User management is via Rancher. Headlamp was originally deployed in stage 13 but retired in favor of Rancher's built-in multi-backend authentication (local users, OIDC, AD, GitHub) which fits the school-cluster use case. The TLS cert generation and Helm install pieces of stage 13 remain because they're shared infrastructure for stages 14 and 15.
 

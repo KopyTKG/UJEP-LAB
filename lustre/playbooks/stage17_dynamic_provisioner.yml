@@ -1,0 +1,213 @@
+---
+# Stage 17: Dynamic PV provisioning on top of Lustre
+#
+# Stage 10 left us with `lustre` as a `no-provisioner` StorageClass + a few
+# hand-crafted PVs (grafana-data, prometheus-data, lustre-shared). That's fine
+# for cluster-operator pre-arranged volumes, but it doesn't let users (e.g.
+# students deploying a chart from the Rancher catalog) get a PVC fulfilled on
+# demand. PVCs that asked for the `lustre` SC just sat Pending forever.
+#
+# Fix: install Rancher's local-path-provisioner in `sharedFileSystemPath` mode
+# pointed at `/mnt/lustre/k8s-volumes`. Each PVC gets its own subdir on Lustre
+# created on demand. Because the backing path exists identically on every node
+# (Lustre is mounted cluster-wide), the provisioner skips the per-node affinity
+# it normally adds, so pods can be scheduled anywhere.
+#
+# Resulting StorageClass `lustre-dynamic` becomes the new default. The static
+# `lustre` SC is kept around (no longer default) for the existing curated PVs
+# and any future workload that wants to bind a pre-created PV.
+
+- name: Install local-path-provisioner backed by Lustre
+  hosts: Rocky-Head-1
+  become: yes
+
+  vars:
+    base_dir: /mnt/lustre/k8s-volumes
+    sc_name: lustre-dynamic
+    namespace: local-path-storage
+    image: rancher/local-path-provisioner:v0.0.30
+
+  tasks:
+    - name: Ensure base dir on Lustre exists
+      file:
+        path: "{{ base_dir }}"
+        state: directory
+        mode: "0777"
+
+    - name: Render local-path-provisioner manifest
+      copy:
+        dest: /etc/kubernetes/local-path-provisioner.yaml
+        mode: "0644"
+        content: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: {{ namespace }}
+          ---
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: local-path-provisioner-service-account
+            namespace: {{ namespace }}
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: local-path-provisioner-role
+          rules:
+            - apiGroups: [""]
+              resources: [nodes, persistentvolumeclaims, configmaps, pods, pods/log]
+              verbs: [get, list, watch]
+            - apiGroups: [""]
+              resources: [persistentvolumes]
+              verbs: [get, list, watch, create, patch, update, delete]
+            - apiGroups: [""]
+              resources: [events]
+              verbs: [create, patch]
+            - apiGroups: [""]
+              resources: [endpoints, pods]
+              verbs: [create, delete]
+            - apiGroups: [storage.k8s.io]
+              resources: [storageclasses]
+              verbs: [get, list, watch]
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: local-path-provisioner-bind
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: local-path-provisioner-role
+          subjects:
+            - kind: ServiceAccount
+              name: local-path-provisioner-service-account
+              namespace: {{ namespace }}
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: local-path-provisioner
+            namespace: {{ namespace }}
+          spec:
+            replicas: 1
+            selector:
+              matchLabels: {app: local-path-provisioner}
+            template:
+              metadata:
+                labels: {app: local-path-provisioner}
+              spec:
+                serviceAccountName: local-path-provisioner-service-account
+                tolerations:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+                    effect: NoSchedule
+                containers:
+                  - name: local-path-provisioner
+                    image: {{ image }}
+                    imagePullPolicy: IfNotPresent
+                    command:
+                      - local-path-provisioner
+                      - --debug
+                      - start
+                      - --config
+                      - /etc/config/config.json
+                      - --provisioner-name
+                      - rancher.io/lustre-dynamic
+                    volumeMounts:
+                      - name: config-volume
+                        mountPath: /etc/config/
+                      - name: lustre
+                        mountPath: {{ base_dir }}
+                    env:
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                volumes:
+                  - name: config-volume
+                    configMap:
+                      name: local-path-config
+                  - name: lustre
+                    hostPath:
+                      path: {{ base_dir }}
+                      type: Directory
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: local-path-config
+            namespace: {{ namespace }}
+          data:
+            config.json: |-
+              {
+                "sharedFileSystemPath": "{{ base_dir }}"
+              }
+            setup: |-
+              #!/bin/sh
+              set -eu
+              mkdir -m 0777 -p "$VOL_DIR"
+            teardown: |-
+              #!/bin/sh
+              set -eu
+              rm -rf "$VOL_DIR"
+            helperPod.yaml: |-
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: helper-pod
+              spec:
+                containers:
+                  - name: helper-pod
+                    image: busybox
+                    imagePullPolicy: IfNotPresent
+          ---
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: {{ sc_name }}
+            annotations:
+              storageclass.kubernetes.io/is-default-class: "true"
+          provisioner: rancher.io/lustre-dynamic
+          reclaimPolicy: Delete
+          volumeBindingMode: WaitForFirstConsumer
+
+    - name: Apply manifest
+      command: kubectl apply -f /etc/kubernetes/local-path-provisioner.yaml
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: Demote old `lustre` SC from default
+      command: >
+        kubectl patch storageclass lustre
+        -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: Wait for provisioner deployment
+      command: >
+        kubectl wait --for=condition=available deployment/local-path-provisioner
+        -n {{ namespace }} --timeout=180s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: Show storage classes
+      command: kubectl get sc
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: sc_out
+      changed_when: false
+
+    - name: Display
+      debug:
+        msg: |
+          ============================================================
+          Dynamic provisioning on Lustre ready
+          ============================================================
+          Default SC: {{ sc_name }}  (provisioner: rancher.io/lustre-dynamic)
+          Backing path: {{ base_dir }}  (subdir per PVC)
+          Old `lustre` SC: kept, no longer default (still valid for the
+                          hand-curated PVs: lustre-shared, grafana-data,
+                          prometheus-data)
+          {{ sc_out.stdout }}
+          ============================================================

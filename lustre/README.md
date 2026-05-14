@@ -56,6 +56,7 @@ Replaces the prior K3s deployment (stages 7-11, kept on disk for reference: `sta
 | 14 | `stage14_helm_monitoring.yml` | kube-prometheus-stack via Helm |
 | 15 | `stage15_rancher.yml` | Rancher Manager (cluster + user management UI) |
 | 16 | `stage16_rancher_repos.yml` | Curated Helm chart catalog (bitnami, grafana, jupyterhub, gitea, harbor, minio, argo, etc.) |
+| 17 | `stage17_dynamic_provisioner.yml` | local-path-provisioner in `sharedFileSystemPath` mode → dynamic PVs as Lustre subdirs (SC `lustre-dynamic`, default) |
 
 ### Common utilities (`playbooks/common/`)
 
