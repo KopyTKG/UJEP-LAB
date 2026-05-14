@@ -101,6 +101,8 @@
   hosts: all
   become: yes
   gather_facts: no
+  vars:
+    opennebula_version: "6.10"
   tasks:
     - name: Confirm OpenNebula repo is reachable
       command: dnf info opennebula
