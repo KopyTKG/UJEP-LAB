@@ -1,0 +1,6 @@
+---
+# Ansible Galaxy dependencies. Install with: `just deps` (or `mise run setup`).
+collections:
+  - name: community.general
+    version: ">=9.0.0"
+  - name: community.mysql

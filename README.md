@@ -44,3 +44,16 @@
 <td>RDMA over InfiniBand achieved via BTF-stripped stock IB modules; FLR for node-level redundancy; cold-boot stabilized via <code>lustre-startup.service</code> (binds the loop10 MGS, discovers MDT by volume label, race-tolerant OST mount). The only candidate that meets performance + redundancy + RDMA + stability simultaneously. See <a href="docs/Lustre.md">docs/Lustre.md</a>.</td>
 </tr>
 </table>
+
+## Running the Ansible projects
+
+```bash
+mise install                 # Python + .venv
+just deps                    # Ansible + collections
+just ping                    # reach all nodes (default project: opennebula)
+just up / just update / just down   # power on / update packages / shut down the cluster
+just stage 8                 # run playbooks/stage8_*.yml
+just play common/reboot.yml  # any playbook under playbooks/
+just check stage8_mariadb_galera.yml
+just project=lustre ping     # target another project dir
+```

@@ -14,3 +14,13 @@
       wait_for_connection:
         delay: 30
         timeout: 300
+
+    # Reboot only counts as good if Lustre is back too (cold-boot failure,
+    # thesis note 15: node was up over SSH but never mounted).
+    - name: Wait for /mnt/lustre to be mounted
+      command: mountpoint -q /mnt/lustre
+      register: lustre_mount
+      until: lustre_mount.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false

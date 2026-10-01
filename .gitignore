@@ -1,2 +1,8 @@
 testing/
 group_vars/
+
+# Python venv (managed by mise)
+.venv/
+.ansible/
+*.retry
+mise.local.toml

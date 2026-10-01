@@ -1,0 +1,14 @@
+[tools]
+python = "3.13"
+
+[env]
+# Repo-local venv so Ansible stays isolated to this project.
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.setup]
+description = "Create the venv and install all Python + Galaxy dependencies"
+run = [
+  # pyghmi backs community.general.ipmi_power (common/startup.yml)
+  "pip install ansible passlib pyghmi",
+  "ansible-galaxy install -r requirements.yml",
+]

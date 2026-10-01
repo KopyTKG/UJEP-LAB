@@ -2,6 +2,7 @@
 - name: Update All Cluster Nodes
   hosts: cluster
   become: yes
+  serial: 1  # one node at a time; a failure stops the rest
 
   tasks:
     - name: Update all packages
@@ -9,6 +10,16 @@
         name: "*"
         state: latest
         update_cache: yes
+        skip_broken: true  # skip anything else tied to the excluded kernel
+        # Never move off the pinned Lustre kernel: a new kernel becomes the
+        # boot default (UPDATEDEFAULT=yes) and has no Lustre/IB modules.
+        exclude:
+          - "kernel*"
+          - "lustre*"
+          - "kmod-lustre*"
+          - "kmod-kvdo*"   # needs the 9.8 kernel-modules we exclude
+          - "*doca*"
+          - "*mlnx*"
       register: update_result
 
     - name: Show update results
