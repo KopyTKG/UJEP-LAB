@@ -1,0 +1,18 @@
+---
+# IPMI power control for a chosen set of nodes (used by tools/stability.py).
+#   ansible-playbook playbooks/common/power.yml -e '{"nodes":["Rocky-Compute-5"],"power_state":"off"}'
+# power_state: on | off (hard power-off, no clean shutdown) | boot
+- name: IPMI power control
+  hosts: localhost
+  gather_facts: no
+  vars:
+    nodes: []
+    power_state: "on"
+  tasks:
+    - name: "Power {{ power_state }}"
+      community.general.ipmi_power:
+        name: "{{ hostvars[item].ipmi_host }}"
+        user: "{{ hostvars[item].ipmi_user }}"
+        password: "{{ ipmi_pass }}"
+        state: "{{ power_state }}"
+      loop: "{{ nodes }}"

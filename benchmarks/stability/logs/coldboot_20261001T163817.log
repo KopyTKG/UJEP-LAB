@@ -1,0 +1,1024 @@
+# coldboot started 2026-10-01T16:38:17+0200 argv=['tools/stability.py', 'coldboot', '--runs', '3', '--head1-delay', '10']
+
+=== run 1/3 (graceful shutdown, head1_delay=10s, integrity=0)
+$ ansible-playbook playbooks/common/shutdown.yml
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-2]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Timeout exceeded when getting mount info for /mnt/lustre
+ok: [Rocky-Compute-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+[ERROR]: Task failed: Module failed: The command exited with a non-zero return code.
+Origin: /home/kopy/Projects/UJEP-LAB/opennebula/playbooks/common/shutdown.yml:8:7
+
+6
+7   tasks:
+8     - name: Unmount Lustre filesystems on clients
+        ^ column 7
+
+fatal: [Rocky-Compute-2]: FAILED! => {"changed": true, "cmd": ["umount", "-l", "/mnt/lustre"], "delta": "0:00:00.004085", "end": "2026-10-01 16:39:05.285605", "msg": "The command exited with a non-zero return code.", "rc": 32, "start": "2026-10-01 16:39:05.281520", "stderr": "umount: /mnt/lustre: not mounted.", "stderr_lines": ["umount: /mnt/lustre: not mounted."], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-3]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-3]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-3]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-4]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-4]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-4]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-5]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-5]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-5]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-6]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-6]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-6]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-7]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-7]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-7]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-8]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-8]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-8]
+
+PLAY RECAP *********************************************************************
+Rocky-Compute-1            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-2            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1   
+Rocky-Compute-3            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-4            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-5            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-6            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-7            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-8            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-1               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+Rocky-Head-2               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-2", "Rocky-Compute-1", "Rocky-Compute-2", "Rocky-Compute-3", "Rocky-Compute-4", "Rocky-Compute-5", "Rocky-Compute-6", "Rocky-Compute-7", "Rocky-Compute-8"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-2)
+changed: [localhost] => (item=Rocky-Compute-1)
+changed: [localhost] => (item=Rocky-Compute-2)
+changed: [localhost] => (item=Rocky-Compute-3)
+changed: [localhost] => (item=Rocky-Compute-4)
+changed: [localhost] => (item=Rocky-Compute-5)
+changed: [localhost] => (item=Rocky-Compute-6)
+changed: [localhost] => (item=Rocky-Compute-7)
+changed: [localhost] => (item=Rocky-Compute-8)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  holding Rocky-Head-1 off for 10s
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-1"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-1)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  power-on commands done 55s after the first one
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=   73s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=  100s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  127s  reachable 3/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  154s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  177s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  201s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  224s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  248s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=32 unreachable=False stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  270s  reachable 10/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=0 unreachable=False stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  292s  reachable 10/10  mounted 1/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=0 unreachable=False stdout=''
+  [Rocky-Head-1] rc=0 unreachable=False stdout=''
+  [Rocky-Head-2] rc=0 unreachable=False stdout=''
+  t=  314s  reachable 10/10  mounted 10/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a "echo NOW=$(date +%s.%N); echo BTIME=$(awk '/^btime/{print $2}' /proc/stat); journalctl -u lustre-startup -b -o short-unix --no-pager 2>/dev/null | grep -E 'startup begin|Waiting for MGS|MGS reachable|startup complete|FATAL'"
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='NOW=1790865955.295462434\nBTIME=1790865742\n1790865757.995482 Rocky-Compute-1 lustre-startup[2237]: <13>Oct  1 16:42:37 lustre-startup: Lustre startup begin (host=Rocky-Compute-1)\n1790865758.061785 Rocky-Compute-1 lustre-startup[2303]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865758.062018 Rocky-Compute-1 lustre-startup[2303]: <13>Oct  1 16:42:38 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865899.955730 Rocky-Compute-1 lustre-startup[5438]: <13>Oct  1 16:44:59 lustre-startup: MGS reachable after 141s\n1790865933.210241 Rocky-Compute-1 lustre-startup[6019]: <13>Oct  1 16:45:33 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='NOW=1790865955.242232676\nBTIME=1790865745\n1790865760.306102 Rocky-Compute-2 lustre-startup[2124]: <13>Oct  1 16:42:40 lustre-startup: Lustre startup begin (host=Rocky-Compute-2)\n1790865760.340996 Rocky-Compute-2 lustre-startup[2161]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865760.341224 Rocky-Compute-2 lustre-startup[2161]: <13>Oct  1 16:42:40 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865899.956850 Rocky-Compute-2 lustre-startup[5353]: <13>Oct  1 16:44:59 lustre-startup: MGS reachable after 139s\n1790865934.716200 Rocky-Compute-2 lustre-startup[5940]: <13>Oct  1 16:45:34 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='NOW=1790865955.452431170\nBTIME=1790865750\n1790865765.562333 Rocky-Compute-3 lustre-startup[2122]: <13>Oct  1 16:42:45 lustre-startup: Lustre startup begin (host=Rocky-Compute-3)\n1790865765.588896 Rocky-Compute-3 lustre-startup[2153]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865765.589132 Rocky-Compute-3 lustre-startup[2153]: <13>Oct  1 16:42:45 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865900.086989 Rocky-Compute-3 lustre-startup[5147]: <13>Oct  1 16:45:00 lustre-startup: MGS reachable after 135s\n1790865936.653074 Rocky-Compute-3 lustre-startup[5743]: <13>Oct  1 16:45:36 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='NOW=1790865955.779069332\nBTIME=1790865755\n1790865770.510794 Rocky-Compute-4 lustre-startup[2133]: <13>Oct  1 16:42:50 lustre-startup: Lustre startup begin (host=Rocky-Compute-4)\n1790865770.545152 Rocky-Compute-4 lustre-startup[2167]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865770.545345 Rocky-Compute-4 lustre-startup[2167]: <13>Oct  1 16:42:50 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865898.974574 Rocky-Compute-4 lustre-startup[5122]: <13>Oct  1 16:44:58 lustre-startup: MGS reachable after 128s\n1790865936.524888 Rocky-Compute-4 lustre-startup[5723]: Lustre startup complete\n1790865936.525217 Rocky-Compute-4 lustre-startup[5723]: <13>Oct  1 16:45:36 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='NOW=1790865956.030240028\nBTIME=1790865763\n1790865778.642816 Rocky-Compute-5 lustre-startup[2120]: <13>Oct  1 16:42:58 lustre-startup: Lustre startup begin (host=Rocky-Compute-5)\n1790865778.678449 Rocky-Compute-5 lustre-startup[2153]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865778.678679 Rocky-Compute-5 lustre-startup[2153]: <13>Oct  1 16:42:58 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865899.813758 Rocky-Compute-5 lustre-startup[5076]: <13>Oct  1 16:44:59 lustre-startup: MGS reachable after 121s\n1790865940.947840 Rocky-Compute-5 lustre-startup[5682]: Lustre startup complete\n1790865940.948067 Rocky-Compute-5 lustre-startup[5682]: <13>Oct  1 16:45:40 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='NOW=1790865955.807853554\nBTIME=1790865766\n1790865785.902920 Rocky-Compute-6 lustre-startup[2171]: <13>Oct  1 16:43:05 lustre-startup: Lustre startup begin (host=Rocky-Compute-6)\n1790865785.937840 Rocky-Compute-6 lustre-startup[2209]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865785.938083 Rocky-Compute-6 lustre-startup[2209]: <13>Oct  1 16:43:05 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865899.955712 Rocky-Compute-6 lustre-startup[5028]: <13>Oct  1 16:44:59 lustre-startup: MGS reachable after 114s\n1790865935.225553 Rocky-Compute-6 lustre-startup[5621]: <13>Oct  1 16:45:35 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='NOW=1790865955.841804268\nBTIME=1790865770\n1790865786.153573 Rocky-Compute-7 lustre-startup[2128]: <13>Oct  1 16:43:06 lustre-startup: Lustre startup begin (host=Rocky-Compute-7)\n1790865786.186323 Rocky-Compute-7 lustre-startup[2167]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865786.186591 Rocky-Compute-7 lustre-startup[2167]: <13>Oct  1 16:43:06 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865899.955359 Rocky-Compute-7 lustre-startup[5043]: <13>Oct  1 16:44:59 lustre-startup: MGS reachable after 113s\n1790865939.240800 Rocky-Compute-7 lustre-startup[5654]: Lustre startup complete\n1790865939.241056 Rocky-Compute-7 lustre-startup[5654]: <13>Oct  1 16:45:39 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='NOW=1790865956.204874862\nBTIME=1790865777\n1790865792.773494 Rocky-Compute-8 lustre-startup[2167]: <13>Oct  1 16:43:12 lustre-startup: Lustre startup begin (host=Rocky-Compute-8)\n1790865792.829357 Rocky-Compute-8 lustre-startup[2243]: Waiting for MGS at 10.0.0.251@o2ib...\n1790865792.829615 Rocky-Compute-8 lustre-startup[2243]: <13>Oct  1 16:43:12 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865898.388403 Rocky-Compute-8 lustre-startup[4992]: <13>Oct  1 16:44:58 lustre-startup: MGS reachable after 106s\n1790865934.912186 Rocky-Compute-8 lustre-startup[5573]: Lustre startup complete\n1790865934.912397 Rocky-Compute-8 lustre-startup[5573]: <13>Oct  1 16:45:34 lustre-startup: Lustre startup complete'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='NOW=1790865955.248058640\nBTIME=1790865881\n1790865898.320279 Rocky-Head-1 lustre-startup[2198]: <13>Oct  1 16:44:58 lustre-startup: Lustre startup begin (host=Rocky-Head-1)\n1790865930.941685 Rocky-Head-1 lustre-startup[4288]: Lustre startup complete\n1790865930.941903 Rocky-Head-1 lustre-startup[4288]: <13>Oct  1 16:45:30 lustre-startup: Lustre startup complete'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='NOW=1790865955.267571228\nBTIME=1790865734\n1790865750.056025 Rocky-Head-2 lustre-startup[2177]: <13>Oct  1 16:42:30 lustre-startup: Lustre startup begin (host=Rocky-Head-2)\n1790865750.096536 Rocky-Head-2 lustre-startup[2219]: <13>Oct  1 16:42:30 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790865898.390802 Rocky-Head-2 lustre-startup[5260]: <13>Oct  1 16:44:58 lustre-startup: MGS reachable after 148s\n1790865935.025573 Rocky-Head-2 lustre-startup[6041]: Lustre startup complete\n1790865935.025761 Rocky-Head-2 lustre-startup[6041]: <13>Oct  1 16:45:35 lustre-startup: Lustre startup complete'
+
+  node              boot_s  begin_s mgswait_s mounted_s fatal
+  Rocky-Head-1         241      258                 291     0
+  Rocky-Head-2          94      110       148       295     0
+  Rocky-Compute-1      102      118       142       293     0
+  Rocky-Compute-2      105      120       140       295     0
+  Rocky-Compute-3      110      125       134       296     0
+  Rocky-Compute-4      114      130       128       296     0
+  Rocky-Compute-5      122      138       121       300     0
+  Rocky-Compute-6      125      145       114       295     0
+  Rocky-Compute-7      129      145       114       299     0
+  Rocky-Compute-8      136      152       106       294     0
+$ ansible cluster -m shell -a 'echo "KERNEL=$(uname -r)"; echo "UNIT=$(systemctl is-active lustre-startup)";\nmountpoint -q /mnt/lustre && echo MOUNT=yes || echo MOUNT=no;\necho "OSTS=$(lctl dl 2>/dev/null | grep -c obdfilter)"; echo "NID=$(lctl list_nids 2>/dev/null | grep o2ib)";\necho "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E \'LustreError|LNetError|Call Trace|BUG:|soft lockup\')";\nfor f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do\n  echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.1@o2ib\nDMESG_ERR=20\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.2@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.3@o2ib\nDMESG_ERR=18\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.4@o2ib\nDMESG_ERR=18\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.5@o2ib\nDMESG_ERR=15\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.6@o2ib\nDMESG_ERR=16\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.7@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.8@o2ib\nDMESG_ERR=15\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.251@o2ib\nDMESG_ERR=7\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.252@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+$ ansible Rocky-Head-1 -m shell -a 'timeout 90 lfs df 2>&1'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='UUID                   1K-blocks        Used   Available Use%  Mounted on\nlustrefs-MDT0000_UUID    70201032        2884    63931272   1%  /mnt/lustre[MDT:0] \nlustrefs-MDT0001_UUID    70201032        2792    63931364   1%  /mnt/lustre[MDT:1] \nlustrefs-OST0000_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:0] \nlustrefs-OST0001_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:1] \nlustrefs-OST0002_UUID   245171652        1556   232650760   1%  /mnt/lustre[OST:2] \nlustrefs-OST0003_UUID   245171652        1540   232650776   1%  /mnt/lustre[OST:3] \nlustrefs-OST0004_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:4] \nlustrefs-OST0005_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:5] \nlustrefs-OST0006_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:6] \nlustrefs-OST0007_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:7] \nlustrefs-OST0008_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:8] \nlustrefs-OST0009_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:9] \nlustrefs-OST000a_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:10] \nlustrefs-OST000b_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:11] \nlustrefs-OST000c_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:12] \nlustrefs-OST000d_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:13] \nlustrefs-OST000e_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:14] \nlustrefs-OST000f_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:15] \n\nfilesystem_summary:   3922746432       24752  3722412304   1%  /mnt/lustre'
+--- after run 1: HEALTHY  (lfs df: 16 OST, 2 MDT, 3922746432)
+  Rocky-Head-1     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=7 nid=10.0.0.251@o2ib
+  Rocky-Head-2     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=10 nid=10.0.0.252@o2ib
+  Rocky-Compute-1  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=20 nid=10.0.0.1@o2ib
+  Rocky-Compute-2  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.2@o2ib
+  Rocky-Compute-3  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=18 nid=10.0.0.3@o2ib
+  Rocky-Compute-4  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=18 nid=10.0.0.4@o2ib
+  Rocky-Compute-5  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=15 nid=10.0.0.5@o2ib
+  Rocky-Compute-6  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=16 nid=10.0.0.6@o2ib
+  Rocky-Compute-7  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.7@o2ib
+  Rocky-Compute-8  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=15 nid=10.0.0.8@o2ib
+=== run 1: 10/10 mounted
+
+=== run 2/3 (graceful shutdown, head1_delay=10s, integrity=0)
+$ ansible-playbook playbooks/common/shutdown.yml
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Timeout exceeded when getting mount info for /mnt/lustre
+ok: [Rocky-Head-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-2]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-2]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-3]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-3]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-3]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-4]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-4]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-4]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-5]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-5]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-5]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-6]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-6]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-6]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-7]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-7]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-7]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-8]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-8]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-8]
+
+PLAY RECAP *********************************************************************
+Rocky-Compute-1            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-2            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-3            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-4            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-5            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-6            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-7            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-8            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-1               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+Rocky-Head-2               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-2", "Rocky-Compute-1", "Rocky-Compute-2", "Rocky-Compute-3", "Rocky-Compute-4", "Rocky-Compute-5", "Rocky-Compute-6", "Rocky-Compute-7", "Rocky-Compute-8"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-2)
+changed: [localhost] => (item=Rocky-Compute-1)
+changed: [localhost] => (item=Rocky-Compute-2)
+changed: [localhost] => (item=Rocky-Compute-3)
+changed: [localhost] => (item=Rocky-Compute-4)
+changed: [localhost] => (item=Rocky-Compute-5)
+changed: [localhost] => (item=Rocky-Compute-6)
+changed: [localhost] => (item=Rocky-Compute-7)
+changed: [localhost] => (item=Rocky-Compute-8)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  holding Rocky-Head-1 off for 10s
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-1"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-1)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  power-on commands done 57s after the first one
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=   75s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=  102s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  129s  reachable 3/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  154s  reachable 7/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  178s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  201s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  225s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  248s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=32 unreachable=False stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  271s  reachable 10/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=0 unreachable=False stdout=''
+  [Rocky-Head-1] rc=0 unreachable=False stdout=''
+  [Rocky-Head-2] rc=0 unreachable=False stdout=''
+  t=  293s  reachable 10/10  mounted 10/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a "echo NOW=$(date +%s.%N); echo BTIME=$(awk '/^btime/{print $2}' /proc/stat); journalctl -u lustre-startup -b -o short-unix --no-pager 2>/dev/null | grep -E 'startup begin|Waiting for MGS|MGS reachable|startup complete|FATAL'"
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='NOW=1790866412.305464560\nBTIME=1790866220\n1790866236.254777 Rocky-Compute-1 lustre-startup[2262]: <13>Oct  1 16:50:36 lustre-startup: Lustre startup begin (host=Rocky-Compute-1)\n1790866236.321393 Rocky-Compute-1 lustre-startup[2301]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866236.321615 Rocky-Compute-1 lustre-startup[2301]: <13>Oct  1 16:50:36 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866385.401776 Rocky-Compute-1 lustre-startup[5492]: <13>Oct  1 16:53:05 lustre-startup: MGS reachable after 149s\n1790866396.452616 Rocky-Compute-1 lustre-startup[5762]: <13>Oct  1 16:53:16 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='NOW=1790866412.256566200\nBTIME=1790866224\n1790866239.394803 Rocky-Compute-2 lustre-startup[2116]: <13>Oct  1 16:50:39 lustre-startup: Lustre startup begin (host=Rocky-Compute-2)\n1790866239.422256 Rocky-Compute-2 lustre-startup[2148]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866239.422519 Rocky-Compute-2 lustre-startup[2148]: <13>Oct  1 16:50:39 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866384.872081 Rocky-Compute-2 lustre-startup[5378]: <13>Oct  1 16:53:04 lustre-startup: MGS reachable after 145s\n1790866395.213617 Rocky-Compute-2 lustre-startup[5652]: Lustre startup complete\n1790866395.213874 Rocky-Compute-2 lustre-startup[5652]: <13>Oct  1 16:53:15 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='NOW=1790866412.464693169\nBTIME=1790866231\n1790866246.557987 Rocky-Compute-3 lustre-startup[2141]: <13>Oct  1 16:50:46 lustre-startup: Lustre startup begin (host=Rocky-Compute-3)\n1790866246.591359 Rocky-Compute-3 lustre-startup[2174]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866246.591546 Rocky-Compute-3 lustre-startup[2174]: <13>Oct  1 16:50:46 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866385.896276 Rocky-Compute-3 lustre-startup[5192]: <13>Oct  1 16:53:05 lustre-startup: MGS reachable after 139s\n1790866396.333921 Rocky-Compute-3 lustre-startup[5468]: Lustre startup complete\n1790866396.334148 Rocky-Compute-3 lustre-startup[5468]: <13>Oct  1 16:53:16 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='NOW=1790866412.802011326\nBTIME=1790866236\n1790866251.343254 Rocky-Compute-4 lustre-startup[2116]: <13>Oct  1 16:50:51 lustre-startup: Lustre startup begin (host=Rocky-Compute-4)\n1790866251.371266 Rocky-Compute-4 lustre-startup[2148]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866251.371525 Rocky-Compute-4 lustre-startup[2148]: <13>Oct  1 16:50:51 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866386.078243 Rocky-Compute-4 lustre-startup[5144]: <13>Oct  1 16:53:06 lustre-startup: MGS reachable after 135s\n1790866395.211231 Rocky-Compute-4 lustre-startup[5399]: <13>Oct  1 16:53:15 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='NOW=1790866413.045541054\nBTIME=1790866244\n1790866263.185853 Rocky-Compute-5 lustre-startup[2132]: <13>Oct  1 16:51:03 lustre-startup: Lustre startup begin (host=Rocky-Compute-5)\n1790866263.226589 Rocky-Compute-5 lustre-startup[2173]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866263.226810 Rocky-Compute-5 lustre-startup[2173]: <13>Oct  1 16:51:03 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866384.851648 Rocky-Compute-5 lustre-startup[5084]: <13>Oct  1 16:53:04 lustre-startup: MGS reachable after 121s\n1790866396.026569 Rocky-Compute-5 lustre-startup[5356]: Lustre startup complete\n1790866396.026873 Rocky-Compute-5 lustre-startup[5356]: <13>Oct  1 16:53:16 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='NOW=1790866412.869106776\nBTIME=1790866248\n1790866263.806937 Rocky-Compute-6 lustre-startup[2195]: <13>Oct  1 16:51:03 lustre-startup: Lustre startup begin (host=Rocky-Compute-6)\n1790866263.839552 Rocky-Compute-6 lustre-startup[2233]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866263.839722 Rocky-Compute-6 lustre-startup[2233]: <13>Oct  1 16:51:03 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866386.780559 Rocky-Compute-6 lustre-startup[5097]: <13>Oct  1 16:53:06 lustre-startup: MGS reachable after 123s\n1790866396.144654 Rocky-Compute-6 lustre-startup[5373]: <13>Oct  1 16:53:16 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='NOW=1790866412.881340138\nBTIME=1790866254\n1790866273.049254 Rocky-Compute-7 lustre-startup[2131]: Lustre startup begin (host=Rocky-Compute-7)\n1790866273.049709 Rocky-Compute-7 lustre-startup[2131]: <13>Oct  1 16:51:13 lustre-startup: Lustre startup begin (host=Rocky-Compute-7)\n1790866273.081606 Rocky-Compute-7 lustre-startup[2184]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866273.081848 Rocky-Compute-7 lustre-startup[2184]: <13>Oct  1 16:51:13 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866385.898420 Rocky-Compute-7 lustre-startup[4857]: <13>Oct  1 16:53:05 lustre-startup: MGS reachable after 112s\n1790866396.909404 Rocky-Compute-7 lustre-startup[5130]: Lustre startup complete\n1790866396.909697 Rocky-Compute-7 lustre-startup[5130]: <13>Oct  1 16:53:16 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='NOW=1790866413.213463663\nBTIME=1790866259\n1790866274.871818 Rocky-Compute-8 lustre-startup[2202]: <13>Oct  1 16:51:14 lustre-startup: Lustre startup begin (host=Rocky-Compute-8)\n1790866274.929484 Rocky-Compute-8 lustre-startup[2256]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866274.929682 Rocky-Compute-8 lustre-startup[2256]: <13>Oct  1 16:51:14 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866385.899704 Rocky-Compute-8 lustre-startup[4863]: <13>Oct  1 16:53:05 lustre-startup: MGS reachable after 111s\n1790866397.002550 Rocky-Compute-8 lustre-startup[5150]: <13>Oct  1 16:53:17 lustre-startup: Lustre startup complete'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='NOW=1790866412.337279200\nBTIME=1790866367\n1790866384.903276 Rocky-Head-1 lustre-startup[2196]: Lustre startup begin (host=Rocky-Head-1)\n1790866384.903666 Rocky-Head-1 lustre-startup[2196]: <13>Oct  1 16:53:04 lustre-startup: Lustre startup begin (host=Rocky-Head-1)\n1790866391.873737 Rocky-Head-1 lustre-startup[3868]: Lustre startup complete\n1790866391.873936 Rocky-Head-1 lustre-startup[3868]: <13>Oct  1 16:53:11 lustre-startup: Lustre startup complete'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='NOW=1790866412.321744968\nBTIME=1790866212\n1790866228.225794 Rocky-Head-2 lustre-startup[2226]: <13>Oct  1 16:50:28 lustre-startup: Lustre startup begin (host=Rocky-Head-2)\n1790866228.264597 Rocky-Head-2 lustre-startup[2275]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866228.264832 Rocky-Head-2 lustre-startup[2275]: <13>Oct  1 16:50:28 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866386.635008 Rocky-Head-2 lustre-startup[5306]: <13>Oct  1 16:53:06 lustre-startup: MGS reachable after 158s\n1790866399.671155 Rocky-Head-2 lustre-startup[5778]: <13>Oct  1 16:53:19 lustre-startup: Lustre startup complete'
+
+  node              boot_s  begin_s mgswait_s mounted_s fatal
+  Rocky-Head-1         248      266                 273     0
+  Rocky-Head-2          93      110       158       281     0
+  Rocky-Compute-1      101      118       149       278     0
+  Rocky-Compute-2      105      121       145       277     0
+  Rocky-Compute-3      112      128       139       277     0
+  Rocky-Compute-4      117      132       135       276     0
+  Rocky-Compute-5      125      144       122       277     0
+  Rocky-Compute-6      129      145       123       277     0
+  Rocky-Compute-7      135      154       113       278     0
+  Rocky-Compute-8      139      155       111       277     0
+$ ansible cluster -m shell -a 'echo "KERNEL=$(uname -r)"; echo "UNIT=$(systemctl is-active lustre-startup)";\nmountpoint -q /mnt/lustre && echo MOUNT=yes || echo MOUNT=no;\necho "OSTS=$(lctl dl 2>/dev/null | grep -c obdfilter)"; echo "NID=$(lctl list_nids 2>/dev/null | grep o2ib)";\necho "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E \'LustreError|LNetError|Call Trace|BUG:|soft lockup\')";\nfor f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do\n  echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.1@o2ib\nDMESG_ERR=12\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.2@o2ib\nDMESG_ERR=16\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.3@o2ib\nDMESG_ERR=20\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.4@o2ib\nDMESG_ERR=11\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.5@o2ib\nDMESG_ERR=12\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.6@o2ib\nDMESG_ERR=16\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.7@o2ib\nDMESG_ERR=11\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.8@o2ib\nDMESG_ERR=16\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.251@o2ib\nDMESG_ERR=7\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.252@o2ib\nDMESG_ERR=6\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+$ ansible Rocky-Head-1 -m shell -a 'timeout 90 lfs df 2>&1'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='UUID                   1K-blocks        Used   Available Use%  Mounted on\nlustrefs-MDT0000_UUID    70201032        2948    63931208   1%  /mnt/lustre[MDT:0] \nlustrefs-MDT0001_UUID    70201032        2856    63931300   1%  /mnt/lustre[MDT:1] \nlustrefs-OST0000_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:0] \nlustrefs-OST0001_UUID   245171652        1540   232650776   1%  /mnt/lustre[OST:1] \nlustrefs-OST0002_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:2] \nlustrefs-OST0003_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:3] \nlustrefs-OST0004_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:4] \nlustrefs-OST0005_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:5] \nlustrefs-OST0006_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:6] \nlustrefs-OST0007_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:7] \nlustrefs-OST0008_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:8] \nlustrefs-OST0009_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:9] \nlustrefs-OST000a_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:10] \nlustrefs-OST000b_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:11] \nlustrefs-OST000c_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:12] \nlustrefs-OST000d_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:13] \nlustrefs-OST000e_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:14] \nlustrefs-OST000f_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:15] \n\nfilesystem_summary:   3922746432       24736  3722412320   1%  /mnt/lustre'
+--- after run 2: HEALTHY  (lfs df: 16 OST, 2 MDT, 3922746432)
+  Rocky-Head-1     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=7 nid=10.0.0.251@o2ib
+  Rocky-Head-2     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=6 nid=10.0.0.252@o2ib
+  Rocky-Compute-1  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=12 nid=10.0.0.1@o2ib
+  Rocky-Compute-2  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=16 nid=10.0.0.2@o2ib
+  Rocky-Compute-3  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=20 nid=10.0.0.3@o2ib
+  Rocky-Compute-4  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=11 nid=10.0.0.4@o2ib
+  Rocky-Compute-5  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=12 nid=10.0.0.5@o2ib
+  Rocky-Compute-6  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=16 nid=10.0.0.6@o2ib
+  Rocky-Compute-7  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=11 nid=10.0.0.7@o2ib
+  Rocky-Compute-8  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=16 nid=10.0.0.8@o2ib
+=== run 2: 10/10 mounted
+
+=== run 3/3 (graceful shutdown, head1_delay=10s, integrity=0)
+$ ansible-playbook playbooks/common/shutdown.yml
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+skipping: [Rocky-Head-2]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Head-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Timeout exceeded when getting mount info for /mnt/lustre
+ok: [Rocky-Compute-1]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-1]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-1]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-2]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-2]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-2]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-3]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-3]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-3]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-4]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-4]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-4]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-5]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-5]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-5]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-6]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-6]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-6]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-7]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-7]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-7]
+
+PLAY [Gracefully Shutdown Lustre Cluster] **************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-8]
+
+TASK [Unmount Lustre filesystems on clients] ***********************************
+changed: [Rocky-Compute-8]
+
+TASK [Shutdown the node] *******************************************************
+changed: [Rocky-Compute-8]
+
+PLAY RECAP *********************************************************************
+Rocky-Compute-1            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-2            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-3            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-4            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-5            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-6            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-7            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-8            : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-1               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+Rocky-Head-2               : ok=2    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-2", "Rocky-Compute-1", "Rocky-Compute-2", "Rocky-Compute-3", "Rocky-Compute-4", "Rocky-Compute-5", "Rocky-Compute-6", "Rocky-Compute-7", "Rocky-Compute-8"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-2)
+changed: [localhost] => (item=Rocky-Compute-1)
+changed: [localhost] => (item=Rocky-Compute-2)
+changed: [localhost] => (item=Rocky-Compute-3)
+changed: [localhost] => (item=Rocky-Compute-4)
+changed: [localhost] => (item=Rocky-Compute-5)
+changed: [localhost] => (item=Rocky-Compute-6)
+changed: [localhost] => (item=Rocky-Compute-7)
+changed: [localhost] => (item=Rocky-Compute-8)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  holding Rocky-Head-1 off for 10s
+$ ansible-playbook playbooks/common/power.yml -e {"nodes": ["Rocky-Head-1"], "power_state": "on"}
+
+PLAY [IPMI power control] ******************************************************
+
+TASK [Power on] ****************************************************************
+changed: [localhost] => (item=Rocky-Head-1)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+  power-on commands done 57s after the first one
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=   64s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=None unreachable=True stdout=''
+  t=   91s  reachable 0/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=None unreachable=True stdout=''
+  [Rocky-Compute-2] rc=None unreachable=True stdout=''
+  [Rocky-Compute-3] rc=None unreachable=True stdout=''
+  [Rocky-Compute-4] rc=None unreachable=True stdout=''
+  [Rocky-Compute-5] rc=None unreachable=True stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  118s  reachable 1/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=None unreachable=True stdout=''
+  [Rocky-Compute-7] rc=None unreachable=True stdout=''
+  [Rocky-Compute-8] rc=None unreachable=True stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  143s  reachable 6/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  167s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  190s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  214s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  237s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=None unreachable=True stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  261s  reachable 9/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=32 unreachable=False stdout=''
+  [Rocky-Head-1] rc=32 unreachable=False stdout=''
+  [Rocky-Head-2] rc=32 unreachable=False stdout=''
+  t=  283s  reachable 10/10  mounted 0/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=32 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=0 unreachable=False stdout=''
+  [Rocky-Head-1] rc=0 unreachable=False stdout=''
+  [Rocky-Head-2] rc=0 unreachable=False stdout=''
+  t=  305s  reachable 10/10  mounted 9/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a 'mountpoint -q /mnt/lustre'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-2] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-3] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-4] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-5] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-6] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-7] rc=0 unreachable=False stdout=''
+  [Rocky-Compute-8] rc=0 unreachable=False stdout=''
+  [Rocky-Head-1] rc=0 unreachable=False stdout=''
+  [Rocky-Head-2] rc=0 unreachable=False stdout=''
+  t=  327s  reachable 10/10  mounted 10/10
+$ ansible Rocky-Head-1,Rocky-Head-2,Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a "echo NOW=$(date +%s.%N); echo BTIME=$(awk '/^btime/{print $2}' /proc/stat); journalctl -u lustre-startup -b -o short-unix --no-pager 2>/dev/null | grep -E 'startup begin|Waiting for MGS|MGS reachable|startup complete|FATAL'"
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='NOW=1790866875.045832451\nBTIME=1790866649\n1790866664.932088 Rocky-Compute-1 lustre-startup[2260]: <13>Oct  1 16:57:44 lustre-startup: Lustre startup begin (host=Rocky-Compute-1)\n1790866665.028312 Rocky-Compute-1 lustre-startup[2307]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866665.028507 Rocky-Compute-1 lustre-startup[2307]: <13>Oct  1 16:57:45 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.950724 Rocky-Compute-1 lustre-startup[5486]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 147s\n1790866846.900346 Rocky-Compute-1 lustre-startup[5892]: <13>Oct  1 17:00:46 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='NOW=1790866874.959659527\nBTIME=1790866651\n1790866670.428866 Rocky-Compute-2 lustre-startup[2134]: <13>Oct  1 16:57:50 lustre-startup: Lustre startup begin (host=Rocky-Compute-2)\n1790866670.455773 Rocky-Compute-2 lustre-startup[2166]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866670.456029 Rocky-Compute-2 lustre-startup[2166]: <13>Oct  1 16:57:50 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.951503 Rocky-Compute-2 lustre-startup[5377]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 142s\n1790866844.315175 Rocky-Compute-2 lustre-startup[5756]: Lustre startup complete\n1790866844.315469 Rocky-Compute-2 lustre-startup[5756]: <13>Oct  1 17:00:44 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='NOW=1790866875.230442437\nBTIME=1790866658\n1790866673.602697 Rocky-Compute-3 lustre-startup[2116]: <13>Oct  1 16:57:53 lustre-startup: Lustre startup begin (host=Rocky-Compute-3)\n1790866673.630782 Rocky-Compute-3 lustre-startup[2148]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866673.631010 Rocky-Compute-3 lustre-startup[2148]: <13>Oct  1 16:57:53 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.949473 Rocky-Compute-3 lustre-startup[5349]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 139s\n1790866847.146920 Rocky-Compute-3 lustre-startup[5760]: Lustre startup complete\n1790866847.147146 Rocky-Compute-3 lustre-startup[5760]: <13>Oct  1 17:00:47 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='NOW=1790866875.520917595\nBTIME=1790866663\n1790866678.521250 Rocky-Compute-4 lustre-startup[2136]: <13>Oct  1 16:57:58 lustre-startup: Lustre startup begin (host=Rocky-Compute-4)\n1790866678.555807 Rocky-Compute-4 lustre-startup[2168]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866678.556007 Rocky-Compute-4 lustre-startup[2168]: <13>Oct  1 16:57:58 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.948936 Rocky-Compute-4 lustre-startup[5345]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 134s\n1790866847.078244 Rocky-Compute-4 lustre-startup[5752]: <13>Oct  1 17:00:47 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='NOW=1790866875.811030332\nBTIME=1790866670\n1790866685.218217 Rocky-Compute-5 lustre-startup[2125]: <13>Oct  1 16:58:05 lustre-startup: Lustre startup begin (host=Rocky-Compute-5)\n1790866685.253037 Rocky-Compute-5 lustre-startup[2158]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866685.253282 Rocky-Compute-5 lustre-startup[2158]: <13>Oct  1 16:58:05 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.949832 Rocky-Compute-5 lustre-startup[5285]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 127s\n1790866846.900932 Rocky-Compute-5 lustre-startup[5691]: <13>Oct  1 17:00:46 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='NOW=1790866875.548106415\nBTIME=1790866675\n1790866690.954733 Rocky-Compute-6 lustre-startup[2183]: <13>Oct  1 16:58:10 lustre-startup: Lustre startup begin (host=Rocky-Compute-6)\n1790866690.987372 Rocky-Compute-6 lustre-startup[2221]: <13>Oct  1 16:58:10 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.950675 Rocky-Compute-6 lustre-startup[5079]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 122s\n1790866854.474360 Rocky-Compute-6 lustre-startup[5709]: Lustre startup complete\n1790866854.474702 Rocky-Compute-6 lustre-startup[5709]: <13>Oct  1 17:00:54 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='NOW=1790866875.615200828\nBTIME=1790866681\n1790866697.320111 Rocky-Compute-7 lustre-startup[2189]: <13>Oct  1 16:58:17 lustre-startup: Lustre startup begin (host=Rocky-Compute-7)\n1790866697.361625 Rocky-Compute-7 lustre-startup[2226]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866697.361880 Rocky-Compute-7 lustre-startup[2226]: <13>Oct  1 16:58:17 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.952086 Rocky-Compute-7 lustre-startup[5050]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 115s\n1790866847.675320 Rocky-Compute-7 lustre-startup[5461]: Lustre startup complete\n1790866847.675515 Rocky-Compute-7 lustre-startup[5461]: <13>Oct  1 17:00:47 lustre-startup: Lustre startup complete'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='NOW=1790866875.976599184\nBTIME=1790866686\n1790866705.492098 Rocky-Compute-8 lustre-startup[2188]: <13>Oct  1 16:58:25 lustre-startup: Lustre startup begin (host=Rocky-Compute-8)\n1790866705.592843 Rocky-Compute-8 lustre-startup[2224]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866705.593050 Rocky-Compute-8 lustre-startup[2224]: <13>Oct  1 16:58:25 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.947406 Rocky-Compute-8 lustre-startup[5011]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 107s\n1790866847.010269 Rocky-Compute-8 lustre-startup[5418]: <13>Oct  1 17:00:47 lustre-startup: Lustre startup complete'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='NOW=1790866875.010964389\nBTIME=1790866794\n1790866811.563524 Rocky-Head-1 lustre-startup[2191]: <13>Oct  1 17:00:11 lustre-startup: Lustre startup begin (host=Rocky-Head-1)\n1790866844.180518 Rocky-Head-1 lustre-startup[4148]: Lustre startup complete\n1790866844.180691 Rocky-Head-1 lustre-startup[4148]: <13>Oct  1 17:00:44 lustre-startup: Lustre startup complete'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='NOW=1790866875.014619797\nBTIME=1790866640\n1790866655.655045 Rocky-Head-2 lustre-startup[2160]: <13>Oct  1 16:57:35 lustre-startup: Lustre startup begin (host=Rocky-Head-2)\n1790866655.700674 Rocky-Head-2 lustre-startup[2211]: Waiting for MGS at 10.0.0.251@o2ib...\n1790866655.700937 Rocky-Head-2 lustre-startup[2211]: <13>Oct  1 16:57:35 lustre-startup: Waiting for MGS at 10.0.0.251@o2ib...\n1790866812.116288 Rocky-Head-2 lustre-startup[5488]: <13>Oct  1 17:00:12 lustre-startup: MGS reachable after 157s\n1790866849.747540 Rocky-Head-2 lustre-startup[6089]: <13>Oct  1 17:00:49 lustre-startup: Lustre startup complete'
+
+  node              boot_s  begin_s mgswait_s mounted_s fatal
+  Rocky-Head-1         247      265                 298     0
+  Rocky-Head-2          93      109       156       303     0
+  Rocky-Compute-1      102      118       148       300     0
+  Rocky-Compute-2      104      124       142       298     0
+  Rocky-Compute-3      111      127       139       300     0
+  Rocky-Compute-4      116      131       134       300     0
+  Rocky-Compute-5      123      138       128       299     0
+  Rocky-Compute-6      128      144       122       307     0
+  Rocky-Compute-7      134      150       116       300     0
+  Rocky-Compute-8      138      158       107       299     0
+$ ansible cluster -m shell -a 'echo "KERNEL=$(uname -r)"; echo "UNIT=$(systemctl is-active lustre-startup)";\nmountpoint -q /mnt/lustre && echo MOUNT=yes || echo MOUNT=no;\necho "OSTS=$(lctl dl 2>/dev/null | grep -c obdfilter)"; echo "NID=$(lctl list_nids 2>/dev/null | grep o2ib)";\necho "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E \'LustreError|LNetError|Call Trace|BUG:|soft lockup\')";\nfor f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do\n  echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.1@o2ib\nDMESG_ERR=18\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.2@o2ib\nDMESG_ERR=15\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.3@o2ib\nDMESG_ERR=18\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.4@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.5@o2ib\nDMESG_ERR=20\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.6@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.7@o2ib\nDMESG_ERR=21\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.8@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.251@o2ib\nDMESG_ERR=7\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.252@o2ib\nDMESG_ERR=12\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+$ ansible Rocky-Head-1 -m shell -a 'timeout 90 lfs df 2>&1'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='UUID                   1K-blocks        Used   Available Use%  Mounted on\nlustrefs-MDT0000_UUID    70201032        3012    63931144   1%  /mnt/lustre[MDT:0] \nlustrefs-MDT0001_UUID    70201032        2920    63931236   1%  /mnt/lustre[MDT:1] \nlustrefs-OST0000_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:0] \nlustrefs-OST0001_UUID   245171652        1540   232650776   1%  /mnt/lustre[OST:1] \nlustrefs-OST0002_UUID   245171652        1548   232650768   1%  /mnt/lustre[OST:2] \nlustrefs-OST0003_UUID   245171652        1540   232650776   1%  /mnt/lustre[OST:3] \nlustrefs-OST0004_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:4] \nlustrefs-OST0005_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:5] \nlustrefs-OST0006_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:6] \nlustrefs-OST0007_UUID   245171652        1556   232650760   1%  /mnt/lustre[OST:7] \nlustrefs-OST0008_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:8] \nlustrefs-OST0009_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:9] \nlustrefs-OST000a_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:10] \nlustrefs-OST000b_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:11] \nlustrefs-OST000c_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:12] \nlustrefs-OST000d_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:13] \nlustrefs-OST000e_UUID   245171652        1544   232650772   1%  /mnt/lustre[OST:14] \nlustrefs-OST000f_UUID   245171652        1552   232650764   1%  /mnt/lustre[OST:15] \n\nfilesystem_summary:   3922746432       24760  3722412296   1%  /mnt/lustre'
+--- after run 3: HEALTHY  (lfs df: 16 OST, 2 MDT, 3922746432)
+  Rocky-Head-1     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=7 nid=10.0.0.251@o2ib
+  Rocky-Head-2     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=12 nid=10.0.0.252@o2ib
+  Rocky-Compute-1  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=18 nid=10.0.0.1@o2ib
+  Rocky-Compute-2  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=15 nid=10.0.0.2@o2ib
+  Rocky-Compute-3  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=18 nid=10.0.0.3@o2ib
+  Rocky-Compute-4  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.4@o2ib
+  Rocky-Compute-5  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=20 nid=10.0.0.5@o2ib
+  Rocky-Compute-6  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.6@o2ib
+  Rocky-Compute-7  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=21 nid=10.0.0.7@o2ib
+  Rocky-Compute-8  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.8@o2ib
+=== run 3: 10/10 mounted
+RESULT_JSON {"command": "coldboot", "runs": [{"run": 1, "mode": "graceful", "head1_delay": 10, "mounted": 10, "of": 10, "timed_out": false, "never": [], "healthy": true, "problems": [], "fatal_total": 0}, {"run": 2, "mode": "graceful", "head1_delay": 10, "mounted": 10, "of": 10, "timed_out": false, "never": [], "healthy": true, "problems": [], "fatal_total": 0}, {"run": 3, "mode": "graceful", "head1_delay": 10, "mounted": 10, "of": 10, "timed_out": false, "never": [], "healthy": true, "problems": [], "fatal_total": 0}]}
+
+log: /home/kopy/Projects/UJEP-LAB/benchmarks/stability/logs/coldboot_20261001T163817.log

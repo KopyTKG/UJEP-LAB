@@ -5,6 +5,11 @@
 #   Rocky-Head-2: wait for MGS, mount MDT1, mount client
 #   Rocky-Compute-N: wait for MGS, mount OSTs (serially, not parallel), mount client
 #
+# Variables: startup_fix (default true) = real wall-clock deadlines + Restart=on-failure;
+#            false redeploys the legacy buggy behaviour so tests can be run before/after.
+#            mgs_wait_s (600), lnet_wait_s (120) tune the deadlines.
+# Deploying does not restart the unit; it takes effect on the next boot.
+#
 # To deploy on a subset for testing:
 #   ansible-playbook playbooks/setup_lustre_startup.yml --limit "Rocky-Head-1,Rocky-Compute-1"
 
@@ -44,10 +49,37 @@
           log() { logger -t lustre-startup -s "$*"; }
           die() { log "FATAL: $*"; exit 1; }
 
+          {% if startup_fix | default(true) %}
+          # Deadlines use $SECONDS (real wall clock). The legacy loops below counted
+          # loop iterations x a fixed step, so the "300 s" MGS wait really ended after
+          # ~170 s and the "60 s" LNET wait after ~11 s (thesis note 15).
+          wait_for_lnet() {
+              local deadline=$((SECONDS + {{ lnet_wait_s | default(120) }}))
+              log "Waiting for LNET..."
+              # Wrap lctl in 'timeout' — RDMA queue init can wedge lctl indefinitely on cold boot
+              while ! timeout 5 lctl list_nids >/dev/null 2>&1; do
+                  [ $SECONDS -ge $deadline ] && die "LNET not up after {{ lnet_wait_s | default(120) }}s"
+                  sleep 1
+              done
+              log "LNET ready after ${SECONDS}s: $(timeout 5 lctl list_nids | tr '\n' ' ')"
+          }
+
+          wait_for_mgs() {
+              local start=$SECONDS deadline=$((SECONDS + {{ mgs_wait_s | default(600) }}))
+              log "Waiting for MGS at ${MGS_NID}..."
+              # 'timeout 10' bounds each lctl ping — without it, a wedged RDMA QP can hang forever
+              # and the script's own timeout never fires.
+              while ! timeout 10 lctl ping "$MGS_NID" >/dev/null 2>&1; do
+                  [ $SECONDS -ge $deadline ] && die "MGS not reachable after {{ mgs_wait_s | default(600) }}s"
+                  sleep 2
+              done
+              log "MGS reachable after $((SECONDS - start))s"
+          }
+          {% else %}
+          # LEGACY (startup_fix=false): kept only to reproduce the old behaviour in tests.
           wait_for_lnet() {
               local timeout=60 count=0
               log "Waiting for LNET..."
-              # Wrap lctl in 'timeout' — RDMA queue init can wedge lctl indefinitely on cold boot
               while ! timeout 5 lctl list_nids >/dev/null 2>&1; do
                   count=$((count+5))
                   [ $count -ge $timeout ] && die "LNET not up after ${timeout}s"
@@ -59,8 +91,6 @@
           wait_for_mgs() {
               local timeout=300 count=0
               log "Waiting for MGS at ${MGS_NID}..."
-              # 'timeout 10' bounds each lctl ping — without it, a wedged RDMA QP can hang forever
-              # and the script's own timeout never fires.
               while ! timeout 10 lctl ping "$MGS_NID" >/dev/null 2>&1; do
                   count=$((count+10))
                   [ $count -ge $timeout ] && die "MGS not reachable after ${timeout}s"
@@ -68,6 +98,7 @@
               done
               log "MGS reachable"
           }
+          {% endif %}
 
           # Race-tolerant mount helper. Uses mountpoint(8) as ground truth, not mount(8) exit code.
           robust_mount() {
@@ -193,6 +224,9 @@
         content: |
           [Unit]
           Description=Lustre orchestrated startup
+          {% if startup_fix | default(true) %}
+          StartLimitIntervalSec=0
+          {% endif %}
           After=network-online.target opensm.service systemd-modules-load.service remote-fs-pre.target
           Wants=network-online.target
           ConditionPathExists=/usr/local/sbin/lustre-startup
@@ -201,7 +235,15 @@
           Type=oneshot
           ExecStart=/usr/local/sbin/lustre-startup
           RemainAfterExit=yes
+          {% if startup_fix | default(true) %}
+          # A failed start (MGS late, LNET slow) retries instead of leaving the node
+          # up but unmounted until someone notices.
+          Restart=on-failure
+          RestartSec=20
+          TimeoutStartSec=1200
+          {% else %}
           TimeoutStartSec=600
+          {% endif %}
           StandardOutput=journal
           StandardError=journal
 
