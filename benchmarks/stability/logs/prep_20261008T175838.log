@@ -1,0 +1,24 @@
+# prep started 2026-10-08T17:58:38+0200 argv=['tools/stability.py', 'prep']
+$ ansible compute -m shell -a 'dnf install -y fio >/dev/null 2>&1; fio --version'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='fio-3.35'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='fio-3.35'
+  Rocky-Compute-1: fio fio-3.35
+  Rocky-Compute-2: fio fio-3.35
+  Rocky-Compute-3: fio fio-3.35
+  Rocky-Compute-4: fio fio-3.35
+  Rocky-Compute-5: fio fio-3.35
+  Rocky-Compute-6: fio fio-3.35
+  Rocky-Compute-7: fio fio-3.35
+  Rocky-Compute-8: fio fio-3.35
+$ ansible Rocky-Head-1 -m shell -a 'mkdir -p /mnt/lustre/stab && chmod 777 /mnt/lustre/stab && echo ok'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='ok'
+  /mnt/lustre/stab: ok
+RESULT_JSON {"prep": "done"}
+
+log: /home/kopy/Projects/UJEP-LAB/benchmarks/stability/logs/prep_20261008T175838.log
