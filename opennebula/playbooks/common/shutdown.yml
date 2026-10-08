@@ -1,15 +1,45 @@
 ---
-- name: Gracefully Shutdown Lustre Cluster
+# Graceful shutdown in dependency order (the old version shut the heads down first, so the
+# computes' `umount /mnt/lustre` hung for minutes against dead servers, serially on 8 nodes;
+# thesis note 15, 2026-10-08):
+#   1. every node unmounts its Lustre client while all servers are still up
+#   2. computes (OSS) power off together, then we wait until they are gone
+#   3. heads power off one at a time, Head-2 (MDT1) first, Head-1 (MGS + MDT0) last
+
+- name: 1. Unmount the Lustre client everywhere (servers still up)
   hosts: cluster
   become: yes
-  serial: 1
-
   tasks:
-    - name: Unmount Lustre filesystems on clients
-      command: umount -l /mnt/lustre
-      ignore_errors: yes
-      when: inventory_hostname in groups['lustre_clients']
+    - name: Unmount /mnt/lustre
+      command: timeout 120 umount -l /mnt/lustre
+      register: umount_result
+      failed_when: false
+      changed_when: umount_result.rc == 0
 
+- name: 2. Power off the computes (OSS) together
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Shutdown the node
+      community.general.shutdown:
+        delay: 1
+
+    - name: Wait until the node no longer answers SSH
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        state: stopped
+        delay: 5
+        timeout: 300
+      delegate_to: localhost
+      become: no
+
+- name: 3. Power off the heads, Head-1 (MGS + MDT0) last
+  hosts: controller
+  become: yes
+  serial: 1
+  order: reverse_inventory
+  tasks:
     - name: Shutdown the node
       community.general.shutdown:
         delay: 1
