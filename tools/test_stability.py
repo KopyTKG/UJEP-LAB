@@ -55,6 +55,22 @@ class Parsers(unittest.TestCase):
         self.assertEqual(r["probe_failed"], 1)
         self.assertEqual(r["probe_max_latency_s"], 60.0)
 
+    def test_outage_counts(self):
+        rows = S.parse_probe("P 100.0 100.1 rc=0\nP 120.0 121.0 rc=0\nP 121.0 190.0 rc=124\nP 300.0 300.1 rc=0\n")
+        r = S.outage_counts(rows, t_kill=110, t_on=250)
+        self.assertEqual((r["ok"], r["failed"], r["slowest_s"]), (1, 1, 69.0))
+
+    def test_reads(self):
+        txt = ("R 100.0 101.0 /a rc=0\nR 101.0 102.0 /b rc=0\nR 110.0 330.0 /a rc=0\n"
+               "R 330.0 331.0 /b rc=0\nR 331.0 391.0 /c rc=124\n")
+        r = S.analyse_reads(S.parse_reader(txt), t_kill=105, t_on=300)
+        self.assertEqual(r["reads_before_loss"], 2)
+        self.assertEqual(r["reads_ok_during_outage"], 0)
+        self.assertEqual(r["reads_after_return"], 3)
+        self.assertEqual(r["reads_failed_after_return"], 1)
+        self.assertEqual(r["slowest_read_s"], 220.0)
+        self.assertEqual(r["first_read_end_after_kill_s"], 225.0)
+
 
 FAKE_ANSIBLE = r'''#!/usr/bin/env python3
 import json, os, sys

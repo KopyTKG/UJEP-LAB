@@ -1,0 +1,182 @@
+{
+ "victim": "Rocky-Compute-5",
+ "client": "Rocky-Compute-1",
+ "partner": "Rocky-Compute-8",
+ "files": 20,
+ "deactivate": false,
+ "resync": [
+  "R RESYNC stale=20 resynced=20 failed=0 seconds=44",
+  "R MIRRORVERIFY ok=20 mismatch=0 seconds=33"
+ ],
+ "mirror_osts": [
+  8,
+  14
+ ],
+ "recovery_to_mount_s": 138,
+ "reads": {
+  "reads_before_loss": 25,
+  "median_read_s_before": 0.82,
+  "reads_ok_during_outage": 246,
+  "reads_failed_during_outage": 1,
+  "reads_after_return": 74,
+  "reads_failed_after_return": 0,
+  "slowest_read_s": 40.7,
+  "longest_gap_between_reads_s": 40.7,
+  "first_read_end_after_kill_s": 0.5
+ },
+ "outage_s": 240,
+ "settle_s": 2,
+ "verify_after": "V SUMMARY ok=20 bad=0 err=0 seconds=32",
+ "health_after": {
+  "healthy": true,
+  "problems": [],
+  "fs": {
+   "osts": 16,
+   "mdts": 2,
+   "bad": 0,
+   "size": "3922746432"
+  },
+  "nodes": {
+   "Rocky-Head-1": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "0",
+    "NID": "10.0.0.251@o2ib",
+    "DMESG_ERR": "7",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Head-2": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "0",
+    "NID": "10.0.0.252@o2ib",
+    "DMESG_ERR": "8",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-1": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.1@o2ib",
+    "DMESG_ERR": "23",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-2": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.2@o2ib",
+    "DMESG_ERR": "16",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-3": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.3@o2ib",
+    "DMESG_ERR": "21",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-4": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.4@o2ib",
+    "DMESG_ERR": "17",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-5": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.5@o2ib",
+    "DMESG_ERR": "8",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-6": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.6@o2ib",
+    "DMESG_ERR": "15",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-7": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.7@o2ib",
+    "DMESG_ERR": "16",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   },
+   "Rocky-Compute-8": {
+    "KERNEL": "5.14.0-611.13.1_lustre.el9.x86_64",
+    "UNIT": "active",
+    "MOUNT": "yes",
+    "OSTS": "2",
+    "NID": "10.0.0.8@o2ib",
+    "DMESG_ERR": "17",
+    "IB_symbol_error": "0",
+    "IB_link_downed": "0",
+    "IB_port_rcv_errors": "0",
+    "IB_port_xmit_discards": "0",
+    "IB_link_error_recovery": "0",
+    "reachable": true
+   }
+  }
+ }
+}

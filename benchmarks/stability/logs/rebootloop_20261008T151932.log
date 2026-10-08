@@ -1,0 +1,286 @@
+# rebootloop started 2026-10-08T15:19:32+0200 argv=['tools/stability.py', 'rebootloop', '--runs', '2']
+
+=== reboot run 1/2
+$ ansible-playbook playbooks/common/reboot.yml
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-1]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Head-1]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Head-1]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Head-1]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-2]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Head-2]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Head-2]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Head-2]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-1]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-1]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-1]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-1]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-2]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-2]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-2]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-2]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-3]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-3]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-3]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-3]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-4]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-4]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-4]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-4]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-5]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-5]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-5]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-5]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-6]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-6]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-6]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-6]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-7]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-7]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-7]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-7]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Compute-8]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Compute-8]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Compute-8]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Compute-8]
+
+PLAY RECAP *********************************************************************
+Rocky-Compute-1            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-2            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-3            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-4            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-5            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-6            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-7            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Compute-8            : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-1               : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-2               : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+$ ansible cluster -m shell -a 'echo "KERNEL=$(uname -r)"; echo "UNIT=$(systemctl is-active lustre-startup)";\nmountpoint -q /mnt/lustre && echo MOUNT=yes || echo MOUNT=no;\necho "OSTS=$(lctl dl 2>/dev/null | grep -c obdfilter)"; echo "NID=$(lctl list_nids 2>/dev/null | grep o2ib)";\necho "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E \'LustreError|LNetError|Call Trace|BUG:|soft lockup\')";\nfor f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do\n  echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.1@o2ib\nDMESG_ERR=17\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.2@o2ib\nDMESG_ERR=8\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.3@o2ib\nDMESG_ERR=8\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.4@o2ib\nDMESG_ERR=8\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.5@o2ib\nDMESG_ERR=15\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.6@o2ib\nDMESG_ERR=8\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.7@o2ib\nDMESG_ERR=8\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.8@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.251@o2ib\nDMESG_ERR=7\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.252@o2ib\nDMESG_ERR=6\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+$ ansible Rocky-Head-1 -m shell -a 'timeout 90 lfs df 2>&1'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='UUID                   1K-blocks        Used   Available Use%  Mounted on\nlustrefs-MDT0000_UUID    70201032        3544    63930612   1%  /mnt/lustre[MDT:0] \nlustrefs-MDT0001_UUID    70201032        3460    63930696   1%  /mnt/lustre[MDT:1] \nlustrefs-OST0000_UUID   245171652      787988   231864328   1%  /mnt/lustre[OST:0] \nlustrefs-OST0001_UUID   245171652      525836   232126480   1%  /mnt/lustre[OST:1] \nlustrefs-OST0002_UUID   245171652      787992   231864324   1%  /mnt/lustre[OST:2] \nlustrefs-OST0003_UUID   245171652      525836   232126480   1%  /mnt/lustre[OST:3] \nlustrefs-OST0004_UUID   245171652      787988   231864328   1%  /mnt/lustre[OST:4] \nlustrefs-OST0005_UUID   245171652      525840   232126476   1%  /mnt/lustre[OST:5] \nlustrefs-OST0006_UUID   245171652      787988   231864328   1%  /mnt/lustre[OST:6] \nlustrefs-OST0007_UUID   245171652      525844   232126472   1%  /mnt/lustre[OST:7] \nlustrefs-OST0008_UUID   245171652      787988   231864328   1%  /mnt/lustre[OST:8] \nlustrefs-OST0009_UUID   245171652      525840   232126476   1%  /mnt/lustre[OST:9] \nlustrefs-OST000a_UUID   245171652      787984   231864332   1%  /mnt/lustre[OST:10] \nlustrefs-OST000b_UUID   245171652      525840   232126476   1%  /mnt/lustre[OST:11] \nlustrefs-OST000c_UUID   245171652      787984   231864332   1%  /mnt/lustre[OST:12] \nlustrefs-OST000d_UUID   245171652      525840   232126476   1%  /mnt/lustre[OST:13] \nlustrefs-OST000e_UUID   245171652      787984   231864332   1%  /mnt/lustre[OST:14] \nlustrefs-OST000f_UUID   245171652      525840   232126476   1%  /mnt/lustre[OST:15] \n\nfilesystem_summary:   3922746432    10510612  3711926444   1%  /mnt/lustre'
+--- after reboot run 1: HEALTHY  (lfs df: 16 OST, 2 MDT, 3922746432)
+  Rocky-Head-1     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=7 nid=10.0.0.251@o2ib
+  Rocky-Head-2     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=6 nid=10.0.0.252@o2ib
+  Rocky-Compute-1  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=17 nid=10.0.0.1@o2ib
+  Rocky-Compute-2  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=8 nid=10.0.0.2@o2ib
+  Rocky-Compute-3  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=8 nid=10.0.0.3@o2ib
+  Rocky-Compute-4  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=8 nid=10.0.0.4@o2ib
+  Rocky-Compute-5  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=15 nid=10.0.0.5@o2ib
+  Rocky-Compute-6  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=8 nid=10.0.0.6@o2ib
+  Rocky-Compute-7  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=8 nid=10.0.0.7@o2ib
+  Rocky-Compute-8  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.8@o2ib
+
+=== reboot run 2/2
+$ ansible-playbook playbooks/common/reboot.yml
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-1]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Head-1]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Head-1]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+ok: [Rocky-Head-1]
+
+PLAY [Reboot Lustre Cluster] ***************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [Rocky-Head-2]
+
+TASK [Reboot the node] *********************************************************
+changed: [Rocky-Head-2]
+
+TASK [Wait for node to come back online] ***************************************
+ok: [Rocky-Head-2]
+
+TASK [Wait for /mnt/lustre to be mounted] **************************************
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (29 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (28 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (27 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (26 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (25 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (24 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (23 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (22 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (21 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (20 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (19 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (18 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (17 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (16 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (15 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (14 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (13 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (12 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (11 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (10 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (9 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (8 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (7 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (6 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (5 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (4 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (3 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (2 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (1 retries left).
+FAILED - RETRYING: [Rocky-Head-2]: Wait for /mnt/lustre to be mounted (0 retries left).
+[ERROR]: Task failed: Module failed: The command exited with a non-zero return code.
+Origin: /home/kopy/Projects/UJEP-LAB/opennebula/playbooks/common/reboot.yml:20:7
+
+18     # Reboot only counts as good if Lustre is back too (cold-boot failure,
+19     # thesis note 15: node was up over SSH but never mounted).
+20     - name: Wait for /mnt/lustre to be mounted
+         ^ column 7
+
+fatal: [Rocky-Head-2]: FAILED! => {"attempts": 30, "changed": false, "changed_when_result": false, "cmd": ["mountpoint", "-q", "/mnt/lustre"], "delta": "0:00:00.003211", "end": "2026-10-08 15:56:18.867540", "msg": "The command exited with a non-zero return code.", "rc": 32, "start": "2026-10-08 15:56:18.864329", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP *********************************************************************
+Rocky-Head-1               : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Rocky-Head-2               : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+$ ansible cluster -m shell -a 'echo "KERNEL=$(uname -r)"; echo "UNIT=$(systemctl is-active lustre-startup)";\nmountpoint -q /mnt/lustre && echo MOUNT=yes || echo MOUNT=no;\necho "OSTS=$(lctl dl 2>/dev/null | grep -c obdfilter)"; echo "NID=$(lctl list_nids 2>/dev/null | grep o2ib)";\necho "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E \'LustreError|LNetError|Call Trace|BUG:|soft lockup\')";\nfor f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do\n  echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done'
+  [Rocky-Compute-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.1@o2ib\nDMESG_ERR=19\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.2@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-3] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.3@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-4] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.4@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-5] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.5@o2ib\nDMESG_ERR=17\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-6] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.6@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-7] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.7@o2ib\nDMESG_ERR=10\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Compute-8] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=2\nNID=10.0.0.8@o2ib\nDMESG_ERR=12\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-1] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=active\nMOUNT=yes\nOSTS=0\nNID=10.0.0.251@o2ib\nDMESG_ERR=6\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+  [Rocky-Head-2] rc=0 unreachable=False stdout='KERNEL=5.14.0-611.13.1_lustre.el9.x86_64\nUNIT=activating\nMOUNT=no\nOSTS=0\nNID=10.0.0.252@o2ib\nDMESG_ERR=5\nIB_symbol_error=0\nIB_link_downed=0\nIB_port_rcv_errors=0\nIB_port_xmit_discards=0\nIB_link_error_recovery=0'
+$ ansible Rocky-Head-1 -m shell -a 'timeout 90 lfs df 2>&1'
+  [Rocky-Head-1] rc=124 unreachable=False stdout='UUID                   1K-blocks        Used   Available Use%  Mounted on\nlustrefs-MDT0000_UUID    70201032        3576    63930580   1%  /mnt/lustre[MDT:0] '
+--- after reboot run 2: PROBLEMS  (lfs df: 0 OST, 0 MDT, None)
+  Rocky-Head-1     kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=0 dmesg_err=6 nid=10.0.0.251@o2ib
+  Rocky-Head-2     kernel=5.14.0-611.13.1_lustre.el9 unit=activating mount=no  osts=0 dmesg_err=5 nid=10.0.0.252@o2ib
+  Rocky-Compute-1  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=19 nid=10.0.0.1@o2ib
+  Rocky-Compute-2  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.2@o2ib
+  Rocky-Compute-3  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.3@o2ib
+  Rocky-Compute-4  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.4@o2ib
+  Rocky-Compute-5  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=17 nid=10.0.0.5@o2ib
+  Rocky-Compute-6  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.6@o2ib
+  Rocky-Compute-7  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=10 nid=10.0.0.7@o2ib
+  Rocky-Compute-8  kernel=5.14.0-611.13.1_lustre.el9 unit=active  mount=yes osts=2 dmesg_err=12 nid=10.0.0.8@o2ib
+  ! Rocky-Head-2: lustre-startup activating
+  ! Rocky-Head-2: /mnt/lustre not mounted
+  ! lfs df: 0 OST / 0 MDT / 0 inactive
+!! reboot playbook failed; stopping
+RESULT_JSON {"command": "rebootloop", "runs": [{"run": 1, "rc": 0, "elapsed_s": 1501, "healthy": true, "problems": []}, {"run": 2, "rc": 2, "elapsed_s": 701, "healthy": false, "problems": ["Rocky-Head-2: lustre-startup activating", "Rocky-Head-2: /mnt/lustre not mounted", "lfs df: 0 OST / 0 MDT / 0 inactive"]}]}
+
+log: /home/kopy/Projects/UJEP-LAB/benchmarks/stability/logs/rebootloop_20261008T151932.log

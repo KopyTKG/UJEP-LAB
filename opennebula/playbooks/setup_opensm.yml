@@ -1,0 +1,66 @@
+---
+# Subnet manager layout: OpenSM only on the two heads, with explicit priorities.
+#
+# Why: OpenSM was running on all 10 nodes with sm_priority 0, so the master moved with every
+# reboot and a rolling reboot left Head-2's IB port stuck in INIT for ~10 min with both head
+# SMs in STANDBY (thesis note 15, 2026-10-08). With distinct priorities the election is
+# deterministic: Head-1 (14) is master when present, Head-2 (13) takes over when it is not.
+#
+#   ansible-playbook playbooks/setup_opensm.yml            # apply
+#   ansible-playbook playbooks/setup_opensm.yml -e opensm_everywhere=true   # revert: SM on all nodes, priority 0
+#
+# Order matters: heads first (the higher-priority head takes over from whichever node is master
+# now), only then stop the SMs on the computes.
+
+- name: OpenSM on the heads, explicit priorities
+  hosts: controller
+  become: yes
+  serial: 1
+  vars:
+    opensm_priority: "{{ 14 if inventory_hostname == 'Rocky-Head-1' else 13 }}"
+  tasks:
+    - name: Set the SM priority the launcher passes as -p
+      lineinfile:
+        path: /etc/sysconfig/opensm
+        regexp: '^PRIORITY='
+        line: "PRIORITY={{ 0 if (opensm_everywhere | default(false) | bool) else opensm_priority }}"
+      register: prio
+
+    - name: Enable and (re)start opensm
+      systemd:
+        name: opensm
+        enabled: yes
+        state: "{{ 'restarted' if prio.changed else 'started' }}"
+
+    - name: Wait for this node's IB port to be ACTIVE
+      shell: cat /sys/class/infiniband/*/ports/1/state
+      register: ibstate
+      until: "'ACTIVE' in ibstate.stdout"
+      retries: 12
+      delay: 5
+      changed_when: false
+      check_mode: false
+
+- name: Check which SM is master (heads)
+  hosts: controller
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Last SM state transition in the OpenSM log
+      shell: grep -E "Entering (MASTER|STANDBY)" /var/log/opensm.log | tail -1
+      register: smstate
+      changed_when: false
+      failed_when: false
+      check_mode: false
+    - debug:
+        msg: "{{ inventory_hostname }}: {{ smstate.stdout }}"
+
+- name: OpenSM off on the computes
+  hosts: compute
+  become: yes
+  tasks:
+    - name: "{{ 'Keep opensm running (revert)' if (opensm_everywhere | default(false) | bool) else 'Stop and disable opensm' }}"
+      systemd:
+        name: opensm
+        enabled: "{{ opensm_everywhere | default(false) | bool }}"
+        state: "{{ 'started' if (opensm_everywhere | default(false) | bool) else 'stopped' }}"

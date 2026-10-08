@@ -15,6 +15,16 @@
         delay: 30
         timeout: 300
 
+    # The IB port must be ACTIVE before Lustre can start; a port stuck in INIT (no subnet manager
+    # activated it) otherwise only shows up as a Lustre mount timeout (thesis note 15, 2026-10-08).
+    - name: Wait for the InfiniBand port to be ACTIVE
+      shell: cat /sys/class/infiniband/*/ports/1/state
+      register: ib_state
+      until: "'ACTIVE' in ib_state.stdout"
+      retries: 30
+      delay: 10
+      changed_when: false
+
     # Reboot only counts as good if Lustre is back too (cold-boot failure,
     # thesis note 15: node was up over SSH but never mounted).
     - name: Wait for /mnt/lustre to be mounted

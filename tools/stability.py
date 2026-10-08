@@ -12,7 +12,7 @@ Commands:
   prep                       install fio on computes, create /mnt/lustre/stab
   coldboot [--runs N] [--hard] [--head1-delay S] [--integrity N]
   rebootloop [--runs N] [--limit X]
-  nodeloss [--victim NODE] [--files N] [--pre S] [--down S]
+  nodeloss [--victim NODE] [--files N] [--pre S] [--down S]\n  readfail [--victim NODE] [--deactivate]   resynced mirrors first, then lose the node while reading
   soak [--hours H] [--round S]
 
 Clock note: per-node times come from node clocks, corrected with an offset
@@ -233,9 +233,9 @@ def settle(heads, timeout=300, every=15):
 
 # ---------------------------------------------------------------- client scripts
 WRITER = r"""#!/bin/bash
-# usage: writer.sh DIR CHUNK MAXFILES DD_TIMEOUT   (files must be pre-created in DIR as w_NNNNN)
-D=$1; CHUNK=$2; MAX=$3; TMO=$4
-mkdir -p /var/tmp/stab; rm -f /var/tmp/stab/ok_list /var/tmp/stab/fail_list
+# usage: writer.sh DIR CHUNK MAXFILES DD_TIMEOUT [LISTPREFIX]   (files pre-created in DIR as w_NNNNN)
+D=$1; CHUNK=$2; MAX=$3; TMO=$4; PFX=${5:-}
+mkdir -p /var/tmp/stab; rm -f /var/tmp/stab/${PFX}ok_list /var/tmp/stab/${PFX}fail_list
 i=0
 while [ $i -lt $MAX ] && [ ! -e /var/tmp/stab/stop ]; do
   f=$D/w_$(printf %05d $i)
@@ -243,7 +243,7 @@ while [ $i -lt $MAX ] && [ ! -e /var/tmp/stab/stop ]; do
   timeout $TMO dd if=$CHUNK of=$f bs=1M oflag=direct conv=notrunc status=none 2>/var/tmp/stab/dd.err
   rc=$?
   e=$(date +%s.%N)
-  if [ $rc -eq 0 ]; then echo $f >> /var/tmp/stab/ok_list; else echo $f >> /var/tmp/stab/fail_list; fi
+  if [ $rc -eq 0 ]; then echo $f >> /var/tmp/stab/${PFX}ok_list; else echo $f >> /var/tmp/stab/${PFX}fail_list; fi
   echo "W $s $e $f dd_rc=$rc"
   i=$((i+1))
 done
@@ -295,9 +295,28 @@ echo "R MIRRORVERIFY ok=$mv mismatch=$mm seconds=$(( $(date +%s) - s1 ))"
 """
 
 
+READER = r"""#!/bin/bash
+# usage: reader.sh LISTFILE SECONDS  -> reads the listed files round-robin, logs per-file time + rc
+end=$(( $(date +%s) + $2 ))
+while [ $(date +%s) -lt $end ] && [ ! -e /var/tmp/stab/stop ]; do
+  while read -r f; do
+    [ $(date +%s) -ge $end ] && break
+    [ -e /var/tmp/stab/stop ] && break
+    s=$(date +%s.%N)
+    timeout 120 dd if=$f of=/dev/null bs=1M iflag=direct status=none 2>/dev/null
+    rc=$?
+    e=$(date +%s.%N)
+    echo "R $s $e $f rc=$rc"
+  done < "$1"
+done
+echo "R DONE $(date +%s.%N)"
+"""
+
+
 def push_scripts(client):
     ok = all([copy_file(client, WRITER, f"{LOCAL}/writer.sh"), copy_file(client, PROBE, f"{LOCAL}/probe.sh"),
-              copy_file(client, VERIFY, f"{LOCAL}/verify.sh"), copy_file(client, RESYNC, f"{LOCAL}/resync.sh")])
+              copy_file(client, VERIFY, f"{LOCAL}/verify.sh"), copy_file(client, RESYNC, f"{LOCAL}/resync.sh"),
+              copy_file(client, READER, f"{LOCAL}/reader.sh")])
     return ok
 
 
@@ -368,6 +387,44 @@ def analyse_io(writes, probes, t_kill, t_back):
         "probe_median_latency_s": round(statistics.median(pl), 3) if pl else None,
         "t_kill": t_kill, "t_back": t_back,
     }
+
+
+def parse_reader(text, offset=0.0):
+    rows = []
+    for line in text.splitlines():
+        m = re.match(r"R (\d+\.\d+) (\d+\.\d+) (\S+) rc=(\d+)", line)
+        if m:
+            rows.append({"start": float(m[1]) - offset, "end": float(m[2]) - offset,
+                         "file": m[3], "rc": int(m[4])})
+    return rows
+
+
+def analyse_reads(reads, t_kill, t_on):
+    """Reads before the loss, during the outage [t_kill, t_on) and after. Controller-clock epochs."""
+    dur = lambda r: r["end"] - r["start"]
+    before = [r for r in reads if r["end"] < t_kill]
+    during = [r for r in reads if t_kill <= r["end"] < t_on]
+    after = [r for r in reads if r["end"] >= t_on]
+    med = statistics.median(dur(r) for r in before if r["rc"] == 0) if any(r["rc"] == 0 for r in before) else None
+    ends = sorted(r["end"] for r in reads)
+    gaps = [b - a for a, b in zip(ends, ends[1:])]
+    return {
+        "reads_before_loss": len(before), "median_read_s_before": round(med, 2) if med else None,
+        "reads_ok_during_outage": len([r for r in during if r["rc"] == 0]),
+        "reads_failed_during_outage": len([r for r in during if r["rc"] != 0]),
+        "reads_after_return": len(after), "reads_failed_after_return": len([r for r in after if r["rc"] != 0]),
+        "slowest_read_s": round(max((dur(r) for r in reads), default=0), 1),
+        "longest_gap_between_reads_s": round(max(gaps, default=0), 1),
+        "first_read_end_after_kill_s": round(min((r["end"] for r in reads if r["end"] >= t_kill), default=t_kill) - t_kill, 1),
+    }
+
+
+def outage_counts(rows, t_kill, t_on):
+    """ok / failed / slowest for rows (writes or probes) that finished during [t_kill, t_on)."""
+    during = [r for r in rows if t_kill <= r["end"] < t_on]
+    return {"ok": len([r for r in during if r["rc"] == 0]), "failed": len([r for r in during if r["rc"] != 0]),
+            "slowest_s": round(max((r["end"] - r["start"] for r in during), default=0), 1),
+            "total_all_phases": len(rows)}
 
 
 def parse_boot(stdout, ctrl_now):
@@ -481,19 +538,27 @@ def cmd_coldboot(a):
             r = adhoc(client, cmd, timeout=1800).get(client, {})
             say(f"  {r.get('stdout', '').strip()}")
             push_scripts(client)
-        if a.hard:
-            say("  power OFF all (hard)")
-            power(nodes, "off")
-        else:
-            playbook("playbooks/common/shutdown.yml")
-        t = time.time()
-        while any(pingable(ip) for ip in ips.values()):
-            if time.time() - t > 600:
-                say("!! nodes still answering ping 10 min after shutdown; aborting")
-                LOG.result({"error": "shutdown did not complete"})
+        if a.no_shutdown:
+            say("  --no-shutdown: assuming the cluster is already off")
+            if any(pingable(ip) for ip in ips.values()):
+                say("!! some nodes answer ping; refusing to power-on a running cluster")
+                LOG.result({"error": "cluster not off"})
                 return 2
-            time.sleep(5)
-        time.sleep(20)
+            mode = "already-off"
+        else:
+            if a.hard:
+                say("  power OFF all (hard)")
+                power(nodes, "off")
+            else:
+                playbook("playbooks/common/shutdown.yml")
+            t = time.time()
+            while any(pingable(ip) for ip in ips.values()):
+                if time.time() - t > 600:
+                    say("!! nodes still answering ping 10 min after shutdown; aborting")
+                    LOG.result({"error": "shutdown did not complete"})
+                    return 2
+                time.sleep(5)
+            time.sleep(20)
         t_first = time.time()
         if a.head1_delay:
             power([h for h in nodes if h != head1], "on")
@@ -628,7 +693,7 @@ def cmd_nodeloss(a):
     time.sleep(a.down)
     say(f"stopping writer after {a.down}s outage")
     adhoc(client, f"touch {LOCAL}/stop")
-    for _ in range(60):
+    for _ in range(18):  # bounded: a write blocked on a dead OSS must not stretch the outage
         if "W DONE" in fetch(client, f"{LOCAL}/writer.log"):
             break
         time.sleep(10)
@@ -680,6 +745,127 @@ def cmd_nodeloss(a):
         adhoc(client, f"rm -rf {d}", timeout=600)
     path = os.path.join(OUT, f"nodeloss_{LOG.ts}.json")
     json.dump(result, open(path, "w"), indent=1, default=str)
+    LOG.result(result)
+    return 0
+
+
+def cmd_readfail(a):
+    """Resynced mirrors first, THEN lose the node while reading: does the client fail over to the
+    surviving mirror, and does deactivating the dead OST (--deactivate) keep reads/creates going?"""
+    heads, computes, ips = inventory()
+    victim = a.victim
+    cands = [c for c in computes if c != victim]
+    client, partner = cands[0], cands[-1]
+    sub = f"readfail_{LOG.ts}"
+    say(f"victim={victim} client={client} partner={partner} deactivate={a.deactivate}")
+    h0 = health("before", heads, computes)
+    if not h0["healthy"] and not a.force:
+        say("!! cluster not healthy; fix first or pass --force")
+        LOG.result({"error": "unhealthy", "problems": h0["problems"]})
+        return 2
+    ost = discover_osts(computes)
+    if not (ost.get(victim) and ost.get(partner)):
+        say("!! could not discover OSTs; aborting")
+        return 2
+    if not push_scripts(client):
+        say("!! could not push scripts")
+        return 2
+    ref, off = client_prep(client, sub)
+    if ref is None:
+        say("!! client prep failed")
+        return 2
+    d = f"{STAB}/{sub}"
+    A, B = ost[victim][0], ost[partner][0]
+    n = a.files
+    adhoc(client, f"for i in $(seq 0 {n - 1}); do lfs mirror create -N1 -c1 -o {A} -N1 -c1 -o {B} "
+                  f"{d}/w_$(printf %05d $i) || echo CREATEFAIL $i; done", timeout=600)
+    say(f"writing {n} files, then resyncing so BOTH mirrors are valid before the failure")
+    bg(client, f"{LOCAL}/writer.sh {d} {LOCAL}/chunk {n} 240", f"{LOCAL}/writer.log")
+    for _ in range(60):
+        if "W DONE" in fetch(client, f"{LOCAL}/writer.log"):
+            break
+        time.sleep(5)
+    adhoc(client, f"rm -f {LOCAL}/stop")
+    r = adhoc(client, f"{LOCAL}/resync.sh {d}", timeout=3000).get(client, {})
+    rs = [l for l in r.get("stdout", "").splitlines() if l.startswith("R ")]
+    for l in rs:
+        say("  " + l)
+    stale_left = adhoc(client, f"for f in {d}/w_*; do lfs getstripe $f | grep -c stale; done | sort | uniq -c").get(client, {})
+    say(f"  stale component count per file (0 = all in sync): {stale_left.get('stdout', '').strip()!r}")
+    result = {"victim": victim, "client": client, "partner": partner, "files": n,
+              "deactivate": a.deactivate, "resync": rs, "mirror_osts": [A, B]}
+    d2 = f"{STAB}/{sub}_w"
+    adhoc(client, f"mkdir -p {d2} && chmod 777 {d2}; for i in $(seq 0 {a.write_files - 1}); do "
+                  f"lfs mirror create -N1 -c1 -o {A} -N1 -c1 -o {B} {d2}/w_$(printf %05d $i) || echo CREATEFAIL $i; done",
+          timeout=900)
+    bg(client, f"{LOCAL}/reader.sh {LOCAL}/ok_list {a.max_down + a.pre + 60}", f"{LOCAL}/reader.log")
+    bg(client, f"{LOCAL}/writer.sh {d2} {LOCAL}/chunk {a.write_files} 240 w2_", f"{LOCAL}/writer2.log")
+    bg(client, f"{LOCAL}/probe.sh {d}", f"{LOCAL}/probe.log")
+    say(f"reader + writer (mirrored files, primary on {victim}) + create-probe running; losing {victim} in {a.pre}s")
+    time.sleep(a.pre)
+    t_kill = time.time()
+    say(f"*** POWER OFF {victim}")
+    power([victim], "off")
+    deact_cmds = []
+    if a.deactivate:
+        time.sleep(a.deact_after)
+        for o in ost[victim]:
+            for h in heads:
+                deact_cmds.append((h, f"lctl set_param osp.lustrefs-OST{o:04x}-osc-MDT*.active=0"))
+            deact_cmds.append((client, f"lctl set_param osc.lustrefs-OST{o:04x}-osc-*.active=0"))
+        say(f"*** DEACTIVATE {victim}'s OSTs {ost[victim]} on the MDS and the client (+{time.time() - t_kill:.0f}s)")
+        for h, c in deact_cmds:
+            r = adhoc(h, c).get(h, {})
+            say(f"  {h}: {c.split()[-1]} rc={r.get('rc')}")
+    time.sleep(max(0, a.max_down - (time.time() - t_kill)))
+    t_on = time.time()
+    say(f"*** POWER ON {victim} after {t_on - t_kill:.0f}s outage")
+    power([victim], "on")
+    up, mnt, timed_out = wait_mounted([victim], t_on, a.timeout)
+    result["recovery_to_mount_s"] = mnt.get(victim)
+    if a.deactivate:  # always restore normal state
+        for h, c in deact_cmds:
+            adhoc(h, c.replace("active=0", "active=1"))
+        say("  OSTs re-activated")
+    adhoc(client, f"touch {LOCAL}/stop")
+    for _ in range(40):
+        if "R DONE" in fetch(client, f"{LOCAL}/reader.log"):
+            break
+        time.sleep(10)
+    for _ in range(40):
+        if "W DONE" in fetch(client, f"{LOCAL}/writer2.log") and "P DONE" in fetch(client, f"{LOCAL}/probe.log"):
+            break
+        time.sleep(10)
+    rd = parse_reader(fetch(client, f"{LOCAL}/reader.log"), off)
+    wr = parse_writer(fetch(client, f"{LOCAL}/writer2.log"), off)
+    pr = parse_probe(fetch(client, f"{LOCAL}/probe.log"), off)
+    result["reads"] = analyse_reads(rd, t_kill, t_on)
+    result["writes_during_outage"] = outage_counts(wr, t_kill, t_on)
+    result["creates_during_outage"] = outage_counts(pr, t_kill, t_on)
+    result["writes_total_ok"] = len([w for w in wr if w["rc"] == 0])
+    result["writes_failed_files"] = fetch(client, f"{LOCAL}/w2_fail_list").split()
+    result["outage_s"] = round(t_on - t_kill)
+    settle_s, _, _ = settle(heads)
+    result["settle_s"] = settle_s
+    r = adhoc(client, f"rm -f {LOCAL}/stop; {LOCAL}/verify.sh {LOCAL}/ok_list {ref}", timeout=3000).get(client, {})
+    v = [l for l in r.get("stdout", "").splitlines() if l.startswith("V ")]
+    result["verify_after"] = v[-1] if v else "no output"
+    say("verify after: " + result["verify_after"])
+    r = adhoc(client, f"{LOCAL}/verify.sh {LOCAL}/w2_ok_list {ref}", timeout=3000).get(client, {})
+    v = [l for l in r.get("stdout", "").splitlines() if l.startswith("V ")]
+    result["verify_written_during_test"] = v[-1] if v else "no output"
+    say("verify files written during the test: " + result["verify_written_during_test"])
+    result["health_after"] = health("after", heads, computes)
+    say("\n=== reads around the loss")
+    for k, val in result["reads"].items():
+        say(f"  {k}: {val}")
+    say(f"=== writes during outage: {result['writes_during_outage']}")
+    say(f"=== creates during outage: {result['creates_during_outage']}")
+    if not a.keep:
+        adhoc(client, f"rm -rf {d} {d2}", timeout=600)
+    path = os.path.join(OUT, f"readfail_{LOG.ts}.json")
+    with open(path, "w") as f:
+        json.dump(result, f, indent=1, default=str)
     LOG.result(result)
     return 0
 
@@ -750,6 +936,7 @@ def main():
     c.add_argument("--head1-delay", type=int, default=0, help="seconds to hold Head-1 (MGS) off after the others")
     c.add_argument("--integrity", type=int, default=0, help="write N x 256MB files before, verify after")
     c.add_argument("--timeout", type=int, default=1500)
+    c.add_argument("--no-shutdown", action="store_true", help="cluster is already off: just power on and time it")
     c.set_defaults(fn=cmd_coldboot)
     r = sub.add_parser("rebootloop")
     r.add_argument("--runs", type=int, default=3)
@@ -764,6 +951,18 @@ def main():
     n.add_argument("--keep", action="store_true")
     n.add_argument("--force", action="store_true")
     n.set_defaults(fn=cmd_nodeloss)
+    f = sub.add_parser("readfail")
+    f.add_argument("--victim", default="Rocky-Compute-5")
+    f.add_argument("--files", type=int, default=20)
+    f.add_argument("--write-files", type=int, default=150, help="mirrored files the concurrent writer overwrites")
+    f.add_argument("--pre", type=int, default=20)
+    f.add_argument("--max-down", type=int, default=240, help="seconds the victim stays off")
+    f.add_argument("--deactivate", action="store_true", help="mark the dead OSTs inactive on MDS+client mid-outage")
+    f.add_argument("--deact-after", type=int, default=30)
+    f.add_argument("--timeout", type=int, default=900)
+    f.add_argument("--keep", action="store_true")
+    f.add_argument("--force", action="store_true")
+    f.set_defaults(fn=cmd_readfail)
     s = sub.add_parser("soak")
     s.add_argument("--hours", type=float, default=1.0)
     s.add_argument("--round", type=int, default=300)

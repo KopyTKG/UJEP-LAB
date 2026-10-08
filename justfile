@@ -68,9 +68,17 @@ rebootloop runs="3" *args:
 nodeloss victim="Rocky-Compute-5" *args:
     python3 tools/stability.py nodeloss --victim {{victim}} {{args}}
 
+# Resynced mirrors first, then lose the node while reading: `just readfail` / `just readfail Rocky-Compute-5 --deactivate`
+readfail victim="Rocky-Compute-5" *args:
+    python3 tools/stability.py readfail --victim {{victim}} {{args}}
+
 # Soak: mixed fio on all computes, health + error counters each round: `just soak 24`
 soak hours="1" *args:
     python3 tools/stability.py soak --hours {{hours}} {{args}}
+
+# Subnet manager layout: OpenSM only on the heads (Head-1 master prio 14, Head-2 prio 13); `just opensm -e opensm_everywhere=true` reverts
+opensm *args:
+    cd {{project}} && ansible-playbook playbooks/setup_opensm.yml {{args}}
 
 # Ad-hoc root shell command: `just sh Rocky-Compute-2 'grubby --default-kernel'`
 sh limit cmd:

@@ -1,0 +1,6 @@
+run,ts,limit,playbook_rc,elapsed_s,healthy,problems
+1,2026-10-08T15:44:38,all,0,1501,True,
+2,2026-10-08T15:57:52,all,2,701,False,Rocky-Head-2: lustre-startup activating; Rocky-Head-2: /mnt/lustre not mounted; lfs df: 0 OST / 0 MDT / 0 inactive
+1,2026-10-08T16:58:29,all,0,1540,True,
+2,2026-10-08T17:24:27,all,0,1533,True,
+3,2026-10-08T17:50:11,all,0,1521,True,
