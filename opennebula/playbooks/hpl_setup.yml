@@ -1,0 +1,159 @@
+---
+# HPL (LINPACK) on the compute nodes: Open MPI + OpenBLAS from the distro, HPL 2.3 built once on
+# the shared Lustre mount so every node runs the same binary.
+#
+#   ansible-playbook playbooks/hpl_setup.yml                      # the 8 computes
+#   ansible-playbook playbooks/hpl_setup.yml -e hpl_heads=true    # also the 2 heads (for the 10-node run)
+#
+# What it changes on the cluster (all reversible):
+#   - installs openmpi, openblas, ucx on the computes, and on the heads only with hpl_heads=true
+#     (packages only; no kernel packages)
+#   - memlock unlimited for `user` (RDMA needs pinned memory; default is 8 MB)
+#   - a dedicated ssh key for MPI launches: private key on Compute-1 only, public key authorized
+#     on the computes ONLY from the IB subnet (from="10.0.0.0/24")
+#   - /mnt/lustre/hpl (binary + run directories)
+
+- name: HPL prerequisites on the computes (and the heads with hpl_heads=true)
+  hosts: "{{ 'cluster' if (hpl_heads | default(false) | bool) else 'compute' }}"
+  become: yes
+  vars:
+    hpl_user: user
+    mpi_key: "/home/user/.ssh/id_mpi"
+  tasks:
+    - name: Install MPI, BLAS and UCX
+      dnf:
+        name:
+          - openmpi
+          - openmpi-devel
+          - openblas
+          - openblas-devel
+          - ucx
+          - ucx-ib
+          - ucx-rdmacm
+          - tar
+          - curl
+        state: present
+
+    - name: Unlimited locked memory for RDMA
+      copy:
+        dest: /etc/security/limits.d/90-hpl-memlock.conf
+        mode: "0644"
+        content: |
+          {{ hpl_user }} soft memlock unlimited
+          {{ hpl_user }} hard memlock unlimited
+
+    - name: Working directory on Lustre
+      file:
+        path: /mnt/lustre/hpl
+        state: directory
+        owner: "{{ hpl_user }}"
+        mode: "0755"
+      run_once: true
+
+- name: MPI launch key (private key on Compute-1 only)
+  hosts: Rocky-Compute-1
+  become: yes
+  become_user: user
+  tasks:
+    - name: Generate the MPI ssh key
+      command: ssh-keygen -t ed25519 -N "" -C "mpi-launch@Rocky-Compute-1" -f /home/user/.ssh/id_mpi
+      args:
+        creates: /home/user/.ssh/id_mpi
+
+    - name: Read the public key
+      slurp:
+        src: /home/user/.ssh/id_mpi.pub
+      register: mpi_pub
+
+    - name: Use the key for the IB subnet, without host-key prompts
+      blockinfile:
+        path: /home/user/.ssh/config
+        create: yes
+        mode: "0600"
+        marker: "# {mark} MPI launch (HPL)"
+        block: |
+          Host 10.0.0.* Rocky-Compute-* Rocky-Head-*
+              IdentityFile ~/.ssh/id_mpi
+              IdentitiesOnly yes
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+              LogLevel ERROR
+
+- name: Authorize the MPI key on every HPL node, from the IB subnet only
+  hosts: "{{ 'cluster' if (hpl_heads | default(false) | bool) else 'compute' }}"
+  become: yes
+  become_user: user
+  tasks:
+    - name: authorized_keys entry
+      authorized_key:
+        user: user
+        key: "{{ hostvars['Rocky-Compute-1'].mpi_pub.content | b64decode }}"
+        key_options: 'from="10.0.0.0/24"'
+        comment: "mpi-launch"
+
+- name: Build HPL once, on Lustre
+  hosts: Rocky-Compute-1
+  become: yes
+  become_user: user
+  vars:
+    hpl_dir: /mnt/lustre/hpl/hpl-2.3
+  tasks:
+    - name: Download HPL 2.3
+      get_url:
+        url: https://www.netlib.org/benchmark/hpl/hpl-2.3.tar.gz
+        dest: /mnt/lustre/hpl/hpl-2.3.tar.gz
+        mode: "0644"
+      register: hpl_tgz
+
+    - name: Record the checksum of what was downloaded
+      shell: sha256sum /mnt/lustre/hpl/hpl-2.3.tar.gz | tee /mnt/lustre/hpl/hpl-2.3.tar.gz.sha256
+      changed_when: false
+
+    - name: Unpack
+      unarchive:
+        src: /mnt/lustre/hpl/hpl-2.3.tar.gz
+        dest: /mnt/lustre/hpl
+        remote_src: yes
+        creates: "{{ hpl_dir }}/Makefile"
+
+    - name: Makefile for this machine (Open MPI + OpenBLAS, Haswell/AVX2)
+      copy:
+        dest: "{{ hpl_dir }}/Make.rocky"
+        mode: "0644"
+        content: |
+          SHELL        = /bin/sh
+          CD           = cd
+          CP           = cp
+          LN_S         = ln -s
+          MKDIR        = mkdir
+          RM           = /bin/rm -f
+          TOUCH        = touch
+          ARCH         = rocky
+          TOPdir       = {{ hpl_dir }}
+          INCdir       = $(TOPdir)/include
+          BINdir       = $(TOPdir)/bin/$(ARCH)
+          LIBdir       = $(TOPdir)/lib/$(ARCH)
+          HPLlib       = $(LIBdir)/libhpl.a
+          MPdir        = /usr/lib64/openmpi
+          MPinc        = -I/usr/include/openmpi-x86_64
+          MPlib        = -L/usr/lib64/openmpi/lib -lmpi
+          LAdir        = /usr/lib64
+          LAinc        =
+          LAlib        = -lopenblas
+          HPL_OPTS     = -DHPL_DETAILED_TIMING
+          HPL_INCLUDES = -I$(INCdir) -I$(INCdir)/$(ARCH) $(LAinc) $(MPinc)
+          HPL_LIBS     = $(HPLlib) $(LAlib) $(MPlib)
+          CC           = /usr/lib64/openmpi/bin/mpicc
+          CCNOOPT      = $(HPL_DEFS)
+          CCFLAGS      = $(HPL_DEFS) -O3 -march=haswell -mtune=haswell -funroll-loops -fomit-frame-pointer
+          LINKER       = /usr/lib64/openmpi/bin/mpicc
+          LINKFLAGS    = $(CCFLAGS)
+          ARCHIVER     = ar
+          ARFLAGS      = r
+          RANLIB       = echo
+
+    - name: Build xhpl
+      command: make arch=rocky
+      args:
+        chdir: "{{ hpl_dir }}"
+        creates: "{{ hpl_dir }}/bin/rocky/xhpl"

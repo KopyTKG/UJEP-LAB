@@ -1,0 +1,104 @@
+---
+# Included by hpl_run.yml: one HPL run on the first `k` computes.
+- name: "k={{ k }}: sizes and layout"
+  set_fact:
+    ranks: "{{ (k | int) * (hpl_ranks_per_node | int) }}"
+    nodes_used: "{{ node_pool[:(k | int)] }}"
+    hpl_n_full: "{{ ((((hpl_mem_frac | float) * (mem_bytes_node | int) * (k | int) / 8) | root) // (hpl_nb | int) * (hpl_nb | int)) | int }}"
+
+- name: "k={{ k }}: matrix size, grid, run directory"
+  set_fact:
+    hpl_n: "{{ 20000 if hpl_quick | bool else hpl_n_full }}"
+    hpl_p: "{{ hpl_grids[ranks | int][0] }}"
+    hpl_q: "{{ hpl_grids[ranks | int][1] }}"
+    hostspec: "{{ nodes_used | map('regex_replace', '$', ':' ~ hpl_ranks_per_node) | join(',') }}"
+    stamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+
+- name: "k={{ k }}: run directory with HPL.dat"
+  vars:
+    run_dir: "{{ hpl_root }}/runs/{{ stamp }}_k{{ k }}"
+  block:
+    - file:
+        path: "{{ run_dir }}"
+        state: directory
+    - copy:
+        dest: "{{ run_dir }}/HPL.dat"
+        content: |
+          HPLinpack benchmark input file
+          UJEP-LAB, k={{ k }} nodes, one rank per socket
+          HPL.out      output file name (if any)
+          6            device out (6=stdout,7=stderr,file)
+          1            # of problems sizes (N)
+          {{ hpl_n }}  Ns
+          1            # of NBs
+          {{ hpl_nb }} NBs
+          0            PMAP process mapping (0=Row-,1=Column-major)
+          1            # of process grids (P x Q)
+          {{ hpl_p }}  Ps
+          {{ hpl_q }}  Qs
+          16.0         threshold
+          1            # of panel fact
+          2            PFACTs (0=left, 1=Crout, 2=Right)
+          1            # of recursive stopping criterium
+          4            NBMINs (>= 1)
+          1            # of panels in recursion
+          2            NDIVs
+          1            # of recursive panel fact.
+          1            RFACTs (0=left, 1=Crout, 2=Right)
+          1            # of broadcast
+          1            BCASTs (0=1rg,1=1rM,2=2rg,3=2rM,4=Lng,5=LnM)
+          1            # of lookahead depth
+          1            DEPTHs (>=0)
+          2            SWAP (0=bin-exch,1=long,2=mix)
+          64           swapping threshold
+          0            L1 in (0=transposed,1=no-transposed) form
+          0            U  in (0=transposed,1=no-transposed) form
+          1            Equilibration (0=no,1=yes)
+          8            memory alignment in double (> 0)
+
+    - name: "k={{ k }}: mpirun xhpl on {{ nodes_used | join(' ') }} (N={{ hpl_n }}, {{ hpl_p }}x{{ hpl_q }})"
+      shell: >-
+        cd {{ run_dir }} &&
+        OPENBLAS_NUM_THREADS={{ hpl_threads }} OMP_NUM_THREADS={{ hpl_threads }}
+        /usr/lib64/openmpi/bin/mpirun --host {{ hostspec }} -np {{ ranks }}
+        --map-by ppr:{{ hpl_ranks_per_node }}:socket:PE={{ hpl_threads }} --bind-to core
+        -x OPENBLAS_NUM_THREADS -x OMP_NUM_THREADS {{ mpi_net_args }}
+        {{ hpl_root }}/hpl-2.3/bin/rocky/xhpl
+      register: hpl
+      async: 14400
+      poll: 30
+      failed_when: false
+
+    - name: "k={{ k }}: keep the raw output on the controller"
+      copy:
+        dest: "{{ hpl_out }}/logs/hpl_{{ stamp }}_k{{ k }}.txt"
+        content: |
+          # rc={{ hpl.rc | default('none') }} net={{ hpl_net }} nodes={{ nodes_used | join(',') }} N={{ hpl_n }} NB={{ hpl_nb }} P={{ hpl_p }} Q={{ hpl_q }}
+          {{ hpl.stdout | default('') }}
+          {{ hpl.stderr | default('') }}
+      delegate_to: localhost
+      become: no
+
+    - name: "k={{ k }}: parse the result"
+      vars:
+        line: "{{ hpl.stdout | default('') | regex_search('WR\\S+\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+[0-9.]+\\s+[0-9.eE+-]+') | default('', true) }}"
+      set_fact:
+        hpl_time: "{{ (line.split()[5] | float) if line else '' }}"
+        hpl_gflops: "{{ (line.split()[6] | float) if line else '' }}"
+        hpl_passed: "{{ (hpl.stdout | default('') | regex_findall('PASSED') | length) > 0 }}"
+
+    - name: "k={{ k }}: append to the results CSV"
+      vars:
+        rpeak: "{{ (k | int) * 24 * 16 * (hpl_ghz_nominal | float) }}"
+      lineinfile:
+        path: "{{ hpl_out }}/hpl.csv"
+        create: yes
+        insertafter: EOF
+        line: >-
+          {{ stamp }},{{ k }},{{ (nodes_used | select('match', 'Rocky-Head.*') | list | length) > 0 }},{{ ranks }},{{ hpl_threads }},{{ hpl_net }},{{ hpl_n }},{{ hpl_nb }},{{ hpl_p }},{{ hpl_q }},{{ hpl_time }},{{ hpl_gflops }},{{ rpeak }},{{ ((hpl_gflops | float) / (rpeak | float) * 100) | round(1) if hpl_gflops != '' else '' }},{{ hpl_passed }},{{ hpl.rc | default('') }}
+      delegate_to: localhost
+      become: no
+
+    - name: "k={{ k }}: result"
+      debug:
+        msg: "{{ k }} node(s): {{ hpl_gflops }} GFLOPS, residual {{ 'PASSED' if hpl_passed else 'NOT PASSED / failed' }}"

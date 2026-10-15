@@ -1,0 +1,87 @@
+---
+# Run HPL (LINPACK) on the computes and record GFLOPS. Setup first: playbooks/hpl_setup.yml
+#
+#   ansible-playbook playbooks/hpl_run.yml -e hpl_quick=true         # ~2 min sanity run (2 nodes, N=20000)
+#   ansible-playbook playbooks/hpl_run.yml                           # scaling series: 1, 2, 4, 8 nodes
+#   ansible-playbook playbooks/hpl_run.yml -e '{"hpl_nodes":[8]}'    # one size only
+#   ansible-playbook playbooks/hpl_run.yml -e hpl_net=tcp            # MPI over IPoIB TCP instead of UCX/RDMA
+#   ansible-playbook playbooks/hpl_run.yml -e hpl_heads=true -e '{"hpl_nodes":[10]}'   # all 10 nodes
+#     (heads need `hpl_setup.yml -e hpl_heads=true` first; computes come first in the node list,
+#      so k=8 is the 8 computes, k=10 adds Head-1 and Head-2)
+#
+# One MPI rank per socket (2 per node), 12 BLAS threads each, bound to the socket. N is sized from
+# the memory the nodes report (hpl_mem_frac of it). Results: benchmarks/hpl/hpl.csv and the raw
+# HPL output in benchmarks/hpl/logs/. Rpeak assumes 16 DP FLOP/cycle/core (AVX2 FMA).
+
+- name: Collect memory of the nodes
+  hosts: "{{ 'cluster' if (hpl_heads | default(false) | bool) else 'compute' }}"
+  gather_facts: yes
+  gather_subset: [hardware]
+  tasks: []
+
+- name: HPL runs
+  hosts: Rocky-Compute-1
+  gather_facts: no
+  become: yes
+  become_user: user
+  vars:
+    hpl_nodes: [1, 2, 4, 8]
+    hpl_quick: false
+    hpl_heads: false                 # true: the node pool is the 8 computes followed by the 2 heads
+    hpl_net: ucx                     # ucx (RDMA) | tcp (IPoIB)
+    hpl_mem_frac: 0.75               # share of node memory the matrix may use
+    hpl_nb: 192
+    hpl_ranks_per_node: 2            # one per socket
+    hpl_threads: 12
+    hpl_ghz_nominal: 2.2             # Rpeak reference (E5-2650 v4 base); AVX clocks are lower
+    hpl_grids:                       # ranks -> [P, Q]
+      2: [1, 2]
+      4: [2, 2]
+      6: [2, 3]
+      8: [2, 4]
+      10: [2, 5]
+      12: [3, 4]
+      14: [2, 7]
+      16: [4, 4]
+      18: [3, 6]
+      20: [4, 5]
+    hpl_root: /mnt/lustre/hpl
+    hpl_out: "{{ playbook_dir }}/../../benchmarks/hpl"
+    node_pool: "{{ (groups['compute'] + groups['controller']) if (hpl_heads | bool) else groups['compute'] }}"
+    run_nodes: "{{ [2] if hpl_quick | bool else hpl_nodes }}"
+    mem_bytes_node: "{{ hostvars[groups['compute'][0]].ansible_memtotal_mb | int * 1048576 }}"
+    mpi_net_args: >-
+      {{ '--mca pml ucx --mca btl ^openib' if hpl_net == 'ucx'
+         else '--mca pml ob1 --mca btl tcp,vader,self --mca btl_tcp_if_include 10.0.0.0/24' }}
+  tasks:
+    - name: The requested node counts must fit the node pool
+      assert:
+        that: (run_nodes | max | int) <= (node_pool | length)
+        fail_msg: "asked for {{ run_nodes | max }} nodes but the pool has {{ node_pool | length }} (use -e hpl_heads=true for 10)"
+
+    - name: Check that xhpl is built
+      stat:
+        path: "{{ hpl_root }}/hpl-2.3/bin/rocky/xhpl"
+      register: xhpl
+      failed_when: not xhpl.stat.exists
+
+    - name: Output directories on the controller
+      file:
+        path: "{{ hpl_out }}/logs"
+        state: directory
+      delegate_to: localhost
+      become: no
+
+    - name: CSV header (only if the file does not exist yet)
+      copy:
+        dest: "{{ hpl_out }}/hpl.csv"
+        force: no
+        content: "timestamp,nodes,includes_heads,mpi_ranks,threads_per_rank,mpi_net,N,NB,P,Q,time_s,gflops,rpeak_gflops_at_nominal_ghz,efficiency_pct,residual_passed,mpirun_rc\n"
+      delegate_to: localhost
+      become: no
+
+    - name: Run HPL for each node count
+      include_tasks: hpl_run_one.yml
+      loop: "{{ run_nodes }}"
+      loop_control:
+        loop_var: k

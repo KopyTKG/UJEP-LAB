@@ -80,6 +80,28 @@ soak hours="1" *args:
 opensm *args:
     cd {{project}} && ansible-playbook playbooks/setup_opensm.yml {{args}}
 
+# ---- HPL (LINPACK) benchmark: see benchmarks/hpl/README.md ----
+
+# One-time: Open MPI + OpenBLAS on the computes, MPI ssh key, build HPL on Lustre
+hpl-setup *args:
+    cd {{project}} && ansible-playbook playbooks/hpl_setup.yml {{args}}
+
+# Also install on the heads (needed once before `just hpl-all`)
+hpl-setup-heads:
+    cd {{project}} && ansible-playbook playbooks/hpl_setup.yml -e hpl_heads=true
+
+# HPL on all 10 nodes (8 computes + 2 heads), one run. Needs hpl-setup-heads first; idle Lustre/databases recommended
+hpl-all *args:
+    cd {{project}} && ansible-playbook playbooks/hpl_run.yml -e hpl_heads=true -e '{"hpl_nodes":[10]}' {{args}}
+
+# Run HPL: `just hpl-quick` (2 min sanity) / `just hpl` (1,2,4,8 nodes) / `just hpl 8` / `just hpl 1,2 -e hpl_net=tcp`
+hpl nodes="1,2,4,8" *args:
+    cd {{project}} && ansible-playbook playbooks/hpl_run.yml -e '{"hpl_nodes":[{{nodes}}]}' {{args}}
+
+# Quick HPL sanity run (2 nodes, N=20000)
+hpl-quick:
+    cd {{project}} && ansible-playbook playbooks/hpl_run.yml -e hpl_quick=true
+
 # Ad-hoc root shell command: `just sh Rocky-Compute-2 'grubby --default-kernel'`
 sh limit cmd:
     cd {{project}} && ansible {{limit}} -b -m shell -a '{{cmd}}'
