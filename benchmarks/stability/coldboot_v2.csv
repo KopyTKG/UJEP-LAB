@@ -109,3 +109,13 @@ run,started,mode,head1_delay_s,node,boot_s,unit_begin_s,mgs_wait_s,unit_complete
 1,2026-10-08T13:54:03,already-off,0,Rocky-Compute-6,133,149,64,224,237,0,yes
 1,2026-10-08T13:54:03,already-off,0,Rocky-Compute-7,140,159,53,226,237,0,yes
 1,2026-10-08T13:54:03,already-off,0,Rocky-Compute-8,145,161,52,223,237,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Head-1,207,222,,232,234,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Head-2,103,116,110,239,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-1,109,125,101,237,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-2,114,130,97,237,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-3,120,138,89,236,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-4,124,145,81,237,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-5,130,142,83,237,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-6,135,150,75,239,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-7,140,160,65,238,256,0,yes
+1,2026-10-15T12:58:57,already-off,0,Rocky-Compute-8,145,161,65,237,256,0,yes

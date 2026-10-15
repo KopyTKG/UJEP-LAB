@@ -108,6 +108,23 @@ NOTES = {
 }
 
 
+def soak_data():
+    rows = rd("soak.csv")
+    if not rows:
+        return None
+    MB = 8.388608 / 1000   # MiB/s -> Gbit/s (fio KiB/s / 1024 = MiB/s)
+    rounds = [{"round": int(r["round"]), "ts": r["ts"], "nodes_ok": int(r["nodes_ok"]),
+               "read_mib_s": int(r["read_MBps"]), "write_mib_s": int(r["write_MBps"]),
+               "read_gbit_s": round(int(r["read_MBps"]) * MB, 3), "write_gbit_s": round(int(r["write_MBps"]) * MB, 3),
+               "combined_gbit_s": round((int(r["read_MBps"]) + int(r["write_MBps"])) * MB, 3),
+               "io_errors": int(r["io_errors"]), "new_dmesg_errors": int(r["new_dmesg_errors"]),
+               "new_ib_errors": int(r["new_ib_errors"]), "osts": int(r["osts"]), "healthy": r["healthy"] == "True"}
+              for r in rows]
+    summary = json.load(open(os.path.join(SRC, "soak_summary.json"))) if os.path.exists(os.path.join(SRC, "soak_summary.json")) else None
+    return {"description": "6 h soak 2026-10-15: mixed 70/30 random fio, 1 MiB direct, iodepth 8, 2 jobs, 2 GiB files per node, 5 min fio per round on all 8 computes",
+            "unit_note": "MiB/s as recorded; Gbit/s = MiB/s x 8.388608 / 1000", "summary": summary, "rounds": rounds}
+
+
 def main():
     nl = result_files("nodeloss_*.json")
     for n in nl:
@@ -139,6 +156,7 @@ def main():
         "node_loss_runs": nl,
         "read_failover_runs": rf,
         "rolling_reboot_runs": rb,
+        "soak": soak_data(),
         "findings": [
             {"id": "F1", "title": "Legacy startup script times out early", "result": "MGS wait limit is about 145-170 s instead of 300 s (loop counts iterations, not seconds); LNET wait about 11 s instead of 60 s."},
             {"id": "F2", "title": "Head-1 (MGS) is always the last node up", "result": "Reaches the OS about 190 s after its own power-on versus about 90 s for other blades."},
@@ -152,13 +170,16 @@ def main():
             {"id": "F10", "title": "Metadata is not redundant", "result": "New directories alternate between MDT0 and MDT1; losing a head stalls the directories on its MDT (write 240 s, creates failed after 60 s). Head-1 loss also evicts clients on return (abort_recov): first 2 read-backs I/O errors."},
             {"id": "F11", "title": "Rolling reboot can leave a node's IB port in INIT", "result": "Loop 1 of 2 passed (10/10). Loop 2: Head-2's port stayed INIT about 10 min (no SM activated it); both head OpenSMs STANDBY; OpenSM runs on all 10 nodes with equal priority. Recovered by restarting OpenSM on Head-1."},
             {"id": "F12", "title": "Deterministic subnet-manager layout fixes the rolling reboot", "result": "OpenSM only on the heads (Head-1 priority 14, Head-2 13), off on the computes; reboot.yml waits for the IB port ACTIVE. Rolling reboot repeated: 3 of 3 loops passed (about 1520-1540 s each), pool HEALTHY. Small sample; cause not fully proven (why the previous master did not activate Head-2's port is unexplained)."},
+            {"id": "F14", "title": "6-hour soak: no errors, no drift", "result": "36 rounds, 8/8 nodes and 16 OSTs healthy every round, 0 I/O / dmesg / IB errors. Combined throughput plateau 23.07 +- 0.13 Gbit/s (CV 0.57%) after a 7.3% step down in rounds 1-5; first half vs second half of the plateau differs by 0.07%. About 28.5 TiB moved (estimate)."},
             {"id": "F13", "title": "Graceful shutdown order was wrong", "result": "The old shutdown.yml powered the heads off first; the computes' umount of /mnt/lustre then hung more than 6 minutes against dead servers (serial play, 7 more nodes pending). New order: clients unmount everywhere, computes power off together, then Head-2, then Head-1 (MGS + MDT0) last. Not yet run end to end."}],
         "tests_planned": [
-            {"test": "soak 24 h, mixed fio, error counters", "requirement": "R4", "status": "not run"},
+            {"test": "24 h soak (the 6 h soak is done)", "requirement": "R4", "status": "not run"},
+            {"test": "HPL (LINPACK) GFLOPS on 1/2/4/8 computes and all 10 nodes", "requirement": "-", "status": "prepared, not run (benchmarks/hpl)"},
             {"test": "periodic mirror resync + automatic OST deactivation (watchdog), then repeat node loss", "requirement": "R5", "status": "not run"},
             {"test": "retry path, Head-1 held 600 s", "requirement": "R4", "status": "not run"},
             {"test": "cache-bypassed fio matrix, repeated, 1/2/4/8 clients", "requirement": "R3", "status": "not run"},
             {"test": "VM layer: live migration, node loss with VMs", "requirement": "R8", "status": "blocked (no KVM hosts yet)"}]}
+    data["findings"].sort(key=lambda f: int(f["id"][1:]))
     os.makedirs(os.path.join(DEST, "stability", "logs"), exist_ok=True)
     with open(os.path.join(DEST, "stability_data.json"), "w") as f:
         json.dump(data, f, indent=1)

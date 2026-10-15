@@ -1,0 +1,84 @@
+{
+ "read_all": {
+  "n": 36,
+  "mean_gbit_s": 16.235,
+  "stdev_gbit_s": 0.281,
+  "cv_pct": 1.73,
+  "min_gbit_s": 16.005,
+  "max_gbit_s": 17.473,
+  "mean_mib_s": 1935.4,
+  "stdev_mib_s": 33.5
+ },
+ "read_plateau": {
+  "n": 31,
+  "mean_gbit_s": 16.145,
+  "stdev_gbit_s": 0.092,
+  "cv_pct": 0.57,
+  "min_gbit_s": 16.005,
+  "max_gbit_s": 16.433,
+  "mean_mib_s": 1924.6,
+  "stdev_mib_s": 10.9
+ },
+ "write_all": {
+  "n": 36,
+  "mean_gbit_s": 6.969,
+  "stdev_gbit_s": 0.121,
+  "cv_pct": 1.73,
+  "min_gbit_s": 6.87,
+  "max_gbit_s": 7.499,
+  "mean_mib_s": 830.7,
+  "stdev_mib_s": 14.4
+ },
+ "write_plateau": {
+  "n": 31,
+  "mean_gbit_s": 6.93,
+  "stdev_gbit_s": 0.04,
+  "cv_pct": 0.58,
+  "min_gbit_s": 6.87,
+  "max_gbit_s": 7.055,
+  "mean_mib_s": 826.1,
+  "stdev_mib_s": 4.8
+ },
+ "combined_all": {
+  "n": 36,
+  "mean_gbit_s": 23.204,
+  "stdev_gbit_s": 0.402,
+  "cv_pct": 1.73,
+  "min_gbit_s": 22.876,
+  "max_gbit_s": 24.973,
+  "mean_mib_s": 2766.1,
+  "stdev_mib_s": 47.9
+ },
+ "combined_plateau": {
+  "n": 31,
+  "mean_gbit_s": 23.075,
+  "stdev_gbit_s": 0.132,
+  "cv_pct": 0.57,
+  "min_gbit_s": 22.876,
+  "max_gbit_s": 23.488,
+  "mean_mib_s": 2750.7,
+  "stdev_mib_s": 15.7
+ },
+ "rounds": 36,
+ "errors": {
+  "io": 0,
+  "dmesg": 0,
+  "ib": 0,
+  "unhealthy": 0,
+  "min_nodes": 8,
+  "min_osts": 16
+ },
+ "unit": "Gbit/s (1 MiB/s = 8.388608 Mbit/s)",
+ "data_moved_tib_estimate": {
+  "read": 19.9,
+  "write": 8.6,
+  "total": 28.5
+ },
+ "first_round": {
+  "read_gbit_s": 17.47,
+  "write_gbit_s": 7.5,
+  "combined_gbit_s": 24.97
+ },
+ "per_node_combined_plateau_gbit_s": 2.88,
+ "per_ssd_combined_plateau_gbit_s": 1.44
+}
