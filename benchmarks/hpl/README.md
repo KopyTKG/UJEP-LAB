@@ -124,7 +124,7 @@ Open MPI 4.1.1 over UCX (RDMA), OpenBLAS 0.3.29 threaded, HPL 2.3, NB 192, one r
 
 - The 10-node run includes the two Lustre servers (heads); it used `nice` 10 and 70% of memory (the others 75%). Lustre stayed
   responsive throughout (`lfs df` about 0.014 s).
-- More than 99% of the solve time is the matrix update (DGEMM), so communication is not the bottleneck.
+- 98-99% of the solve time is the matrix update (DGEMM) (98.4% on 1 node, 99.2% on 5 and 10), so communication is not the bottleneck.
 - Observed clocks were about 2.5-2.6 GHz averaged over all logical CPUs (idle hyper-threads included), so the percentages against
   the nominal 2.2 GHz peak are not a hard ceiling.
 - Single runs; NB 192 only; distro OpenBLAS (Intel MKL would likely be 10-20% faster). The 8-computes-only point and an NB sweep
