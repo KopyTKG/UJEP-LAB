@@ -30,6 +30,7 @@
     hpl_heads: false                 # true: the node pool is the 8 computes followed by the 2 heads
     hpl_net: ucx                     # ucx (RDMA) | tcp (IPoIB)
     hpl_mem_frac: 0.75               # share of node memory the matrix may use
+    hpl_nice: 0                      # >0: run xhpl at lower priority (use 10 when the heads, i.e. Lustre servers, take part)
     hpl_nb: 192
     hpl_ranks_per_node: 2            # one per socket
     hpl_threads: 12
@@ -59,9 +60,9 @@
         that: (run_nodes | max | int) <= (node_pool | length)
         fail_msg: "asked for {{ run_nodes | max }} nodes but the pool has {{ node_pool | length }} (use -e hpl_heads=true for 10)"
 
-    - name: Check that xhpl is built
+    - name: Check that the staged xhpl exists (hpl_setup.yml stages it on every node)
       stat:
-        path: "{{ hpl_root }}/hpl-2.3/bin/rocky/xhpl"
+        path: /opt/hpl/xhpl
       register: xhpl
       failed_when: not xhpl.stat.exists
 

@@ -16,11 +16,8 @@
 
 - name: "k={{ k }}: run directory with HPL.dat"
   vars:
-    run_dir: "{{ hpl_root }}/runs/{{ stamp }}_k{{ k }}"
+    run_dir: "/var/tmp/hpl"
   block:
-    - file:
-        path: "{{ run_dir }}"
-        state: directory
     - copy:
         dest: "{{ run_dir }}/HPL.dat"
         content: |
@@ -61,9 +58,9 @@
         cd {{ run_dir }} &&
         OPENBLAS_NUM_THREADS={{ hpl_threads }} OMP_NUM_THREADS={{ hpl_threads }}
         /usr/lib64/openmpi/bin/mpirun --host {{ hostspec }} -np {{ ranks }}
-        --map-by ppr:{{ hpl_ranks_per_node }}:socket:PE={{ hpl_threads }} --bind-to core
-        -x OPENBLAS_NUM_THREADS -x OMP_NUM_THREADS {{ mpi_net_args }}
-        {{ hpl_root }}/hpl-2.3/bin/rocky/xhpl
+        --map-by ppr:{{ ((hpl_ranks_per_node | int) / 2) | int }}:socket:PE={{ hpl_threads }} --bind-to core
+        --wdir {{ run_dir }} -x OPENBLAS_NUM_THREADS -x OMP_NUM_THREADS {{ mpi_net_args }}
+        {{ ('nice -n ' ~ (hpl_nice | int) ~ ' ') if ((hpl_nice | default(0)) | int) > 0 else '' }}/opt/hpl/xhpl
       register: hpl
       async: 14400
       poll: 30

@@ -111,3 +111,27 @@ Rpeak at the nominal 2.2 GHz, efficiency %, residual passed, mpirun exit code.
   `rc_verbs`/`ud_verbs` transports (no `rc_mlx5`, which is not packaged), so `hpl_net=ucx` should run over RDMA.
 - **No HPL run has been done yet.** HPL loads every core with AVX2 and draws far more power than the soak; the lab breaker
   limit (thesis note 12) has to be checked first. Plan: `just hpl-quick`, then `just hpl 1` while watching the power, then 2, 4, 8.
+
+## Results, 2026-10-22
+
+Open MPI 4.1.1 over UCX (RDMA), OpenBLAS 0.3.29 threaded, HPL 2.3, NB 192, one rank per socket with 12 threads. All residual checks PASSED.
+
+| Nodes | MPI ranks | N | Grid | Time | GFLOPS | Per node | Scaling vs 1 node | % of nominal Rpeak (2.2 GHz) |
+|---|---|---|---|---|---|---|---|---|
+| 1 (Compute-1) | 2 | 79,104 | 1 x 2 | 463 s | 713.5 | 713.5 | 100% | 84.5% |
+| 5 (Compute-1..5) | 10 | 177,024 | 2 x 5 | 1,064 s | 3,476.5 | 695.3 | 97.5% | 82.3% |
+| **10 (8 computes + 2 heads)** | 20 | 241,728 | 4 x 5 | 1,395 s | **6,751.0** | 675.1 | 94.6% | 79.9% |
+
+- The 10-node run includes the two Lustre servers (heads); it used `nice` 10 and 70% of memory (the others 75%). Lustre stayed
+  responsive throughout (`lfs df` about 0.014 s).
+- More than 99% of the solve time is the matrix update (DGEMM), so communication is not the bottleneck.
+- Observed clocks were about 2.5-2.6 GHz averaged over all logical CPUs (idle hyper-threads included), so the percentages against
+  the nominal 2.2 GHz peak are not a hard ceiling.
+- Single runs; NB 192 only; distro OpenBLAS (Intel MKL would likely be 10-20% faster). The 8-computes-only point and an NB sweep
+  were not run.
+- Dataset: thesis `data/hpl_data.json` (regenerate with `tools/make_hpl_data.py`).
+
+Problems met on the first real runs (all fixed in the playbooks): the Makefile template lacked `HPL_DEFS`; `libopenblas.so` is
+the serial build on Rocky (use `libopenblasp`); `firewalld` blocked Open MPI's dynamic ports (rich rule for the IB subnet);
+`user` has UID 1001 on Compute-3 and 1000 elsewhere, so Compute-3's `user` cannot read Lustre (xhpl and the run directory are
+therefore staged on local disk by root); the first `mpirun` mapping used `ppr:2:socket` instead of one rank per socket.

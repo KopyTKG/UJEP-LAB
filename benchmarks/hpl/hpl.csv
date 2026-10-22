@@ -1,0 +1,4 @@
+timestamp,nodes,includes_heads,mpi_ranks,threads_per_rank,mpi_net,N,NB,P,Q,time_s,gflops,rpeak_gflops_at_nominal_ghz,efficiency_pct,residual_passed,mpirun_rc
+20261022T131909,1,False,2,12,ucx,79104,192,1,2,462.52,713.49,844.8000000000001,84.5,True,0
+20261022T133913,5,False,10,12,ucx,177024,192,2,5,1063.82,3476.5,4224.0,82.3,True,0
+20261022T140324,10,True,20,12,ucx,241728,192,4,5,1394.84,6751.0,8448.0,79.9,True,0

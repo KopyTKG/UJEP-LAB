@@ -92,7 +92,7 @@ hpl-setup-heads:
 
 # HPL on all 10 nodes (8 computes + 2 heads), one run. Needs hpl-setup-heads first; idle Lustre/databases recommended
 hpl-all *args:
-    cd {{project}} && ansible-playbook playbooks/hpl_run.yml -e hpl_heads=true -e '{"hpl_nodes":[10]}' {{args}}
+    cd {{project}} && ansible-playbook playbooks/hpl_run.yml -e hpl_heads=true -e '{"hpl_nodes":[10]}' -e hpl_nice=10 -e hpl_mem_frac=0.70 {{args}}
 
 # Run HPL: `just hpl-quick` (2 min sanity) / `just hpl` (1,2,4,8 nodes) / `just hpl 8` / `just hpl 1,2 -e hpl_net=tcp`
 hpl nodes="1,2,4,8" *args:

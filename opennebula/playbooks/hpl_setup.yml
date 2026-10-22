@@ -8,10 +8,11 @@
 # What it changes on the cluster (all reversible):
 #   - installs openmpi, openblas, ucx on the computes, and on the heads only with hpl_heads=true
 #     (packages only; no kernel packages)
+#   - firewalld: rich rule accepting all traffic from the IB subnet 10.0.0.0/24 (MPI uses dynamic ports)
 #   - memlock unlimited for `user` (RDMA needs pinned memory; default is 8 MB)
 #   - a dedicated ssh key for MPI launches: private key on Compute-1 only, public key authorized
 #     on the computes ONLY from the IB subnet (from="10.0.0.0/24")
-#   - /mnt/lustre/hpl (binary + run directories)
+#   - /mnt/lustre/hpl (build tree), /opt/hpl/xhpl and /var/tmp/hpl (local copies on every node)
 
 - name: HPL prerequisites on the computes (and the heads with hpl_heads=true)
   hosts: "{{ 'cluster' if (hpl_heads | default(false) | bool) else 'compute' }}"
@@ -33,6 +34,16 @@
           - tar
           - curl
         state: present
+
+    # Open MPI's daemons and data channels use dynamic ports, which the per-port firewall rules block
+    # (the 1-node run worked only because it never left the node). Accept the IB subnet only.
+    - name: Firewall - accept traffic from the IB subnet (cluster-internal fabric)
+      shell: |
+        RULE='rule family="ipv4" source address="10.0.0.0/24" accept'
+        if firewall-cmd --permanent --query-rich-rule="$RULE" >/dev/null 2>&1; then echo present; else
+          firewall-cmd --permanent --add-rich-rule="$RULE" >/dev/null && firewall-cmd --add-rich-rule="$RULE" >/dev/null && echo added; fi
+      register: fw_rule
+      changed_when: "'added' in fw_rule.stdout"
 
     - name: Unlimited locked memory for RDMA
       copy:
@@ -161,3 +172,33 @@
       args:
         chdir: "{{ hpl_dir }}"
         creates: "{{ hpl_dir }}/bin/rocky/xhpl"
+
+# The xhpl binary and the run directory live on LOCAL disk on every node, staged by root. Reason: on
+# 2026-10-22 `user` had UID 1001 on Compute-3 but 1000 everywhere else; Lustre identifies users by UID and
+# the MDS did not know 1001, so Compute-3's `user` got "Permission denied" below /mnt/lustre and could not
+# execute the binary from there. Root works everywhere, so root stages the files. (Also keeps Lustre out
+# of the benchmark path.)
+- name: Stage xhpl and a work directory locally on every HPL node
+  hosts: "{{ 'cluster' if (hpl_heads | default(false) | bool) else 'compute' }}"
+  become: yes
+  tasks:
+    - name: /opt/hpl
+      file:
+        path: /opt/hpl
+        state: directory
+        mode: "0755"
+
+    - name: Copy xhpl from the Lustre build to local disk (as root)
+      copy:
+        src: /mnt/lustre/hpl/hpl-2.3/bin/rocky/xhpl
+        dest: /opt/hpl/xhpl
+        remote_src: yes
+        mode: "0755"
+
+    - name: Local run directory owned by this node's own `user`
+      file:
+        path: /var/tmp/hpl
+        state: directory
+        owner: user
+        group: user
+        mode: "0755"
