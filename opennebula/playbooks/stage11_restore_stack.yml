@@ -1,0 +1,127 @@
+---
+# Bring the OpenNebula database layer and oned back after a full shutdown (all Galera nodes down).
+#
+#   ansible-playbook playbooks/stage11_restore_stack.yml
+#
+# After a clean full shutdown exactly one Galera node has `safe_to_bootstrap: 1` in /var/lib/mysql/grastate.dat
+# (the last one to stop). That node is bootstrapped with galera_new_cluster, the others then join (IST/SST).
+# If no node says 1 the play stops and asks for `-e galera_bootstrap_node=<host>` (pick the node with the highest
+# seqno; `mysqld --wsrep-recover` on each shows it). Nothing is started on a cluster that is already up.
+#
+# Then oned (and the scheduler) are started on Head-1 and the play waits until `oneuser list` answers.
+
+- name: Find the Galera bootstrap node
+  hosts: galera
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Is MariaDB already part of a running cluster here?
+      shell: mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_size'" 2>/dev/null | awk '{print $2}'
+      register: size_now
+      changed_when: false
+      failed_when: false
+
+    - name: Read grastate.dat
+      shell: awk '/safe_to_bootstrap/{print $2}' /var/lib/mysql/grastate.dat 2>/dev/null || echo missing
+      register: safe
+      changed_when: false
+
+    - name: Collect the answers on the controller
+      set_fact:
+        galera_running: "{{ (size_now.stdout | default('') | trim) not in ['', '0'] }}"
+        galera_safe: "{{ safe.stdout | trim == '1' }}"
+
+- name: Bootstrap and join
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Decide
+      set_fact:
+        any_running: "{{ (groups['galera'] | map('extract', hostvars) | selectattr('galera_running') | list | length) > 0 }}"
+        safe_nodes: "{{ groups['galera'] | map('extract', hostvars) | selectattr('galera_safe') | map(attribute='inventory_hostname') | list }}"
+
+    - name: Pick the bootstrap node
+      set_fact:
+        bootstrap_node: "{{ galera_bootstrap_node | default(safe_nodes | first | default('')) }}"
+
+    - name: Stop if there is nothing safe to bootstrap from
+      fail:
+        msg: >-
+          No Galera node reports safe_to_bootstrap=1 and the cluster is not running. Check
+          `mysqld --wsrep-recover` on each node for the highest seqno and re-run with
+          -e galera_bootstrap_node=<that host>.
+      when: not any_running and bootstrap_node == ''
+
+    - name: Plan
+      debug:
+        msg: "cluster already running: {{ any_running }}; bootstrap node: {{ bootstrap_node if not any_running else '(not needed)' }}"
+
+- name: Bootstrap the first node
+  hosts: galera
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: galera_new_cluster on the chosen node
+      command: galera_new_cluster
+      when:
+        - not hostvars['localhost'].any_running
+        - inventory_hostname == hostvars['localhost'].bootstrap_node
+
+    - name: Wait until the bootstrapped node reports a Primary cluster
+      shell: mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_status'" | awk '{print $2}'
+      register: st
+      until: st.stdout == 'Primary'
+      retries: 20
+      delay: 3
+      changed_when: false
+      when:
+        - not hostvars['localhost'].any_running
+        - inventory_hostname == hostvars['localhost'].bootstrap_node
+
+- name: The other Galera nodes join, one at a time
+  hosts: galera
+  become: yes
+  gather_facts: no
+  serial: 1
+  tasks:
+    - name: Start MariaDB
+      systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+      when: inventory_hostname != hostvars['localhost'].bootstrap_node or hostvars['localhost'].any_running
+
+    - name: Wait for the node to be synced
+      shell: mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_local_state_comment'" | awk '{print $2}'
+      register: sync
+      until: sync.stdout == 'Synced'
+      retries: 40
+      delay: 5
+      changed_when: false
+
+- name: Check the cluster size
+  hosts: Rocky-Head-1
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: wsrep_cluster_size
+      shell: mysql -uroot -BNe "SHOW STATUS LIKE 'wsrep_cluster_size'" | awk '{print $2}'
+      register: cs
+      changed_when: false
+      failed_when: cs.stdout | int != (groups['galera'] | length)
+
+    - name: Start OpenNebula (oned, scheduler)
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop: [opennebula, opennebula-scheduler]
+
+    - name: Wait until oned answers
+      become_user: oneadmin
+      shell: oneuser list
+      register: ol
+      until: ol.rc == 0
+      retries: 20
+      delay: 5
+      changed_when: false
