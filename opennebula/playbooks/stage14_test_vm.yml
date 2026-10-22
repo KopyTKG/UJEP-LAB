@@ -1,0 +1,155 @@
+---
+# First VM on the Lustre datastore: isolated test network, Alpine image from the OpenNebula marketplace,
+# a template, and (optionally) a VM plus a live-migration check.
+#
+#   ansible-playbook playbooks/stage14_test_vm.yml                              # prepare only (idempotent)
+#   ansible-playbook playbooks/stage14_test_vm.yml -e test_migration=true      # also create VM t1 if missing and
+#                                                                               # live-migrate it to another host
+#
+# The network `test_isolated` is a bridge (br-test) with NO uplink: it validates the datastore, scheduling and
+# live migration. Student access (the public network on eno1) needs the VM address range first.
+#
+# Findings built in here (2026-10-22):
+#  - libvirt refuses live migration when it cannot recognise the storage as shared ("Unsafe migration: Migration
+#    without shared storage is unsafe"); Lustre is not on its list. MIGRATE_OPTIONS=--unsafe in kvmrc fixes it.
+#    The KVM driver's Ruby parser (load_env) only accepts `KEY=VALUE` with the value ending the line: an inline
+#    comment makes it silently skip the line, so the comment goes on its own line.
+#  - the old local datastore 0 (system, ssh) is disabled so VMs use the Lustre system datastore 100.
+
+- name: KVM driver setting for migration on Lustre
+  hosts: Rocky-Head-1
+  become: yes
+  tasks:
+    - name: Comment line (own line, see above)
+      lineinfile:
+        path: /var/lib/one/remotes/etc/vmm/kvm/kvmrc
+        line: "# Lustre is not on libvirt's list of recognised shared filesystems, but the storage IS shared. No inline comments on the next line: the Ruby parser needs the value to end it."
+        insertbefore: '^MIGRATE_OPTIONS='
+        owner: oneadmin
+        group: oneadmin
+      register: kvmrc_c
+
+    - name: MIGRATE_OPTIONS=--unsafe
+      lineinfile:
+        path: /var/lib/one/remotes/etc/vmm/kvm/kvmrc
+        regexp: '^#?MIGRATE_OPTIONS='
+        line: "MIGRATE_OPTIONS=--unsafe"
+        owner: oneadmin
+        group: oneadmin
+      register: kvmrc_o
+
+    - name: Push the driver files to the hosts when kvmrc changed
+      become_user: oneadmin
+      command: onehost sync --force
+      when: kvmrc_c.changed or kvmrc_o.changed
+
+- name: Datastores, network, image, template
+  hosts: Rocky-Head-1
+  become: yes
+  become_user: oneadmin
+  tasks:
+    - name: Disable the old local system datastore (0)
+      shell: |
+        onedatastore show 0 | grep -q "STATE *: DISABLED" || onedatastore disable 0
+      changed_when: false
+
+    - name: Isolated test network (bridge without uplink)
+      shell: |
+        onevnet list -l NAME --no-header | grep -qx test_isolated && exit 0
+        cat > /tmp/vn_test.tpl <<TPL
+        NAME = "test_isolated"
+        VN_MAD = "bridge"
+        BRIDGE = "br-test"
+        AR = [ TYPE = "IP4", IP = "172.31.0.10", SIZE = "50" ]
+        NETWORK_MASK = "255.255.255.0"
+        DESCRIPTION = "isolated test bridge, no uplink"
+        TPL
+        onevnet create /tmp/vn_test.tpl && rm -f /tmp/vn_test.tpl
+      changed_when: false
+
+    - name: Alpine image and template from the marketplace into the Lustre image datastore
+      shell: |
+        oneimage list -l NAME --no-header | grep -qx alpine && exit 0
+        onemarketapp export "Alpine Linux 3.24" alpine --datastore lustre_images
+      register: exp
+      changed_when: "'IMAGE' in exp.stdout"
+
+    - name: Wait until the image is ready
+      shell: |
+        oneimage show alpine | awk -F: '/^STATE/{gsub(/ /,"",$2); print $2}'
+      register: imgst
+      until: imgst.stdout in ['rdy', 'used']   # 'used' once a VM runs from it
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: oneadmin gets an SSH key for VM contexts (the frontend key, used to log in to test VMs)
+      shell: |
+        onevm_key=$(oneuser show oneadmin | grep -c SSH_PUBLIC_KEY)
+        [ "$onevm_key" -gt 0 ] && exit 0
+        printf 'SSH_PUBLIC_KEY="%s"\n' "$(cat /var/lib/one/.ssh/id_rsa.pub)" > /tmp/user_key.tpl
+        oneuser update oneadmin /tmp/user_key.tpl --append && rm -f /tmp/user_key.tpl
+      changed_when: false
+
+    - name: Template - 512 MB, NIC on the test network, SSH key in the context, spread over the computes
+      # SCHED_RANK: computes before heads (SCHED_WEIGHT), then the host with the fewest running VMs. FREE_CPU alone
+      # is monitored idle CPU, so idle VMs do not make a host look busier and everything landed on one node.
+      shell: |
+        onetemplate show alpine | grep -q 'RUNNING_VMS' && exit 0
+        cat > /tmp/tpl_add.tpl <<TPL
+        MEMORY = "512"
+        VCPU = "1"
+        NIC = [ NETWORK = "test_isolated" ]
+        CONTEXT = [ NETWORK = "YES", SSH_PUBLIC_KEY = "\$USER[SSH_PUBLIC_KEY]" ]
+        SCHED_RANK = "SCHED_WEIGHT * 1000 - RUNNING_VMS"
+        TPL
+        onetemplate update alpine /tmp/tpl_add.tpl --append && rm -f /tmp/tpl_add.tpl
+      changed_when: false
+
+- name: Optional VM and live-migration check
+  hosts: Rocky-Head-1
+  become: yes
+  become_user: oneadmin
+  tasks:
+    - name: Create VM t1 if there is none
+      shell: |
+        onevm list -l NAME --no-header | grep -qx t1 || onetemplate instantiate alpine --name t1
+      when: test_migration | default(false) | bool
+      changed_when: false
+
+    - name: Wait until t1 is RUNNING
+      shell: |
+        onevm show t1 | awk -F: '/^LCM_STATE/{gsub(/ /,"",$2); print $2}'
+      register: lcm
+      until: lcm.stdout == 'RUNNING'
+      retries: 30
+      delay: 5
+      changed_when: false
+      when: test_migration | default(false) | bool
+
+    - name: Where is t1, and where should it go
+      shell: |
+        onevm show t1 -j | python3 -c "import json,sys; h=json.load(sys.stdin)['VM']['HISTORY_RECORDS']['HISTORY']; h=h[-1] if isinstance(h,list) else h; print(h['HOSTNAME'])"
+      register: cur
+      changed_when: false
+      when: test_migration | default(false) | bool
+
+    - name: Live-migrate t1 to the next compute
+      shell: |
+        src={{ cur.stdout }}
+        dst=$( [ "$src" = Rocky-Compute-2 ] && echo Rocky-Compute-8 || echo Rocky-Compute-2 )
+        t0=$(date +%s.%N)
+        onevm migrate --live t1 $dst
+        for i in $(seq 1 60); do
+          l=$(onevm show t1 | awk -F: '/^LCM_STATE/{gsub(/ /,"",$2); print $2}')
+          h=$(onevm show t1 -j | python3 -c "import json,sys; h=json.load(sys.stdin)['VM']['HISTORY_RECORDS']['HISTORY']; h=h[-1] if isinstance(h,list) else h; print(h['HOSTNAME'])")
+          [ "$l" = RUNNING ] && [ "$h" = "$dst" ] && { echo "migrated $src -> $dst in $(echo "$(date +%s.%N) - $t0" | bc | cut -c1-5) s"; exit 0; }
+          sleep 1
+        done
+        echo "FAILED: still $l on $h"; exit 1
+      register: mig
+      changed_when: true
+      when: test_migration | default(false) | bool
+
+    - debug:
+        msg: "{{ mig.stdout_lines | default(['migration test not requested']) }}"

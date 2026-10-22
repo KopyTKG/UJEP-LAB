@@ -1,0 +1,123 @@
+---
+# KVM hypervisor on every node, oneadmin SSH trust over InfiniBand, hosts registered by IB address,
+# the heads (Lustre MGS/MDT servers) limited.
+#
+#   ansible-playbook playbooks/stage12_hosts.yml
+#
+# Decisions (owner, 2026-10-22): all 10 nodes are hypervisors, the heads with reserved capacity and a lower
+# scheduling preference; all cluster traffic (oned -> hosts, SSH, live migration) over the IB network 10.0.0.x.
+# Node names resolve to the IB addresses through /etc/hosts, so `onehost create <name>` registers the IB address.
+# NICs are not touched here (VM network details still open). LXC hosts are not set up yet.
+
+- name: KVM packages and libvirt on every node
+  hosts: cluster
+  become: yes
+  vars:
+    ib_subnet: "10.0.0.0/24"
+  tasks:
+    - name: Install the OpenNebula KVM node package set
+      dnf:
+        name: opennebula-node-kvm
+        state: present
+
+    - name: oneadmin must have the same fixed UID/GID everywhere (shared datastore, migration)
+      shell: id -u oneadmin; id -g oneadmin
+      register: oa
+      changed_when: false
+      failed_when: oa.stdout_lines != ['9869', '9869']
+
+    - name: libvirtd enabled and running
+      systemd:
+        name: libvirtd
+        state: started
+        enabled: yes
+
+    - name: Firewall - accept the IB subnet (live migration, VNC and libvirt use many ports)
+      shell: |
+        RULE='rule family="ipv4" source address="{{ ib_subnet }}" accept'
+        if firewall-cmd --permanent --query-rich-rule="$RULE" >/dev/null 2>&1; then echo present; else
+          firewall-cmd --permanent --add-rich-rule="$RULE" >/dev/null && firewall-cmd --add-rich-rule="$RULE" >/dev/null && echo added; fi
+      register: fw
+      changed_when: "'added' in fw.stdout"
+
+- name: Frontend oneadmin key authorized on every node, from the IB subnet only
+  hosts: cluster
+  become: yes
+  tasks:
+    - name: Read the frontend public key
+      slurp:
+        src: /var/lib/one/.ssh/id_rsa.pub
+      register: fe_key
+      delegate_to: Rocky-Head-1
+      run_once: true
+
+    - name: authorized_keys for oneadmin
+      authorized_key:
+        user: oneadmin
+        key: "{{ fe_key.content | b64decode }}"
+        key_options: 'from="10.0.0.0/24"'
+        comment: "oneadmin-frontend"
+
+- name: Check the SSH path the drivers use (agent, as oneadmin, by IB name)
+  hosts: Rocky-Head-1
+  become: yes
+  tasks:
+    - name: oneadmin reaches every node without a password
+      become_user: oneadmin
+      environment:
+        SSH_AUTH_SOCK: /var/run/one/ssh-agent.sock
+      shell: ssh -o BatchMode=yes -o ConnectTimeout=8 {{ item }} 'echo $(hostname) $(id -u)'
+      register: sshcheck
+      changed_when: false
+      loop: "{{ groups['cluster'] }}"
+      loop_control:
+        label: "{{ item }}"
+
+- name: Register the hosts with OpenNebula
+  hosts: Rocky-Head-1
+  become: yes
+  become_user: oneadmin
+  vars:
+    head_reserved_cpu_pct: 50      # share of the heads' CPU kept for Lustre and the services
+    head_reserved_mem_gib: 24      # of 62 GiB
+  tasks:
+    - name: Existing hosts
+      command: onehost list -l NAME --no-header
+      register: existing
+      changed_when: false
+
+    - name: onehost create (KVM) for the nodes that are not registered
+      command: onehost create {{ item }} -i kvm -v kvm
+      loop: "{{ groups['cluster'] }}"
+      when: item not in existing.stdout_lines | map('trim') | list
+
+    - name: Wait until every host is monitored (STAT on)
+      shell: onehost list -l NAME,STAT --no-header | awk -v h={{ item }} '$1==h {print $2}'
+      register: st
+      until: st.stdout == 'on'
+      retries: 24
+      delay: 10
+      changed_when: false
+      loop: "{{ groups['cluster'] }}"
+
+    - name: Mark the heads (reserved capacity, lower scheduling weight) and the computes
+      shell: |
+        cat > /tmp/host_{{ item }}.tpl <<TPL
+        NODE_ROLE="{{ 'head' if item in groups['controller'] else 'compute' }}"
+        SCHED_WEIGHT="{{ 0 if item in groups['controller'] else 1 }}"
+        {% if item in groups['controller'] %}
+        RESERVED_CPU="{{ head_reserved_cpu_pct }}%"
+        RESERVED_MEM="{{ head_reserved_mem_gib * 1024 * 1024 }}"
+        {% endif %}
+        TPL
+        onehost update {{ item }} --append /tmp/host_{{ item }}.tpl && rm -f /tmp/host_{{ item }}.tpl
+      loop: "{{ groups['cluster'] }}"
+      changed_when: true
+
+    - name: Resulting hosts
+      command: onehost list
+      register: final
+      changed_when: false
+
+    - debug:
+        msg: "{{ final.stdout_lines }}"

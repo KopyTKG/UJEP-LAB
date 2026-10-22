@@ -1,0 +1,198 @@
+---
+# OpenNebula datastores on Lustre with FLR mirrors and a periodic resync.
+#
+#   ansible-playbook playbooks/stage13_datastore.yml
+#
+# Layout: /mnt/lustre/one/datastores carries a DEFAULT mirror layout (mirror 1 in OST pool pool_a = OSTs of
+# Compute-1..4, mirror 2 in pool_b = OSTs of Compute-5..8, stripe count 1 each), so every VM disk and image
+# created below it has its two copies on different halves of the cluster. FLR is asynchronous: the second copy
+# is stale until `lfs mirror resync`, which a systemd timer runs every 5 minutes. (Measured 2026-10-08/22: reads
+# fail over to a synced mirror, writes/creates to a dead OSS still stall unless its OSTs are deactivated; a head
+# restart evicts clients, so open VM disks get I/O errors. See thesis notes 15 and 18.)
+#
+# /var/lib/one/datastores is a bind mount of the Lustre directory on every node, ordered after lustre-startup and
+# required by libvirtd/oned, so no VM can start against an empty local directory when Lustre is not mounted.
+
+- name: OST pools (on the MGS, persistent)
+  hosts: Rocky-Head-1
+  become: yes
+  tasks:
+    - name: Create the pools and add the OSTs (each pool_add takes several seconds)
+      shell: |
+        set -u
+        for p in pool_a pool_b; do lctl pool_list lustrefs.$p >/dev/null 2>&1 || lctl pool_new lustrefs.$p; done
+        for i in 0 1 2 3 4 5 6 7; do lctl pool_list lustrefs.pool_a | grep -q "lustrefs-OST000$i" || lctl pool_add lustrefs.pool_a lustrefs-OST000$i; done
+        for i in 8 9 a b c d e f; do lctl pool_list lustrefs.pool_b | grep -q "lustrefs-OST000$i" || lctl pool_add lustrefs.pool_b lustrefs-OST000$i; done
+        echo "pool_a=$(lctl pool_list lustrefs.pool_a | grep -c OST) pool_b=$(lctl pool_list lustrefs.pool_b | grep -c OST)"
+      register: pools
+      async: 900
+      poll: 5
+      changed_when: false
+      failed_when: "'pool_a=8 pool_b=8' not in pools.stdout"
+
+- name: Datastore tree on Lustre with a default mirror layout
+  hosts: Rocky-Compute-1
+  become: yes
+  tasks:
+    - name: Directory owned by oneadmin (fixed UID/GID 9869 on every node)
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: oneadmin
+        group: oneadmin
+        mode: "0750"
+      loop: [/mnt/lustre/one, /mnt/lustre/one/datastores]
+
+    - name: Default layout - two mirrors, one per pool, stripe count 1
+      shell: |
+        if lfs getstripe -d /mnt/lustre/one/datastores 2>/dev/null | grep -q "lcm_mirror_count:  2"; then echo present; else
+          lfs mirror create -N1 -p pool_a -c1 -N1 -p pool_b -c1 /mnt/lustre/one/datastores && echo set; fi
+      register: lay
+      changed_when: "'set' in lay.stdout"
+
+    - name: Remove the scratch directory from the layout test
+      file:
+        path: /mnt/lustre/_mirror_test
+        state: absent
+
+- name: Bind mount on every node, ordered after Lustre
+  hosts: cluster
+  become: yes
+  tasks:
+    - name: Mount unit for /var/lib/one/datastores
+      copy:
+        dest: /etc/systemd/system/var-lib-one-datastores.mount
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=OpenNebula datastores on Lustre
+          After=lustre-startup.service
+          Requires=lustre-startup.service
+
+          [Mount]
+          What=/mnt/lustre/one/datastores
+          Where=/var/lib/one/datastores
+          Type=none
+          Options=bind
+
+          [Install]
+          WantedBy=multi-user.target
+      register: mnt_unit
+
+    - name: Drop-in directories
+      file:
+        path: "/etc/systemd/system/{{ item }}.service.d"
+        state: directory
+        mode: "0755"
+      loop: "{{ ['libvirtd'] + (['opennebula'] if inventory_hostname == 'Rocky-Head-1' else []) }}"
+
+    - name: libvirtd and oned wait for (and require) the datastore mount
+      copy:
+        dest: "/etc/systemd/system/{{ item }}.service.d/datastore.conf"
+        mode: "0644"
+        content: |
+          [Unit]
+          After=var-lib-one-datastores.mount
+          Requires=var-lib-one-datastores.mount
+      loop: "{{ ['libvirtd'] + (['opennebula'] if inventory_hostname == 'Rocky-Head-1' else []) }}"
+
+    - name: systemd reload
+      systemd:
+        daemon_reload: yes
+
+    - name: Start the mount (enabled for the next boot)
+      systemd:
+        name: var-lib-one-datastores.mount
+        state: started
+        enabled: yes
+
+- name: Periodic resync of the mirrors
+  hosts: Rocky-Compute-8
+  become: yes
+  tasks:
+    - name: Resync script
+      copy:
+        dest: /usr/local/sbin/one-ds-resync
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          # Resync every file under the OpenNebula datastore whose mirrors are not in sync (FLR is asynchronous).
+          DS=/mnt/lustre/one/datastores
+          mountpoint -q /mnt/lustre || { logger -t one-ds-resync "Lustre not mounted, skipping"; exit 0; }
+          n=0; failed=0
+          while IFS= read -r -d '' f; do
+            n=$((n+1))
+            nice -n 10 ionice -c3 lfs mirror resync "$f" >/dev/null 2>&1 || { failed=$((failed+1)); logger -t one-ds-resync "resync failed: $f"; }
+          done < <(lfs find "$DS" -type f ! --mirror-state=ro -print0 2>/dev/null)
+          logger -t one-ds-resync "resynced $((n-failed)) of $n file(s)"
+
+    - name: systemd service and timer (every 5 minutes)
+      copy:
+        dest: "/etc/systemd/system/{{ item.name }}"
+        mode: "0644"
+        content: "{{ item.body }}"
+      loop:
+        - name: one-ds-resync.service
+          body: |
+            [Unit]
+            Description=Resync FLR mirrors of the OpenNebula datastore
+            After=lustre-startup.service
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/sbin/one-ds-resync
+        - name: one-ds-resync.timer
+          body: |
+            [Unit]
+            Description=Run the OpenNebula datastore resync every 5 minutes
+            [Timer]
+            OnBootSec=10min
+            OnUnitActiveSec=5min
+            [Install]
+            WantedBy=timers.target
+
+    - name: Enable the timer
+      systemd:
+        name: one-ds-resync.timer
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+- name: OpenNebula datastores (shared transfer driver)
+  hosts: Rocky-Head-1
+  become: yes
+  become_user: oneadmin
+  tasks:
+    - name: Existing datastores
+      command: onedatastore list -l NAME --no-header
+      register: ds
+      changed_when: false
+
+    - name: Create the Lustre system and image datastores
+      shell: |
+        cat > /tmp/ds_{{ item.name }}.tpl <<TPL
+        {{ item.tpl }}
+        TPL
+        onedatastore create /tmp/ds_{{ item.name }}.tpl && rm -f /tmp/ds_{{ item.name }}.tpl
+      loop:
+        - name: lustre_system
+          tpl: |
+            NAME = "lustre_system"
+            TYPE = "SYSTEM_DS"
+            TM_MAD = "shared"
+        - name: lustre_images
+          tpl: |
+            NAME = "lustre_images"
+            TYPE = "IMAGE_DS"
+            DS_MAD = "fs"
+            TM_MAD = "shared"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.name not in ds.stdout_lines | map('trim') | list
+
+    - name: Result
+      command: onedatastore list
+      register: res
+      changed_when: false
+
+    - debug:
+        msg: "{{ res.stdout_lines }}"
