@@ -159,7 +159,7 @@ echo "DMESG_ERR=$(dmesg 2>/dev/null | grep -c -E 'LustreError|LNetError|Call Tra
 for f in symbol_error link_downed port_rcv_errors port_xmit_discards link_error_recovery; do
   echo "IB_$f=$(cat /sys/class/infiniband/*/ports/1/counters/$f 2>/dev/null | head -1)"; done"""
 
-LFSDF_CMD = "timeout 90 lfs df 2>&1"
+LFSDF_CMD = "timeout 90 lfs df /mnt/lustre 2>&1"   # explicit mount: the datastore bind mount would list every OST twice
 
 
 def parse_lfsdf(text):

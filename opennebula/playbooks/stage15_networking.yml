@@ -1,0 +1,54 @@
+---
+# VM networking: firewalld zone for the OpenNebula bridges, and the private VXLAN network over InfiniBand.
+#
+#   ansible-playbook playbooks/stage15_networking.yml
+#
+# Finding (2026-10-22): VMs on different hosts could not talk across a VXLAN network although the overlay itself
+# worked host to host. br_netfilter is loaded (bridge-nf-call-iptables=1, needed by OpenNebula security groups),
+# so bridged VM traffic passes firewalld's FORWARD path, which rejected it for bridges that belong to no zone.
+# Host-originated traffic never takes that path, which is why host-to-host pings worked. Fix: a dedicated zone
+# `one-vm` that holds every OpenNebula bridge (wildcards cover bridges created later) with forwarding allowed;
+# traffic addressed TO the host from a VM bridge stays under the zone's default target (not `trusted`).
+#   onebr.<vlan>  bridges of the vxlan driver (VLAN_ID 100 -> onebr.100)
+#   br-*          bridges of the bridge driver we name ourselves (br-test, br-public ...)
+#
+# Private network: VN_MAD=vxlan over ibs1 (multicast group 239.0.0.<vlan> on IPoIB, MTU 2044 datagram mode ->
+# 1994 B for the overlay, VMs at 1500). For the vxlan driver the physical device attribute is PHYDEV.
+
+- name: firewalld zone for the OpenNebula bridges
+  hosts: cluster
+  become: yes
+  tasks:
+    - name: Zone one-vm with forwarding, bridges by pattern
+      shell: |
+        changed=0
+        firewall-cmd --permanent --get-zones | tr ' ' '\n' | grep -qx one-vm || { firewall-cmd --permanent --new-zone=one-vm >/dev/null; changed=1; }
+        firewall-cmd --permanent --zone=one-vm --query-forward >/dev/null 2>&1 || { firewall-cmd --permanent --zone=one-vm --add-forward >/dev/null; changed=1; }
+        [ "$(firewall-cmd --permanent --zone=one-vm --get-target)" = "default" ] || { firewall-cmd --permanent --zone=one-vm --set-target=default >/dev/null; changed=1; }
+        for i in 'onebr.+' 'br-+'; do
+          firewall-cmd --permanent --zone=one-vm --query-interface="$i" >/dev/null 2>&1 || { firewall-cmd --permanent --zone=one-vm --add-interface="$i" >/dev/null; changed=1; }
+        done
+        [ $changed = 1 ] && { firewall-cmd --reload >/dev/null; echo changed; } || echo unchanged
+      register: zone
+      changed_when: "'changed' == zone.stdout"
+
+- name: Private tenant network over InfiniBand (VXLAN)
+  hosts: Rocky-Head-1
+  become: yes
+  become_user: oneadmin
+  tasks:
+    - name: priv_net1
+      shell: |
+        onevnet list -l NAME --no-header | grep -qx priv_net1 && exit 0
+        cat > /tmp/vn_priv.tpl <<TPL
+        NAME = "priv_net1"
+        VN_MAD = "vxlan"
+        PHYDEV = "ibs1"
+        VLAN_ID = "100"
+        AR = [ TYPE = "IP4", IP = "10.10.1.10", SIZE = "100" ]
+        NETWORK_MASK = "255.255.255.0"
+        GATEWAY = "10.10.1.1"
+        DESCRIPTION = "private tenant network: VXLAN over the InfiniBand fabric"
+        TPL
+        onevnet create /tmp/vn_priv.tpl && rm -f /tmp/vn_priv.tpl
+      changed_when: false

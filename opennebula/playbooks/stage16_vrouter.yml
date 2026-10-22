@@ -1,0 +1,25 @@
+---
+# Virtual router (marketplace "Service Virtual Router") between priv_net1 (VXLAN over IB)
+# and an uplink network. Uplink is test_isolated until the real public range is known.
+# Single instance: no floating gateway (needs 2 instances + keepalived); guests use the router's own IP.
+- name: Virtual router appliance
+  hosts: Rocky-Head-1
+  become: true
+  tasks:
+    - name: Export appliance and prepare the template/router
+      ansible.builtin.shell: |
+        sudo -u oneadmin bash -c '
+          oneimage list -l NAME --no-header </dev/null | grep -qx vrouter || onemarketapp export 113 vrouter --datastore lustre_images </dev/null
+          until [ "$(oneimage show vrouter | awk "/^STATE/{print \$3}")" = rdy ]; do sleep 3; done'
+      changed_when: true
+    - name: Install the template builder
+      ansible.builtin.copy:
+        src: ../files/vrouter_template.sh
+        dest: /var/tmp/vrouter_template.sh
+        mode: "0755"
+    - name: Notes
+      ansible.builtin.debug:
+        msg: >-
+          TOKEN/onegate must be removed from the context (no onegate endpoint) and USER_INPUTS dropped
+          (interactive prompts), see files/vrouter_template.sh. Proven: v1 -> t1 via vr1 shows source
+          172.31.0.12 (masqueraded).
