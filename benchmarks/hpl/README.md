@@ -94,3 +94,20 @@ Rpeak at the nominal 2.2 GHz, efficiency %, residual passed, mpirun exit code.
 2. `just hpl-quick` passes. If `mpirun` complains about UCX or memlock, retry with `-e hpl_net=tcp` and note it.
 3. Do not run it together with the soak or other load: HPL uses all cores and a large part of the memory.
 4. After the series, shut down in the usual way (`just down`).
+
+## Setup log
+
+**2026-10-22, first real run of `just hpl-setup`** (computes only; heads not set up):
+- Packages, memlock, MPI key, download and build all worked on the second attempt. First attempt failed in the build:
+  my Makefile template never defined `HPL_DEFS`, so `hpl.h` was not found. Fixed in `playbooks/hpl_setup.yml`: `HPL_DEFS`,
+  `-DHPL_CALL_CBLAS`, `LAinc = -I/usr/include/openblas`.
+- **`libopenblas.so` on Rocky 9 is the single-threaded build**; `libopenblasp.so` is the pthreads build. The Makefile
+  links `-lopenblasp`, otherwise every MPI rank would silently use one core instead of 12 (`ldd xhpl` shows
+  `libopenblasp.so.0`).
+- Downloaded `hpl-2.3.tar.gz` sha256 `32c5c17d22330e6f2337b681aded51637fb6008d3f0eb7c277b163fadd612830`
+  (stored next to it in `/mnt/lustre/hpl`).
+- Checked without load: `xhpl` is 234,824 bytes and links libopenblasp and Open MPI 4.1.1; passwordless ssh with the MPI key
+  from Compute-1 to Compute-2/5/8 works; memlock is `unlimited` in an ssh session; UCX 1.19.1 sees `mlx5_0:1` with the
+  `rc_verbs`/`ud_verbs` transports (no `rc_mlx5`, which is not packaged), so `hpl_net=ucx` should run over RDMA.
+- **No HPL run has been done yet.** HPL loads every core with AVX2 and draws far more power than the soak; the lab breaker
+  limit (thesis note 12) has to be checked first. Plan: `just hpl-quick`, then `just hpl 1` while watching the power, then 2, 4, 8.

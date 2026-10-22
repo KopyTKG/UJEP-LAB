@@ -138,9 +138,13 @@
           MPinc        = -I/usr/include/openmpi-x86_64
           MPlib        = -L/usr/lib64/openmpi/lib -lmpi
           LAdir        = /usr/lib64
-          LAinc        =
-          LAlib        = -lopenblas
-          HPL_OPTS     = -DHPL_DETAILED_TIMING
+          LAinc        = -I/usr/include/openblas
+          # libopenblasp = the pthreads build. On Rocky libopenblas.so is the SERIAL build: linking it
+          # would make every MPI rank use 1 core instead of OPENBLAS_NUM_THREADS.
+          LAlib        = -L/usr/lib64 -lopenblasp
+          F2CDEFS      =
+          HPL_OPTS     = -DHPL_CALL_CBLAS -DHPL_DETAILED_TIMING
+          HPL_DEFS     = $(F2CDEFS) $(HPL_OPTS) $(HPL_INCLUDES)
           HPL_INCLUDES = -I$(INCdir) -I$(INCdir)/$(ARCH) $(LAinc) $(MPinc)
           HPL_LIBS     = $(HPLlib) $(LAlib) $(MPlib)
           CC           = /usr/lib64/openmpi/bin/mpicc
