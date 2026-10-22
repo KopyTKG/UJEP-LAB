@@ -1,0 +1,17 @@
+# lustrebench_baseline started 2026-10-22T14:38:54+0200 argv=['tools/lustre_bench.py', 'baseline']
+SSD baseline on 8 computes (raw reads + file writes in the OST dirs), about 10 minutes
+$ ansible Rocky-Compute-1,Rocky-Compute-2,Rocky-Compute-3,Rocky-Compute-4,Rocky-Compute-5,Rocky-Compute-6,Rocky-Compute-7,Rocky-Compute-8 -m shell -a '\nset -u\nout=/var/tmp/lbench; rm -rf $out; mkdir -p $out\ndevs=$(awk \'$2 ~ /^\\/mnt\\/ost[0-9]+$/ {print $1":"$2}\' /proc/mounts)\necho "DEVS=$devs"\nrun() { fio --output-format=json --name=$1 "${@:2}" > $out/$1.json 2>$out/$1.err; }\nRT=20\n# 1) raw device, read only: one at a time, then both at once\nfor d in $devs; do dev=${d%%:*}; b=$(basename $dev)\n  run raw_seq_read_$b --filename=$dev --readonly --rw=read --bs=1M --iodepth=16 --direct=1 --ioengine=libaio --runtime=$RT --time_based\n  run raw_rand_read_$b --filename=$dev --readonly --rw=randread --bs=4k --iodepth=32 --direct=1 --ioengine=libaio --runtime=$RT --time_based --norandommap\ndone\ni=0; for d in $devs; do dev=${d%%:*}; b=$(basename $dev)\n  run raw_both_seq_read_$b --filename=$dev --readonly --rw=read --bs=1M --iodepth=16 --direct=1 --ioengine=libaio --runtime=$RT --time_based & i=$((i+1)); done; wait\n# 2) file on the SSD\'s own ldiskfs (OST mount dir), write: one at a time, then both at once\nfor d in $devs; do dev=${d%%:*}; m=${d##*:}; b=$(basename $dev); f=$m/_lbench_tmp.fio\n  run fs_seq_write_$b --filename=$f --size=8G --rw=write --bs=1M --iodepth=16 --direct=1 --ioengine=libaio --end_fsync=1\n  run fs_rand_write_$b --filename=$f --size=8G --rw=randwrite --bs=4k --iodepth=32 --direct=1 --ioengine=libaio --runtime=$RT --time_based --norandommap\n  rm -f $f\ndone\nfor d in $devs; do dev=${d%%:*}; m=${d##*:}; b=$(basename $dev); f=$m/_lbench_tmp.fio\n  run fs_both_seq_write_$b --filename=$f --size=8G --rw=write --bs=1M --iodepth=16 --direct=1 --ioengine=libaio --end_fsync=1 & done; wait\nfor d in $devs; do m=${d##*:}; rm -f $m/_lbench_tmp.fio; done\nfor f in $out/*.json; do echo "###$(basename $f .json)"; cat $f; done\nrm -rf $out\n'
+!! adhoc unparsable output: rc=4 stdout='' stderr='[ERROR]: failed at splitting arguments, either an unbalanced jinja2 block or quotes: \nset -u\nout=/var/tmp/lbench; rm -rf $out; mkdir -p $out\ndevs=$(awk \'$2 ~ /^\\/mnt\\/ost[0-9]+$/ {print $1":"$2}\' /proc/mounts)\necho "DEVS=$devs"\nrun() { fio --output-format=json --name=$1 "${@:2}" > $out/$1.json 2>$out/$1.err; }\nRT=20\n# 1) raw device, read only: one at a time, then both at once\nfor d in $devs; do dev=${d%%:*}; b=$(basename $dev)\n  run raw_seq_read_$b --filename=$dev --readonly --rw=read --bs=1M --'
+!! Rocky-Compute-1: failed: None
+!! Rocky-Compute-2: failed: None
+!! Rocky-Compute-3: failed: None
+!! Rocky-Compute-4: failed: None
+!! Rocky-Compute-5: failed: None
+!! Rocky-Compute-6: failed: None
+!! Rocky-Compute-7: failed: None
+!! Rocky-Compute-8: failed: None
+
+0 measurements -> /home/kopy/Projects/UJEP-LAB/benchmarks/lustre/baseline.csv
+RESULT_JSON {"command": "baseline", "measurements": 0}
+
+log: /home/kopy/Projects/UJEP-LAB/benchmarks/lustre/logs/lustrebench_baseline_20261022T143854.log

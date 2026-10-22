@@ -1,0 +1,3695 @@
+{
+ "started": "20261022T145047",
+ "args": {
+  "cmd": "run",
+  "reps": 3,
+  "clients": "1,4,8",
+  "configs": "default,tuned",
+  "runtime": 45,
+  "quick": false,
+  "force": false,
+  "fn": "<function cmd_run at 0x7f86459ec510>"
+ },
+ "original_tunables": {
+  "osc.*.max_rpcs_in_flight": "8",
+  "osc.*.max_dirty_mb": "2000",
+  "llite.*.max_read_ahead_mb": "1024",
+  "llite.*.max_read_ahead_per_file_mb": "256"
+ },
+ "runs": [
+  {
+   "ts": "2026-10-22T14:51:35",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 399.5,
+   "bw_gbit_s": 3.351,
+   "iops": 400,
+   "lat_mean_us": 134923.8,
+   "lat_p99_us_worst": 233832.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 399.521484375,
+     "iops": 399.522056,
+     "lat_mean_us": 134923.832836792,
+     "lat_p99_us": 233832.448,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:52:29",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 1744.5,
+   "bw_gbit_s": 14.634,
+   "iops": 1743,
+   "lat_mean_us": 36684.4,
+   "lat_p99_us_worst": 61079.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1744.478515625,
+     "iops": 1743.147569,
+     "lat_mean_us": 36684.391146894,
+     "lat_p99_us": 61079.552,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:53:23",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 743.2,
+   "bw_gbit_s": 6.234,
+   "iops": 190252,
+   "lat_mean_us": 672.1,
+   "lat_p99_us_worst": 1597.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 743.1806640625,
+     "iops": 190251.572187,
+     "lat_mean_us": 672.098472297,
+     "lat_p99_us": 1597.44,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:54:17",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 3.2,
+   "bw_gbit_s": 0.027,
+   "iops": 829,
+   "lat_mean_us": 154107.1,
+   "lat_p99_us_worst": 358613.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 3.248046875,
+     "iops": 828.860692,
+     "lat_mean_us": 154107.07298445,
+     "lat_p99_us": 358612.992,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:55:00",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 455.5,
+   "bw_gbit_s": 3.821,
+   "iops": 456,
+   "lat_mean_us": 133534.5,
+   "lat_p99_us_worst": 202375.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 455.5029296875,
+     "iops": 455.50335,
+     "lat_mean_us": 133534.541392334,
+     "lat_p99_us": 202375.168,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:55:54",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 1961.9,
+   "bw_gbit_s": 16.458,
+   "iops": 1961,
+   "lat_mean_us": 32628.8,
+   "lat_p99_us_worst": 47448.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1961.9375,
+     "iops": 1960.583585,
+     "lat_mean_us": 32628.762666652,
+     "lat_p99_us": 47448.064,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:56:48",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 757.3,
+   "bw_gbit_s": 6.353,
+   "iops": 193878,
+   "lat_mean_us": 659.5,
+   "lat_p99_us_worst": 1433.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 757.3466796875,
+     "iops": 193878.002711,
+     "lat_mean_us": 659.463750641,
+     "lat_p99_us": 1433.6,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:57:42",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 2.4,
+   "bw_gbit_s": 0.02,
+   "iops": 605,
+   "lat_mean_us": 210506.2,
+   "lat_p99_us_worst": 371195.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.375,
+     "iops": 605.277068,
+     "lat_mean_us": 210506.24856379,
+     "lat_p99_us": 371195.904,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:58:25",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 466.7,
+   "bw_gbit_s": 3.915,
+   "iops": 467,
+   "lat_mean_us": 111770.3,
+   "lat_p99_us_worst": 200278.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 466.7001953125,
+     "iops": 466.700849,
+     "lat_mean_us": 111770.29408728001,
+     "lat_p99_us": 200278.016,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T14:59:19",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 1986.7,
+   "bw_gbit_s": 16.666,
+   "iops": 1985,
+   "lat_mean_us": 32220.1,
+   "lat_p99_us_worst": 45875.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1986.7197265625,
+     "iops": 1985.365962,
+     "lat_mean_us": 32220.106441111,
+     "lat_p99_us": 45875.2,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:00:13",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 769.9,
+   "bw_gbit_s": 6.459,
+   "iops": 197104,
+   "lat_mean_us": 648.7,
+   "lat_p99_us_worst": 1351.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 769.9482421875,
+     "iops": 197104.131019,
+     "lat_mean_us": 648.667609149,
+     "lat_p99_us": 1351.68,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:01:07",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 2.2,
+   "bw_gbit_s": 0.019,
+   "iops": 564,
+   "lat_mean_us": 226014.9,
+   "lat_p99_us_worst": 371195.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.21484375,
+     "iops": 564.446701,
+     "lat_mean_us": 226014.91888195698,
+     "lat_p99_us": 371195.904,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:02:16",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1312.6,
+   "bw_gbit_s": 11.011,
+   "iops": 1313,
+   "lat_mean_us": 151699.1,
+   "lat_p99_us_worst": 425721.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 267.62890625,
+     "iops": 267.629331,
+     "lat_mean_us": 159256.07826617398,
+     "lat_p99_us": 425721.856,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 265.529296875,
+     "iops": 265.530039,
+     "lat_mean_us": 161221.56268103002,
+     "lat_p99_us": 350224.384,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 466.8466796875,
+     "iops": 466.847129,
+     "lat_mean_us": 134672.965189331,
+     "lat_p99_us": 200278.016,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 312.5634765625,
+     "iops": 312.564386,
+     "lat_mean_us": 151645.98319635002,
+     "lat_p99_us": 354418.688,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:03:10",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 6416.4,
+   "bw_gbit_s": 53.825,
+   "iops": 6411,
+   "lat_mean_us": 40707.3,
+   "lat_p99_us_worst": 166723.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1397.2255859375,
+     "iops": 1395.894819,
+     "lat_mean_us": 45798.987420401,
+     "lat_p99_us": 164626.432,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1377.4052734375,
+     "iops": 1376.075197,
+     "lat_mean_us": 46441.146806380006,
+     "lat_p99_us": 166723.584,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1938.08984375,
+     "iops": 1936.735283,
+     "lat_mean_us": 33028.188494036,
+     "lat_p99_us": 49545.216,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1703.71484375,
+     "iops": 1702.383594,
+     "lat_mean_us": 37560.994031719994,
+     "lat_p99_us": 88604.672,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:04:04",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2588.0,
+   "bw_gbit_s": 21.71,
+   "iops": 662527,
+   "lat_mean_us": 776.7,
+   "lat_p99_us_worst": 1744.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 579.361328125,
+     "iops": 148313.859692,
+     "lat_mean_us": 862.290608203,
+     "lat_p99_us": 1646.592,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 639.494140625,
+     "iops": 163707.76205,
+     "lat_mean_us": 781.238108656,
+     "lat_p99_us": 1744.896,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 648.533203125,
+     "iops": 166021.799516,
+     "lat_mean_us": 770.293091958,
+     "lat_p99_us": 1531.904,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 720.650390625,
+     "iops": 184483.789249,
+     "lat_mean_us": 693.1373837579999,
+     "lat_p99_us": 1531.904,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:04:58",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 8.4,
+   "bw_gbit_s": 0.07,
+   "iops": 2129,
+   "lat_mean_us": 240192.5,
+   "lat_p99_us_worst": 383778.8,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.1884765625,
+     "iops": 557.543403,
+     "lat_mean_us": 228849.541475983,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1.9462890625,
+     "iops": 495.553741,
+     "lat_mean_us": 257293.341985077,
+     "lat_p99_us": 379584.512,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 2.12890625,
+     "iops": 542.479324,
+     "lat_mean_us": 235270.50320031602,
+     "lat_p99_us": 362807.296,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 2.0927734375,
+     "iops": 533.162759,
+     "lat_mean_us": 239356.654991851,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:06:08",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1232.0,
+   "bw_gbit_s": 10.335,
+   "iops": 1232,
+   "lat_mean_us": 180182.5,
+   "lat_p99_us_worst": 467664.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 264.0361328125,
+     "iops": 264.036614,
+     "lat_mean_us": 220591.067331604,
+     "lat_p99_us": 467664.896,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 292.404296875,
+     "iops": 292.40434,
+     "lat_mean_us": 175887.134305664,
+     "lat_p99_us": 400556.032,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 263.7509765625,
+     "iops": 263.751831,
+     "lat_mean_us": 183371.254753052,
+     "lat_p99_us": 442499.072,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 411.8134765625,
+     "iops": 411.813498,
+     "lat_mean_us": 140880.620053406,
+     "lat_p99_us": 217055.232,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:07:02",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 5404.4,
+   "bw_gbit_s": 45.335,
+   "iops": 5399,
+   "lat_mean_us": 50420.1,
+   "lat_p99_us_worst": 170917.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 873.607421875,
+     "iops": 872.279661,
+     "lat_mean_us": 73161.27879331,
+     "lat_p99_us": 170917.888,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1463.1025390625,
+     "iops": 1461.772275,
+     "lat_mean_us": 43749.919971173,
+     "lat_p99_us": 93847.552,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1341.6513671875,
+     "iops": 1340.320756,
+     "lat_mean_us": 47692.287461600994,
+     "lat_p99_us": 164626.432,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1726.03515625,
+     "iops": 1724.704263,
+     "lat_mean_us": 37076.806449222,
+     "lat_p99_us": 61079.552,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:07:56",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2541.3,
+   "bw_gbit_s": 21.318,
+   "iops": 650573,
+   "lat_mean_us": 807.3,
+   "lat_p99_us_worst": 2146.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 473.8505859375,
+     "iops": 121303.075419,
+     "lat_mean_us": 1054.557290298,
+     "lat_p99_us": 2146.304,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 694.5576171875,
+     "iops": 177804.026577,
+     "lat_mean_us": 719.303135019,
+     "lat_p99_us": 1581.056,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 680.0595703125,
+     "iops": 174092.620164,
+     "lat_mean_us": 734.560358722,
+     "lat_p99_us": 1794.048,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 692.8740234375,
+     "iops": 177373.11675,
+     "lat_mean_us": 720.9358605750001,
+     "lat_p99_us": 1597.44,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:08:50",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 8.4,
+   "bw_gbit_s": 0.07,
+   "iops": 2140,
+   "lat_mean_us": 240939.8,
+   "lat_p99_us_worst": 392167.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1.9970703125,
+     "iops": 508.555784,
+     "lat_mean_us": 250857.49906848898,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1.9619140625,
+     "iops": 499.679579,
+     "lat_mean_us": 255219.915039189,
+     "lat_p99_us": 392167.424,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 2.48828125,
+     "iops": 634.481082,
+     "lat_mean_us": 201273.142651441,
+     "lat_p99_us": 337641.472,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1.953125,
+     "iops": 497.358707,
+     "lat_mean_us": 256408.785084946,
+     "lat_p99_us": 379584.512,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:09:55",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1333.9,
+   "bw_gbit_s": 11.189,
+   "iops": 1334,
+   "lat_mean_us": 154773.9,
+   "lat_p99_us_worst": 404750.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 299.4970703125,
+     "iops": 299.497304,
+     "lat_mean_us": 174848.875006225,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 320.8388671875,
+     "iops": 320.839698,
+     "lat_mean_us": 153226.01070935,
+     "lat_p99_us": 358612.992,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 409.69140625,
+     "iops": 409.692181,
+     "lat_mean_us": 142360.888887512,
+     "lat_p99_us": 223346.688,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 303.8291015625,
+     "iops": 303.829393,
+     "lat_mean_us": 148659.89732708698,
+     "lat_p99_us": 299892.736,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:10:49",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 6597.9,
+   "bw_gbit_s": 55.347,
+   "iops": 6593,
+   "lat_mean_us": 38983.5,
+   "lat_p99_us_worst": 92799.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1460.427734375,
+     "iops": 1459.095754,
+     "lat_mean_us": 43844.837366755004,
+     "lat_p99_us": 92798.976,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1699.3515625,
+     "iops": 1698.021998,
+     "lat_mean_us": 37638.962222564,
+     "lat_p99_us": 88604.672,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1719.5830078125,
+     "iops": 1718.252031,
+     "lat_mean_us": 37212.826974897,
+     "lat_p99_us": 63700.992,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1718.5361328125,
+     "iops": 1717.205566,
+     "lat_mean_us": 37237.388611656,
+     "lat_p99_us": 88604.672,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:11:43",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2753.5,
+   "bw_gbit_s": 23.098,
+   "iops": 704872,
+   "lat_mean_us": 725.8,
+   "lat_p99_us_worst": 1663.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 680.2265625,
+     "iops": 174135.219217,
+     "lat_mean_us": 734.3462154709999,
+     "lat_p99_us": 1662.976,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 687.6455078125,
+     "iops": 176034.577009,
+     "lat_mean_us": 726.4833092790001,
+     "lat_p99_us": 1531.904,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 682.79296875,
+     "iops": 174792.204618,
+     "lat_mean_us": 731.658163297,
+     "lat_p99_us": 1515.52,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 702.78515625,
+     "iops": 179910.201996,
+     "lat_mean_us": 710.8133594599999,
+     "lat_p99_us": 1548.288,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:12:37",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 8.6,
+   "bw_gbit_s": 0.072,
+   "iops": 2199,
+   "lat_mean_us": 234604.6,
+   "lat_p99_us_worst": 396361.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.0556640625,
+     "iops": 523.697101,
+     "lat_mean_us": 243478.635860053,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1.88671875,
+     "iops": 480.445692,
+     "lat_mean_us": 265525.077717148,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 2.509765625,
+     "iops": 639.823107,
+     "lat_mean_us": 199364.697218272,
+     "lat_p99_us": 325058.56,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 2.177734375,
+     "iops": 554.912145,
+     "lat_mean_us": 230049.820196307,
+     "lat_p99_us": 362807.296,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:13:59",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 2023.1,
+   "bw_gbit_s": 16.971,
+   "iops": 2023,
+   "lat_mean_us": 220581.9,
+   "lat_p99_us_worst": 574619.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 264.0703125,
+     "iops": 264.07066,
+     "lat_mean_us": 223288.892341248,
+     "lat_p99_us": 446693.376,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 226.2099609375,
+     "iops": 226.210858,
+     "lat_mean_us": 217347.203955139,
+     "lat_p99_us": 526385.152,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 264.373046875,
+     "iops": 264.373195,
+     "lat_mean_us": 179820.465449951,
+     "lat_p99_us": 362807.296,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 229.341796875,
+     "iops": 229.342516,
+     "lat_mean_us": 228295.630150452,
+     "lat_p99_us": 513802.24,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 292.8271484375,
+     "iops": 292.827653,
+     "lat_mean_us": 212077.98546905498,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 292.2841796875,
+     "iops": 292.284364,
+     "lat_mean_us": 216220.658620484,
+     "lat_p99_us": 492830.72,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 225.6865234375,
+     "iops": 225.687366,
+     "lat_mean_us": 249258.285651245,
+     "lat_p99_us": 541065.216,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 228.26171875,
+     "iops": 228.262535,
+     "lat_mean_us": 238345.831302185,
+     "lat_p99_us": 574619.648,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:14:53",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 7478.2,
+   "bw_gbit_s": 62.732,
+   "iops": 7468,
+   "lat_mean_us": 70734.4,
+   "lat_p99_us_worst": 179306.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 876.2841796875,
+     "iops": 874.933558,
+     "lat_mean_us": 72956.518125919,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 800.83984375,
+     "iops": 799.513328,
+     "lat_mean_us": 79853.826272361,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1351.1337890625,
+     "iops": 1349.80373,
+     "lat_mean_us": 47358.85902055,
+     "lat_p99_us": 162529.28,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 911.9609375,
+     "iops": 910.63198,
+     "lat_mean_us": 70166.616461475,
+     "lat_p99_us": 145752.064,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 1003.974609375,
+     "iops": 1002.642507,
+     "lat_mean_us": 63813.201376537,
+     "lat_p99_us": 103284.736,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 989.923828125,
+     "iops": 988.59324,
+     "lat_mean_us": 64696.72010319,
+     "lat_p99_us": 104333.312,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 835.7060546875,
+     "iops": 834.375693,
+     "lat_mean_us": 76629.071642774,
+     "lat_p99_us": 152043.52,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 708.404296875,
+     "iops": 707.072949,
+     "lat_mean_us": 90400.404873152,
+     "lat_p99_us": 179306.496,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:15:47",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 4106.4,
+   "bw_gbit_s": 34.447,
+   "iops": 1051229,
+   "lat_mean_us": 984.4,
+   "lat_p99_us_worst": 2703.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 539.298828125,
+     "iops": 138057.754272,
+     "lat_mean_us": 926.425578804,
+     "lat_p99_us": 1892.352,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 485.0615234375,
+     "iops": 124173.129486,
+     "lat_mean_us": 1030.189491637,
+     "lat_p99_us": 1974.272,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 562.4609375,
+     "iops": 143987.222506,
+     "lat_mean_us": 888.2956879989999,
+     "lat_p99_us": 1810.432,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 521.275390625,
+     "iops": 133443.834581,
+     "lat_mean_us": 958.6106503569999,
+     "lat_p99_us": 1875.968,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 562.2734375,
+     "iops": 143939.334681,
+     "lat_mean_us": 888.556886532,
+     "lat_p99_us": 1810.432,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 531.896484375,
+     "iops": 136162.774161,
+     "lat_mean_us": 939.293133196,
+     "lat_p99_us": 1843.2,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 507.5234375,
+     "iops": 129923.37948,
+     "lat_mean_us": 984.246361207,
+     "lat_p99_us": 1974.272,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 396.6591796875,
+     "iops": 101542.054621,
+     "lat_mean_us": 1259.7581611629998,
+     "lat_p99_us": 2703.36,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:16:42",
+   "repeat": 1,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 18.1,
+   "bw_gbit_s": 0.152,
+   "iops": 4619,
+   "lat_mean_us": 226648.9,
+   "lat_p99_us_worst": 392167.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.013671875,
+     "iops": 513.006802,
+     "lat_mean_us": 248717.84260817798,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1.9658203125,
+     "iops": 500.640403,
+     "lat_mean_us": 254558.810104804,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 3.1904296875,
+     "iops": 814.112761,
+     "lat_mean_us": 156999.97111335,
+     "lat_p99_us": 375390.208,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 2.349609375,
+     "iops": 599.005415,
+     "lat_mean_us": 213014.068328399,
+     "lat_p99_us": 341835.776,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 2.5107421875,
+     "iops": 640.181862,
+     "lat_mean_us": 198997.990335118,
+     "lat_p99_us": 329252.864,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 2.0322265625,
+     "iops": 517.663704,
+     "lat_mean_us": 246525.720312872,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 2.123046875,
+     "iops": 540.915119,
+     "lat_mean_us": 235837.72501284798,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 1.9384765625,
+     "iops": 493.635922,
+     "lat_mean_us": 258539.14786862902,
+     "lat_p99_us": 392167.424,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:18:03",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 2017.9,
+   "bw_gbit_s": 16.927,
+   "iops": 2018,
+   "lat_mean_us": 220801.8,
+   "lat_p99_us_worst": 526385.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 264.9794921875,
+     "iops": 264.98035,
+     "lat_mean_us": 216753.42359259,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 263.9638671875,
+     "iops": 263.964298,
+     "lat_mean_us": 214503.440099121,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 263.1708984375,
+     "iops": 263.171421,
+     "lat_mean_us": 203711.28799639898,
+     "lat_p99_us": 450887.68,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 228.0361328125,
+     "iops": 228.036967,
+     "lat_mean_us": 229569.317544617,
+     "lat_p99_us": 526385.152,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 299.419921875,
+     "iops": 299.420677,
+     "lat_mean_us": 190068.73871252502,
+     "lat_p99_us": 375390.208,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 236.9130859375,
+     "iops": 236.913645,
+     "lat_mean_us": 231297.20668493598,
+     "lat_p99_us": 459276.288,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 229.2939453125,
+     "iops": 229.294371,
+     "lat_mean_us": 240562.955852295,
+     "lat_p99_us": 509607.936,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 232.1298828125,
+     "iops": 232.13046,
+     "lat_mean_us": 239947.72188305602,
+     "lat_p99_us": 513802.24,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:18:57",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 7487.5,
+   "bw_gbit_s": 62.81,
+   "iops": 7477,
+   "lat_mean_us": 69870.2,
+   "lat_p99_us_worst": 168820.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 877.201171875,
+     "iops": 875.870636,
+     "lat_mean_us": 73012.338264072,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 885.041015625,
+     "iops": 883.710096,
+     "lat_mean_us": 72357.64954214799,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1116.8017578125,
+     "iops": 1115.470827,
+     "lat_mean_us": 57328.211566312995,
+     "lat_p99_us": 166723.584,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 910.9248046875,
+     "iops": 909.59475,
+     "lat_mean_us": 70279.509732928,
+     "lat_p99_us": 147849.216,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 1234.822265625,
+     "iops": 1233.490252,
+     "lat_mean_us": 51856.644994497,
+     "lat_p99_us": 96993.28,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 801.6845703125,
+     "iops": 800.332557,
+     "lat_mean_us": 79867.716827927,
+     "lat_p99_us": 166723.584,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 835.5693359375,
+     "iops": 834.239191,
+     "lat_mean_us": 76645.09412035,
+     "lat_p99_us": 152043.52,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 825.4609375,
+     "iops": 824.128972,
+     "lat_mean_us": 77614.221874855,
+     "lat_p99_us": 154140.672,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:19:51",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 4062.1,
+   "bw_gbit_s": 34.075,
+   "iops": 1039875,
+   "lat_mean_us": 990.6,
+   "lat_p99_us_worst": 2736.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 515.3916015625,
+     "iops": 131937.579165,
+     "lat_mean_us": 969.434590927,
+     "lat_p99_us": 1925.12,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 495.2685546875,
+     "iops": 126786.031732,
+     "lat_mean_us": 1008.674292821,
+     "lat_p99_us": 1925.12,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 570.4853515625,
+     "iops": 146041.487967,
+     "lat_mean_us": 875.710420603,
+     "lat_p99_us": 1826.816,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 493.4306640625,
+     "iops": 126315.659652,
+     "lat_mean_us": 1012.7217898800001,
+     "lat_p99_us": 2039.808,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 527.87890625,
+     "iops": 135134.371806,
+     "lat_mean_us": 946.4597103809999,
+     "lat_p99_us": 1826.816,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 513.11328125,
+     "iops": 131354.347681,
+     "lat_mean_us": 973.723478946,
+     "lat_p99_us": 2088.96,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 526.322265625,
+     "iops": 134735.700636,
+     "lat_mean_us": 949.127067062,
+     "lat_p99_us": 1875.968,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 420.2060546875,
+     "iops": 107570.009555,
+     "lat_mean_us": 1189.2768283540001,
+     "lat_p99_us": 2736.128,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:20:45",
+   "repeat": 2,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 17.4,
+   "bw_gbit_s": 0.146,
+   "iops": 4428,
+   "lat_mean_us": 231718.3,
+   "lat_p99_us_worst": 400556.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.1025390625,
+     "iops": 535.701677,
+     "lat_mean_us": 237871.182288091,
+     "lat_p99_us": 350224.384,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 2.2431640625,
+     "iops": 571.702733,
+     "lat_mean_us": 223233.91683825498,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 2.427734375,
+     "iops": 618.848654,
+     "lat_mean_us": 206297.288594018,
+     "lat_p99_us": 333447.168,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 2.166015625,
+     "iops": 551.815414,
+     "lat_mean_us": 231051.24812012698,
+     "lat_p99_us": 350224.384,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 2.1162109375,
+     "iops": 539.181493,
+     "lat_mean_us": 236505.760254786,
+     "lat_p99_us": 367001.6,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 2.048828125,
+     "iops": 521.937964,
+     "lat_mean_us": 244569.191174534,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 2.3662109375,
+     "iops": 603.123483,
+     "lat_mean_us": 211417.684414949,
+     "lat_p99_us": 379584.512,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 1.9072265625,
+     "iops": 485.64868,
+     "lat_mean_us": 262799.776756555,
+     "lat_p99_us": 400556.032,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:22:10",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 1986.5,
+   "bw_gbit_s": 16.664,
+   "iops": 1986,
+   "lat_mean_us": 221239.7,
+   "lat_p99_us_worst": 549453.8,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 275.931640625,
+     "iops": 275.931758,
+     "lat_mean_us": 216473.723581848,
+     "lat_p99_us": 392167.424,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 225.2216796875,
+     "iops": 225.222005,
+     "lat_mean_us": 227429.171984558,
+     "lat_p99_us": 526385.152,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 297.8583984375,
+     "iops": 297.858415,
+     "lat_mean_us": 191195.181670654,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 294.8291015625,
+     "iops": 294.830037,
+     "lat_mean_us": 211206.266172607,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 224.2255859375,
+     "iops": 224.226416,
+     "lat_mean_us": 235051.061176208,
+     "lat_p99_us": 509607.936,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 219.4833984375,
+     "iops": 219.483442,
+     "lat_mean_us": 229297.883918396,
+     "lat_p99_us": 526385.152,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 219.6796875,
+     "iops": 219.680616,
+     "lat_mean_us": 250616.607013916,
+     "lat_p99_us": 549453.824,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 229.24609375,
+     "iops": 229.246247,
+     "lat_mean_us": 208647.754194397,
+     "lat_p99_us": 471859.2,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:23:05",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 7469.4,
+   "bw_gbit_s": 62.658,
+   "iops": 7459,
+   "lat_mean_us": 70891.9,
+   "lat_p99_us_worst": 183500.8,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 881.1298828125,
+     "iops": 879.799481,
+     "lat_mean_us": 72660.83292206199,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 796.923828125,
+     "iops": 795.594557,
+     "lat_mean_us": 80320.138422307,
+     "lat_p99_us": 168820.736,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1224.173828125,
+     "iops": 1222.819328,
+     "lat_mean_us": 52311.357951221,
+     "lat_p99_us": 96993.28,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 988.904296875,
+     "iops": 987.573505,
+     "lat_mean_us": 64756.590463031,
+     "lat_p99_us": 106430.464,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 677.08203125,
+     "iops": 675.751254,
+     "lat_mean_us": 94641.576468303,
+     "lat_p99_us": 183500.8,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 915.4404296875,
+     "iops": 914.110157,
+     "lat_mean_us": 69951.28900251999,
+     "lat_p99_us": 145752.064,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 831.130859375,
+     "iops": 829.800913,
+     "lat_mean_us": 77020.689016965,
+     "lat_p99_us": 152043.52,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 1154.59765625,
+     "iops": 1153.265383,
+     "lat_mean_us": 55472.878899029005,
+     "lat_p99_us": 145752.064,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:23:59",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 4117.1,
+   "bw_gbit_s": 34.537,
+   "iops": 1053963,
+   "lat_mean_us": 984.5,
+   "lat_p99_us_worst": 2375.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 541.3359375,
+     "iops": 138579.476012,
+     "lat_mean_us": 922.786007236,
+     "lat_p99_us": 1892.352,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 460.8134765625,
+     "iops": 117965.511878,
+     "lat_mean_us": 1084.3927974819999,
+     "lat_p99_us": 1957.888,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 589.552734375,
+     "iops": 150922.779494,
+     "lat_mean_us": 847.463731958,
+     "lat_p99_us": 1744.896,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 544.33203125,
+     "iops": 139346.458968,
+     "lat_mean_us": 917.880427855,
+     "lat_p99_us": 1810.432,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 396.6279296875,
+     "iops": 101534.077021,
+     "lat_mean_us": 1259.9316311119999,
+     "lat_p99_us": 2375.68,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 517.4931640625,
+     "iops": 132475.623306,
+     "lat_mean_us": 965.473479936,
+     "lat_p99_us": 1957.888,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 506.712890625,
+     "iops": 129715.761872,
+     "lat_mean_us": 986.041110221,
+     "lat_p99_us": 1957.888,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 560.255859375,
+     "iops": 143422.835048,
+     "lat_mean_us": 891.8024368800001,
+     "lat_p99_us": 2072.576,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:24:54",
+   "repeat": 3,
+   "config": "default",
+   "stripe": 1,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 16.8,
+   "bw_gbit_s": 0.141,
+   "iops": 4287,
+   "lat_mean_us": 238836.8,
+   "lat_p99_us_worst": 396361.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 2.0830078125,
+     "iops": 530.679787,
+     "lat_mean_us": 240244.888066678,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1.9130859375,
+     "iops": 487.069632,
+     "lat_mean_us": 262039.376523513,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 2.177734375,
+     "iops": 554.91355,
+     "lat_mean_us": 229434.244977775,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1.95703125,
+     "iops": 498.268064,
+     "lat_mean_us": 256182.231821472,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 2.0947265625,
+     "iops": 533.638232,
+     "lat_mean_us": 239067.301685422,
+     "lat_p99_us": 354418.688,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 2.314453125,
+     "iops": 589.779249,
+     "lat_mean_us": 216260.352919414,
+     "lat_p99_us": 346030.08,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 2.173828125,
+     "iops": 553.913024,
+     "lat_mean_us": 230260.578932894,
+     "lat_p99_us": 346030.08,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 2.11328125,
+     "iops": 538.293168,
+     "lat_mean_us": 237205.771758122,
+     "lat_p99_us": 387973.12,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:25:21",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 909.8,
+   "bw_gbit_s": 7.632,
+   "iops": 910,
+   "lat_mean_us": 64920.2,
+   "lat_p99_us_worst": 137363.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 909.8173828125,
+     "iops": 909.817859,
+     "lat_mean_us": 64920.174683899,
+     "lat_p99_us": 137363.456,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:26:15",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 5389.1,
+   "bw_gbit_s": 45.207,
+   "iops": 5388,
+   "lat_mean_us": 11871.6,
+   "lat_p99_us_worst": 57409.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 5389.1435546875,
+     "iops": 5387.789988,
+     "lat_mean_us": 11871.613965706,
+     "lat_p99_us": 57409.536,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:27:10",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 620.9,
+   "bw_gbit_s": 5.209,
+   "iops": 158955,
+   "lat_mean_us": 804.3,
+   "lat_p99_us_worst": 954.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 620.927734375,
+     "iops": 158954.756561,
+     "lat_mean_us": 804.282586035,
+     "lat_p99_us": 954.368,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:28:04",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 4.8,
+   "bw_gbit_s": 0.041,
+   "iops": 1235,
+   "lat_mean_us": 103488.3,
+   "lat_p99_us_worst": 325058.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.8349609375,
+     "iops": 1235.218651,
+     "lat_mean_us": 103488.309470277,
+     "lat_p99_us": 325058.56,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:28:28",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 931.3,
+   "bw_gbit_s": 7.812,
+   "iops": 931,
+   "lat_mean_us": 63764.7,
+   "lat_p99_us_worst": 133693.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 931.279296875,
+     "iops": 931.279486,
+     "lat_mean_us": 63764.749663574,
+     "lat_p99_us": 133693.44,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:29:22",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 5504.1,
+   "bw_gbit_s": 46.172,
+   "iops": 5503,
+   "lat_mean_us": 11623.2,
+   "lat_p99_us_worst": 56361.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 5504.095703125,
+     "iops": 5502.763903,
+     "lat_mean_us": 11623.161685043,
+     "lat_p99_us": 56360.96,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:30:16",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 707.7,
+   "bw_gbit_s": 5.937,
+   "iops": 181177,
+   "lat_mean_us": 705.7,
+   "lat_p99_us_worst": 954.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 707.7333984375,
+     "iops": 181176.996067,
+     "lat_mean_us": 705.684837292,
+     "lat_p99_us": 954.368,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:31:10",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 5.0,
+   "bw_gbit_s": 0.042,
+   "iops": 1265,
+   "lat_mean_us": 100947.8,
+   "lat_p99_us_worst": 337641.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.9501953125,
+     "iops": 1264.742896,
+     "lat_mean_us": 100947.787510086,
+     "lat_p99_us": 337641.472,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:31:35",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_write",
+   "clients_ok": 1,
+   "bw_mib_s": 937.7,
+   "bw_gbit_s": 7.866,
+   "iops": 938,
+   "lat_mean_us": 62948.7,
+   "lat_p99_us_worst": 135266.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 937.728515625,
+     "iops": 937.728938,
+     "lat_mean_us": 62948.694414184,
+     "lat_p99_us": 135266.304,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:32:29",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "seq_read",
+   "clients_ok": 1,
+   "bw_mib_s": 5539.8,
+   "bw_gbit_s": 46.471,
+   "iops": 5538,
+   "lat_mean_us": 11547.8,
+   "lat_p99_us_worst": 54788.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 5539.8037109375,
+     "iops": 5538.471784,
+     "lat_mean_us": 11547.817113506,
+     "lat_p99_us": 54788.096,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:33:23",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 699.5,
+   "bw_gbit_s": 5.868,
+   "iops": 179061,
+   "lat_mean_us": 713.9,
+   "lat_p99_us_worst": 946.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 699.46875,
+     "iops": 179061.398636,
+     "lat_mean_us": 713.8995570190001,
+     "lat_p99_us": 946.176,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:34:17",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "clients_ok": 1,
+   "bw_mib_s": 5.0,
+   "bw_gbit_s": 0.042,
+   "iops": 1267,
+   "lat_mean_us": 100824.5,
+   "lat_p99_us_worst": 337641.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.9599609375,
+     "iops": 1267.046962,
+     "lat_mean_us": 100824.474734546,
+     "lat_p99_us": 337641.472,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:35:04",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1795.1,
+   "bw_gbit_s": 15.058,
+   "iops": 1795,
+   "lat_mean_us": 128244.9,
+   "lat_p99_us_worst": 283115.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 446.5517578125,
+     "iops": 446.552194,
+     "lat_mean_us": 131582.703983521,
+     "lat_p99_us": 278921.216,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 427.412109375,
+     "iops": 427.412412,
+     "lat_mean_us": 131011.043393494,
+     "lat_p99_us": 283115.52,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 434.25390625,
+     "iops": 434.254817,
+     "lat_mean_us": 125846.207828247,
+     "lat_p99_us": 263192.576,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 486.865234375,
+     "iops": 486.865565,
+     "lat_mean_us": 124539.66904504401,
+     "lat_p99_us": 256901.12,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:35:58",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 5670.4,
+   "bw_gbit_s": 47.567,
+   "iops": 5665,
+   "lat_mean_us": 45945.5,
+   "lat_p99_us_worst": 295698.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1521.044921875,
+     "iops": 1519.694284,
+     "lat_mean_us": 42145.406504260005,
+     "lat_p99_us": 295698.432,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1523.986328125,
+     "iops": 1522.63675,
+     "lat_mean_us": 42011.357203874,
+     "lat_p99_us": 283115.52,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1504.6064453125,
+     "iops": 1503.25567,
+     "lat_mean_us": 42539.485950615,
+     "lat_p99_us": 295698.432,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1120.75,
+     "iops": 1119.423124,
+     "lat_mean_us": 57085.711222567,
+     "lat_p99_us": 291504.128,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:36:52",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2467.5,
+   "bw_gbit_s": 20.699,
+   "iops": 631679,
+   "lat_mean_us": 809.8,
+   "lat_p99_us_worst": 2375.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 599.19140625,
+     "iops": 153390.338207,
+     "lat_mean_us": 833.396956171,
+     "lat_p99_us": 1433.6,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 618.869140625,
+     "iops": 158427.657163,
+     "lat_mean_us": 806.899490058,
+     "lat_p99_us": 1368.064,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 633.76171875,
+     "iops": 162240.239106,
+     "lat_mean_us": 788.029815189,
+     "lat_p99_us": 1941.504,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 615.7158203125,
+     "iops": 157620.572419,
+     "lat_mean_us": 810.9689831,
+     "lat_p99_us": 2375.68,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:37:47",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 16.4,
+   "bw_gbit_s": 0.137,
+   "iops": 4180,
+   "lat_mean_us": 122202.9,
+   "lat_p99_us_worst": 404750.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.1357421875,
+     "iops": 1056.137096,
+     "lat_mean_us": 120955.467144928,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 4.08203125,
+     "iops": 1042.367656,
+     "lat_mean_us": 122256.404089633,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 4.095703125,
+     "iops": 1045.844765,
+     "lat_mean_us": 122274.329674987,
+     "lat_p99_us": 400556.032,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 4.0556640625,
+     "iops": 1035.645706,
+     "lat_mean_us": 123325.555769141,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:38:34",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1734.9,
+   "bw_gbit_s": 14.554,
+   "iops": 1735,
+   "lat_mean_us": 131147.5,
+   "lat_p99_us_worst": 484442.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 454.1396484375,
+     "iops": 454.139757,
+     "lat_mean_us": 130537.50323999,
+     "lat_p99_us": 400556.032,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 441.4619140625,
+     "iops": 441.46256,
+     "lat_mean_us": 127318.247808044,
+     "lat_p99_us": 350224.384,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 422.7255859375,
+     "iops": 422.725631,
+     "lat_mean_us": 130401.546720825,
+     "lat_p99_us": 408944.64,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 416.5986328125,
+     "iops": 416.598861,
+     "lat_mean_us": 136332.598341675,
+     "lat_p99_us": 484442.112,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:39:28",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 6011.4,
+   "bw_gbit_s": 50.428,
+   "iops": 6006,
+   "lat_mean_us": 43378.1,
+   "lat_p99_us_worst": 261095.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1456.1669921875,
+     "iops": 1454.837637,
+     "lat_mean_us": 43985.850534485,
+     "lat_p99_us": 238026.752,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1302.84375,
+     "iops": 1301.513,
+     "lat_mean_us": 49238.771496739,
+     "lat_p99_us": 261095.424,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1396.1416015625,
+     "iops": 1394.789357,
+     "lat_mean_us": 45832.118986358,
+     "lat_p99_us": 235929.6,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1856.2822265625,
+     "iops": 1854.953718,
+     "lat_mean_us": 34455.665928829,
+     "lat_p99_us": 158334.976,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:40:22",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2446.6,
+   "bw_gbit_s": 20.524,
+   "iops": 626328,
+   "lat_mean_us": 817.3,
+   "lat_p99_us_worst": 2375.7,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 585.1064453125,
+     "iops": 149784.431803,
+     "lat_mean_us": 853.443136143,
+     "lat_p99_us": 1548.288,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 601.1591796875,
+     "iops": 153893.960268,
+     "lat_mean_us": 830.606970266,
+     "lat_p99_us": 1269.76,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 623.3955078125,
+     "iops": 159586.609186,
+     "lat_mean_us": 801.135666005,
+     "lat_p99_us": 1581.056,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 636.9736328125,
+     "iops": 163062.509722,
+     "lat_mean_us": 784.022189896,
+     "lat_p99_us": 2375.68,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:41:16",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 16.4,
+   "bw_gbit_s": 0.138,
+   "iops": 4189,
+   "lat_mean_us": 121935.9,
+   "lat_p99_us_worst": 429916.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.1171875,
+     "iops": 1051.415699,
+     "lat_mean_us": 121407.23694471,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 4.1572265625,
+     "iops": 1061.671381,
+     "lat_mean_us": 120262.700641631,
+     "lat_p99_us": 375390.208,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 4.09375,
+     "iops": 1045.463587,
+     "lat_mean_us": 122220.11124514,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 4.037109375,
+     "iops": 1030.884624,
+     "lat_mean_us": 123853.67462519699,
+     "lat_p99_us": 429916.16,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:42:02",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_write",
+   "clients_ok": 4,
+   "bw_mib_s": 1792.3,
+   "bw_gbit_s": 15.035,
+   "iops": 1792,
+   "lat_mean_us": 127242.1,
+   "lat_p99_us_worst": 242221.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 456.6708984375,
+     "iops": 456.671405,
+     "lat_mean_us": 127311.822127991,
+     "lat_p99_us": 242221.056,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 441.37890625,
+     "iops": 441.37931,
+     "lat_mean_us": 125483.888152283,
+     "lat_p99_us": 225443.84,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 451.548828125,
+     "iops": 451.548892,
+     "lat_mean_us": 126491.752134277,
+     "lat_p99_us": 221249.536,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 442.6552734375,
+     "iops": 442.655283,
+     "lat_mean_us": 129681.036052796,
+     "lat_p99_us": 225443.84,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:42:56",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "seq_read",
+   "clients_ok": 4,
+   "bw_mib_s": 6032.3,
+   "bw_gbit_s": 50.602,
+   "iops": 6027,
+   "lat_mean_us": 42494.9,
+   "lat_p99_us_worst": 240123.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 1518.7724609375,
+     "iops": 1517.445076,
+     "lat_mean_us": 42153.429115548,
+     "lat_p99_us": 227540.992,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 1471.33203125,
+     "iops": 1470.00509,
+     "lat_mean_us": 43452.96985401,
+     "lat_p99_us": 225443.84,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 1470.0458984375,
+     "iops": 1468.715332,
+     "lat_mean_us": 43599.55281387101,
+     "lat_p99_us": 240123.904,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 1572.130859375,
+     "iops": 1570.801852,
+     "lat_mean_us": 40773.821765274006,
+     "lat_p99_us": 227540.992,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:43:50",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 2398.8,
+   "bw_gbit_s": 20.123,
+   "iops": 614084,
+   "lat_mean_us": 835.1,
+   "lat_p99_us_worst": 1810.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 556.3740234375,
+     "iops": 142429.101576,
+     "lat_mean_us": 897.466673633,
+     "lat_p99_us": 1286.144,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 583.6064453125,
+     "iops": 149400.635541,
+     "lat_mean_us": 855.49744874,
+     "lat_p99_us": 1630.208,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 643.4111328125,
+     "iops": 164710.584209,
+     "lat_mean_us": 776.146135535,
+     "lat_p99_us": 1761.28,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 615.4140625,
+     "iops": 157543.398071,
+     "lat_mean_us": 811.444755836,
+     "lat_p99_us": 1810.432,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:44:44",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "clients_ok": 4,
+   "bw_mib_s": 16.2,
+   "bw_gbit_s": 0.136,
+   "iops": 4128,
+   "lat_mean_us": 123715.6,
+   "lat_p99_us_worst": 404750.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 4.0166015625,
+     "iops": 1025.695411,
+     "lat_mean_us": 124573.701809659,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 4.06640625,
+     "iops": 1038.350488,
+     "lat_mean_us": 123007.74794967701,
+     "lat_p99_us": 404750.336,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 4.0654296875,
+     "iops": 1038.202941,
+     "lat_mean_us": 122928.505209318,
+     "lat_p99_us": 383778.816,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 4.015625,
+     "iops": 1025.385512,
+     "lat_mean_us": 124352.268305775,
+     "lat_p99_us": 396361.728,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:45:51",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 2327.7,
+   "bw_gbit_s": 19.526,
+   "iops": 2328,
+   "lat_mean_us": 204539.2,
+   "lat_p99_us_worst": 541065.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 283.8525390625,
+     "iops": 283.853084,
+     "lat_mean_us": 198014.89280767803,
+     "lat_p99_us": 471859.2,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 280.6240234375,
+     "iops": 280.624829,
+     "lat_mean_us": 210653.773618225,
+     "lat_p99_us": 517996.544,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 284.2216796875,
+     "iops": 284.222396,
+     "lat_mean_us": 211725.485342163,
+     "lat_p99_us": 541065.216,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 285.3056640625,
+     "iops": 285.306307,
+     "lat_mean_us": 213876.927625366,
+     "lat_p99_us": 541065.216,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 291.02734375,
+     "iops": 291.027941,
+     "lat_mean_us": 215812.412441528,
+     "lat_p99_us": 501219.328,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 285.390625,
+     "iops": 285.390792,
+     "lat_mean_us": 191887.188942444,
+     "lat_p99_us": 513802.24,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 282.4189453125,
+     "iops": 282.419458,
+     "lat_mean_us": 206338.421896301,
+     "lat_p99_us": 522190.848,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 334.8173828125,
+     "iops": 334.818327,
+     "lat_mean_us": 188004.225646362,
+     "lat_p99_us": 501219.328,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:46:46",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 6074.9,
+   "bw_gbit_s": 50.96,
+   "iops": 6064,
+   "lat_mean_us": 90460.0,
+   "lat_p99_us_worst": 1199570.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 954.6513671875,
+     "iops": 953.313286,
+     "lat_mean_us": 66853.625646188,
+     "lat_p99_us": 801112.064,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 684.09375,
+     "iops": 682.778131,
+     "lat_mean_us": 93662.989754023,
+     "lat_p99_us": 918552.576,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 612.9677734375,
+     "iops": 611.645994,
+     "lat_mean_us": 104638.421059773,
+     "lat_p99_us": 952107.008,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 624.4521484375,
+     "iops": 623.132604,
+     "lat_mean_us": 102668.98726594301,
+     "lat_p99_us": 968884.224,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 454.5830078125,
+     "iops": 453.263834,
+     "lat_mean_us": 141784.241601722,
+     "lat_p99_us": 1199570.944,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 1020.6474609375,
+     "iops": 1019.328452,
+     "lat_mean_us": 62574.23528208,
+     "lat_p99_us": 591396.864,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 736.6201171875,
+     "iops": 735.306998,
+     "lat_mean_us": 86559.67113466101,
+     "lat_p99_us": 859832.32,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 986.865234375,
+     "iops": 985.534898,
+     "lat_mean_us": 64938.082046491,
+     "lat_p99_us": 346030.08,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:47:40",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 3618.5,
+   "bw_gbit_s": 30.355,
+   "iops": 926327,
+   "lat_mean_us": 1124.8,
+   "lat_p99_us_worst": 11730.9,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 465.7578125,
+     "iops": 119231.434158,
+     "lat_mean_us": 1072.4399642590001,
+     "lat_p99_us": 8159.232,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 444.787109375,
+     "iops": 113862.729414,
+     "lat_mean_us": 1122.854341766,
+     "lat_p99_us": 9371.648,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 448.0771484375,
+     "iops": 114705.073221,
+     "lat_mean_us": 1114.694035449,
+     "lat_p99_us": 9109.504,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 436.1865234375,
+     "iops": 111661.001888,
+     "lat_mean_us": 1145.003915743,
+     "lat_p99_us": 9895.936,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 338.90234375,
+     "iops": 86756.249861,
+     "lat_mean_us": 1474.0830080780001,
+     "lat_p99_us": 11730.944,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 461.69140625,
+     "iops": 118190.217995,
+     "lat_mean_us": 1081.531985719,
+     "lat_p99_us": 6717.44,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 443.4560546875,
+     "iops": 113522.13235,
+     "lat_mean_us": 1126.327181819,
+     "lat_p99_us": 8159.232,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 579.689453125,
+     "iops": 148397.848984,
+     "lat_mean_us": 861.374809131,
+     "lat_p99_us": 2703.36,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:48:34",
+   "repeat": 1,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 30.9,
+   "bw_gbit_s": 0.259,
+   "iops": 7889,
+   "lat_mean_us": 129518.2,
+   "lat_p99_us_worst": 429916.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 3.80859375,
+     "iops": 972.48535,
+     "lat_mean_us": 131148.473125347,
+     "lat_p99_us": 429916.16,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 3.8349609375,
+     "iops": 979.063251,
+     "lat_mean_us": 130353.26201653901,
+     "lat_p99_us": 421527.552,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 3.85546875,
+     "iops": 984.321173,
+     "lat_mean_us": 129809.071199271,
+     "lat_p99_us": 413138.944,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 3.8095703125,
+     "iops": 972.526988,
+     "lat_mean_us": 131167.988914112,
+     "lat_p99_us": 421527.552,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 3.943359375,
+     "iops": 1006.912239,
+     "lat_mean_us": 126911.767499026,
+     "lat_p99_us": 413138.944,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 3.921875,
+     "iops": 1001.306206,
+     "lat_mean_us": 127704.096038984,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 3.8798828125,
+     "iops": 990.629627,
+     "lat_mean_us": 129042.376725644,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 3.8447265625,
+     "iops": 981.546805,
+     "lat_mean_us": 130008.784293337,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:49:42",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 2298.9,
+   "bw_gbit_s": 19.285,
+   "iops": 2299,
+   "lat_mean_us": 207394.4,
+   "lat_p99_us_worst": 717226.0,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 297.0693359375,
+     "iops": 297.069916,
+     "lat_mean_us": 195372.82117730702,
+     "lat_p99_us": 513802.24,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 274.0615234375,
+     "iops": 274.062427,
+     "lat_mean_us": 217197.906541565,
+     "lat_p99_us": 530579.456,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 281.9912109375,
+     "iops": 281.991704,
+     "lat_mean_us": 205818.60961669902,
+     "lat_p99_us": 692060.16,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 273.9609375,
+     "iops": 273.961608,
+     "lat_mean_us": 216147.49887414603,
+     "lat_p99_us": 717225.984,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 284.533203125,
+     "iops": 284.533361,
+     "lat_mean_us": 214617.772558838,
+     "lat_p99_us": 616562.688,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 305.7509765625,
+     "iops": 305.751502,
+     "lat_mean_us": 199007.4571651,
+     "lat_p99_us": 717225.984,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 273.9609375,
+     "iops": 273.961608,
+     "lat_mean_us": 211806.220794617,
+     "lat_p99_us": 666894.336,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 307.611328125,
+     "iops": 307.61143,
+     "lat_mean_us": 199186.72120166,
+     "lat_p99_us": 599785.472,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:50:37",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 6143.9,
+   "bw_gbit_s": 51.538,
+   "iops": 6133,
+   "lat_mean_us": 84188.9,
+   "lat_p99_us_worst": 792723.5,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 714.806640625,
+     "iops": 713.48784,
+     "lat_mean_us": 89648.40184819099,
+     "lat_p99_us": 717225.984,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 910.3740234375,
+     "iops": 909.050812,
+     "lat_mean_us": 70310.79935419101,
+     "lat_p99_us": 450887.68,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 847.7548828125,
+     "iops": 846.401456,
+     "lat_mean_us": 75932.93119137401,
+     "lat_p99_us": 599785.472,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 743.01171875,
+     "iops": 741.688544,
+     "lat_mean_us": 86304.35076404401,
+     "lat_p99_us": 683671.552,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 665.9375,
+     "iops": 664.591749,
+     "lat_mean_us": 96260.759168225,
+     "lat_p99_us": 792723.456,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 746.3857421875,
+     "iops": 745.066549,
+     "lat_mean_us": 85805.42590792,
+     "lat_p99_us": 666894.336,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 737.65234375,
+     "iops": 736.332424,
+     "lat_mean_us": 86900.322535684,
+     "lat_p99_us": 658505.728,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 777.9345703125,
+     "iops": 776.611231,
+     "lat_mean_us": 82347.906793933,
+     "lat_p99_us": 708837.376,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:51:31",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 4143.8,
+   "bw_gbit_s": 34.76,
+   "iops": 1060784,
+   "lat_mean_us": 966.0,
+   "lat_p99_us_worst": 5210.1,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 490.591796875,
+     "iops": 125588.773832,
+     "lat_mean_us": 1017.94840889,
+     "lat_p99_us": 4227.072,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 567.701171875,
+     "iops": 145328.82983,
+     "lat_mean_us": 879.6648335430001,
+     "lat_p99_us": 2736.128,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 525.1279296875,
+     "iops": 134430.034888,
+     "lat_mean_us": 951.0092747919999,
+     "lat_p99_us": 3588.096,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 505.544921875,
+     "iops": 129416.962937,
+     "lat_mean_us": 987.8380080180001,
+     "lat_p99_us": 4489.216,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 534.703125,
+     "iops": 136881.247083,
+     "lat_mean_us": 933.9616715440001,
+     "lat_p99_us": 3391.488,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 516.123046875,
+     "iops": 132124.925005,
+     "lat_mean_us": 967.589098204,
+     "lat_p99_us": 4423.68,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 497.4375,
+     "iops": 127341.2515,
+     "lat_mean_us": 1003.966650882,
+     "lat_p99_us": 3293.184,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 506.541015625,
+     "iops": 129671.925692,
+     "lat_mean_us": 985.917771179,
+     "lat_p99_us": 5210.112,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:52:26",
+   "repeat": 2,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 31.0,
+   "bw_gbit_s": 0.26,
+   "iops": 7916,
+   "lat_mean_us": 129077.2,
+   "lat_p99_us_worst": 438304.8,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 3.849609375,
+     "iops": 982.983513,
+     "lat_mean_us": 129949.602597577,
+     "lat_p99_us": 421527.552,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 3.8564453125,
+     "iops": 984.518349,
+     "lat_mean_us": 129671.686909239,
+     "lat_p99_us": 429916.16,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 3.8486328125,
+     "iops": 982.588163,
+     "lat_mean_us": 129957.665365719,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 3.826171875,
+     "iops": 976.810827,
+     "lat_mean_us": 130681.246008799,
+     "lat_p99_us": 438304.768,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 3.939453125,
+     "iops": 1005.950669,
+     "lat_mean_us": 127133.17508816201,
+     "lat_p99_us": 413138.944,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 3.912109375,
+     "iops": 998.855382,
+     "lat_mean_us": 127674.71753428399,
+     "lat_p99_us": 421527.552,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 3.8525390625,
+     "iops": 983.59786,
+     "lat_mean_us": 129966.240579247,
+     "lat_p99_us": 429916.16,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 3.9169921875,
+     "iops": 1000.264626,
+     "lat_mean_us": 127583.3203861,
+     "lat_p99_us": 408944.64,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:53:34",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_write",
+   "clients_ok": 8,
+   "bw_mib_s": 2203.4,
+   "bw_gbit_s": 18.483,
+   "iops": 2203,
+   "lat_mean_us": 208048.3,
+   "lat_p99_us_worst": 683671.6,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 285.8984375,
+     "iops": 285.898756,
+     "lat_mean_us": 199820.99497558599,
+     "lat_p99_us": 471859.2,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 275.0234375,
+     "iops": 275.02392,
+     "lat_mean_us": 206352.49500701902,
+     "lat_p99_us": 616562.688,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 276.7470703125,
+     "iops": 276.747407,
+     "lat_mean_us": 211899.07386675998,
+     "lat_p99_us": 624951.296,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 271.13671875,
+     "iops": 271.137074,
+     "lat_mean_us": 215097.352806763,
+     "lat_p99_us": 522190.848,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 274.921875,
+     "iops": 274.922393,
+     "lat_mean_us": 214710.120033752,
+     "lat_p99_us": 566231.04,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 272.7890625,
+     "iops": 272.789331,
+     "lat_mean_us": 211095.90188360598,
+     "lat_p99_us": 683671.552,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 271.2216796875,
+     "iops": 271.222355,
+     "lat_mean_us": 209707.79150769,
+     "lat_p99_us": 566231.04,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 275.6337890625,
+     "iops": 275.634663,
+     "lat_mean_us": 195702.637894775,
+     "lat_p99_us": 541065.216,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:54:28",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "seq_read",
+   "clients_ok": 8,
+   "bw_mib_s": 6000.4,
+   "bw_gbit_s": 50.335,
+   "iops": 5990,
+   "lat_mean_us": 87311.3,
+   "lat_p99_us_worst": 1233125.4,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 993.2099609375,
+     "iops": 991.888019,
+     "lat_mean_us": 64393.86704774,
+     "lat_p99_us": 549453.824,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 784.1728515625,
+     "iops": 782.855888,
+     "lat_mean_us": 81535.77727058201,
+     "lat_p99_us": 817889.28,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 775.033203125,
+     "iops": 773.689316,
+     "lat_mean_us": 82554.29947179499,
+     "lat_p99_us": 817889.28,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 647.4208984375,
+     "iops": 646.104538,
+     "lat_mean_us": 99068.881573952,
+     "lat_p99_us": 868220.928,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 585.525390625,
+     "iops": 584.180691,
+     "lat_mean_us": 109719.199118177,
+     "lat_p99_us": 1233125.376,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 680.75,
+     "iops": 679.432562,
+     "lat_mean_us": 94146.796880613,
+     "lat_p99_us": 868220.928,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 799.609375,
+     "iops": 798.294645,
+     "lat_mean_us": 79763.52252792,
+     "lat_p99_us": 792723.456,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 734.6357421875,
+     "iops": 733.311251,
+     "lat_mean_us": 87308.119366779,
+     "lat_p99_us": 868220.928,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:55:22",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 3747.6,
+   "bw_gbit_s": 31.437,
+   "iops": 959361,
+   "lat_mean_us": 1071.9,
+   "lat_p99_us_worst": 10420.2,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 534.65625,
+     "iops": 136869.253161,
+     "lat_mean_us": 933.937334057,
+     "lat_p99_us": 5341.184,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 485.380859375,
+     "iops": 124254.738152,
+     "lat_mean_us": 1028.864130411,
+     "lat_p99_us": 7438.336,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 482.671875,
+     "iops": 123561.298638,
+     "lat_mean_us": 1034.743728415,
+     "lat_p99_us": 7438.336,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 453.50390625,
+     "iops": 116094.278414,
+     "lat_mean_us": 1101.4469602860001,
+     "lat_p99_us": 8978.432,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 408.001953125,
+     "iops": 104445.74565,
+     "lat_mean_us": 1224.350633623,
+     "lat_p99_us": 10420.224,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 441.841796875,
+     "iops": 113108.859409,
+     "lat_mean_us": 1130.447274339,
+     "lat_p99_us": 9109.504,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 468.4833984375,
+     "iops": 119929.006311,
+     "lat_mean_us": 1065.910624954,
+     "lat_p99_us": 6848.512,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 473.048828125,
+     "iops": 121097.70894,
+     "lat_mean_us": 1055.710055946,
+     "lat_p99_us": 7897.088,
+     "errors": 0
+    }
+   }
+  },
+  {
+   "ts": "2026-10-22T15:56:17",
+   "repeat": 3,
+   "config": "tuned",
+   "stripe": 4,
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "clients_ok": 8,
+   "bw_mib_s": 30.7,
+   "bw_gbit_s": 0.257,
+   "iops": 7834,
+   "lat_mean_us": 130458.7,
+   "lat_p99_us_worst": 459276.3,
+   "errors": 0,
+   "oss_cache": "off",
+   "per_client": {
+    "Rocky-Compute-1": {
+     "bw_mib_s": 3.810546875,
+     "iops": 972.764452,
+     "lat_mean_us": 131432.98305216798,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    },
+    "Rocky-Compute-2": {
+     "bw_mib_s": 3.8662109375,
+     "iops": 987.261568,
+     "lat_mean_us": 129407.41192922,
+     "lat_p99_us": 438304.768,
+     "errors": 0
+    },
+    "Rocky-Compute-3": {
+     "bw_mib_s": 3.84375,
+     "iops": 981.438515,
+     "lat_mean_us": 130192.33711360801,
+     "lat_p99_us": 442499.072,
+     "errors": 0
+    },
+    "Rocky-Compute-4": {
+     "bw_mib_s": 3.7890625,
+     "iops": 967.512847,
+     "lat_mean_us": 131941.96450313702,
+     "lat_p99_us": 434110.464,
+     "errors": 0
+    },
+    "Rocky-Compute-5": {
+     "bw_mib_s": 3.8359375,
+     "iops": 979.33656,
+     "lat_mean_us": 130477.505505063,
+     "lat_p99_us": 425721.856,
+     "errors": 0
+    },
+    "Rocky-Compute-6": {
+     "bw_mib_s": 3.8095703125,
+     "iops": 972.729078,
+     "lat_mean_us": 131286.083004094,
+     "lat_p99_us": 442499.072,
+     "errors": 0
+    },
+    "Rocky-Compute-7": {
+     "bw_mib_s": 3.810546875,
+     "iops": 972.94556,
+     "lat_mean_us": 131128.788293627,
+     "lat_p99_us": 459276.288,
+     "errors": 0
+    },
+    "Rocky-Compute-8": {
+     "bw_mib_s": 3.91796875,
+     "iops": 1000.464663,
+     "lat_mean_us": 127802.652820221,
+     "lat_p99_us": 417333.248,
+     "errors": 0
+    }
+   }
+  }
+ ],
+ "summary": [
+  {
+   "config": "default",
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 756.8,
+   "stdev_mib_s": 13.357020625873087
+  },
+  {
+   "config": "default",
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 2.6,
+   "stdev_mib_s": 0.5291502622129182
+  },
+  {
+   "config": "default",
+   "clients": 1,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 1897.7,
+   "stdev_mib_s": 133.25329264224584
+  },
+  {
+   "config": "default",
+   "clients": 1,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 440.56666666666666,
+   "stdev_mib_s": 36.002962841040365
+  },
+  {
+   "config": "default",
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 2627.6,
+   "stdev_mib_s": 111.50484294415192
+  },
+  {
+   "config": "default",
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 8.466666666666667,
+   "stdev_mib_s": 0.11547005383792475
+  },
+  {
+   "config": "default",
+   "clients": 4,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 6139.566666666667,
+   "stdev_mib_s": 643.108142798187
+  },
+  {
+   "config": "default",
+   "clients": 4,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 1292.8333333333333,
+   "stdev_mib_s": 53.748891461437
+  },
+  {
+   "config": "default",
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 4095.2,
+   "stdev_mib_s": 29.160418378343046
+  },
+  {
+   "config": "default",
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 17.433333333333334,
+   "stdev_mib_s": 0.6506407098647716
+  },
+  {
+   "config": "default",
+   "clients": 8,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 7478.366666666667,
+   "stdev_mib_s": 9.051150939705769
+  },
+  {
+   "config": "default",
+   "clients": 8,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 2009.1666666666667,
+   "stdev_mib_s": 19.80134675554501
+  },
+  {
+   "config": "tuned",
+   "clients": 1,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 676.0333333333333,
+   "stdev_mib_s": 47.92257644715418
+  },
+  {
+   "config": "tuned",
+   "clients": 1,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 4.933333333333334,
+   "stdev_mib_s": 0.11547005383792526
+  },
+  {
+   "config": "tuned",
+   "clients": 1,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 5477.666666666667,
+   "stdev_mib_s": 78.75064020903781
+  },
+  {
+   "config": "tuned",
+   "clients": 1,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 926.2666666666667,
+   "stdev_mib_s": 14.61517476232612
+  },
+  {
+   "config": "tuned",
+   "clients": 4,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 2437.633333333333,
+   "stdev_mib_s": 35.21680470078632
+  },
+  {
+   "config": "tuned",
+   "clients": 4,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 16.333333333333332,
+   "stdev_mib_s": 0.11547005383792475
+  },
+  {
+   "config": "tuned",
+   "clients": 4,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 5904.7,
+   "stdev_mib_s": 203.17866521857079
+  },
+  {
+   "config": "tuned",
+   "clients": 4,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 1774.1,
+   "stdev_mib_s": 33.97705107863238
+  },
+  {
+   "config": "tuned",
+   "clients": 8,
+   "phase": "rand_read_4k",
+   "n": 3,
+   "mean_mib_s": 3836.633333333333,
+   "stdev_mib_s": 273.7338549272512
+  },
+  {
+   "config": "tuned",
+   "clients": 8,
+   "phase": "rand_write_4k",
+   "n": 3,
+   "mean_mib_s": 30.866666666666667,
+   "stdev_mib_s": 0.1527525231651949
+  },
+  {
+   "config": "tuned",
+   "clients": 8,
+   "phase": "seq_read",
+   "n": 3,
+   "mean_mib_s": 6073.066666666667,
+   "stdev_mib_s": 71.76756463287111
+  },
+  {
+   "config": "tuned",
+   "clients": 8,
+   "phase": "seq_write",
+   "n": 3,
+   "mean_mib_s": 2276.6666666666665,
+   "stdev_mib_s": 65.06430152805238
+  }
+ ]
+}
