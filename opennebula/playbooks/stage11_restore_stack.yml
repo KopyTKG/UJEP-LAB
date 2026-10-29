@@ -110,6 +110,23 @@
       changed_when: false
       failed_when: cs.stdout | int != (groups['galera'] | length)
 
+    # oned reaches the database through the HAProxy VIP; right after the Galera nodes join,
+    # HAProxy accepts the connection but has no healthy backend yet and oned dies with
+    # "Lost connection to MySQL server at 'reading initial communication packet'" (2026-10-29).
+    # `mysqladmin ping` succeeds (even with access denied) only when a backend answers.
+    - name: Wait until the database answers through the VIP
+      shell: mysqladmin -h {{ one_db_vip | default('192.168.1.249') }} ping
+      register: vip
+      until: vip.rc == 0
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Clear a start-rate limit from earlier failed oned starts
+      command: systemctl reset-failed opennebula opennebula-scheduler
+      changed_when: false
+      failed_when: false
+
     - name: Start OpenNebula (oned, scheduler)
       systemd:
         name: "{{ item }}"
@@ -132,3 +149,21 @@
       systemd:
         name: opennebula-hem
         state: restarted
+
+    # After the restart oned does not start the monitoring agents on its own (hosts stayed
+    # without a monitoring time until `onehost sync`, 2026-10-29).
+    - name: Restart the monitoring agents on every host
+      become_user: oneadmin
+      environment:
+        SSH_AUTH_SOCK: /var/run/one/ssh-agent.sock
+      shell: onehost sync --force </dev/null
+      changed_when: true
+
+    # `just down` powers the running VMs off before it unmounts Lustre; bring them back.
+    - name: Resume the VMs that the shutdown powered off
+      become_user: oneadmin
+      shell: |
+        for v in $(onevm list -l ID,STAT --no-header </dev/null | awk '$2=="poff"{print $1}'); do
+          onevm resume $v </dev/null
+        done
+      changed_when: true

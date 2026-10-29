@@ -1,0 +1,30 @@
+---
+# After `startup.yml` powered the nodes on: wait until every node is reachable and has
+# /mnt/lustre mounted. Nothing is repaired here; a node that does not come up fails the run.
+- name: Wait for every node and its Lustre mount
+  hosts: cluster
+  gather_facts: no
+  tasks:
+    - name: SSH reachable
+      wait_for_connection:
+        timeout: 900
+        delay: 20
+    - name: /mnt/lustre mounted
+      become: yes
+      command: mountpoint -q /mnt/lustre
+      register: lm
+      until: lm.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false
+    # Lustre is mounted long before the pool is usable: each OST is in recovery until its
+    # clients reconnect (ost_connect rc = -16 on the consoles), and `lfs df` showed 4 of 16
+    # OSTs several minutes after boot (cold start 2026-10-29: about 9 min after power-on).
+    - name: Every OST visible from this node
+      become: yes
+      shell: timeout 60 lfs df /mnt/lustre | grep -c '\[OST:'
+      register: seen
+      until: seen.stdout | int == 16
+      retries: 90
+      delay: 10
+      changed_when: false

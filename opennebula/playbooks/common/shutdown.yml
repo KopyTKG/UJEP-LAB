@@ -5,6 +5,31 @@
 #   1. every node unmounts its Lustre client while all servers are still up
 #   2. computes (OSS) power off together, then we wait until they are gone
 #   3. heads power off one at a time, Head-2 (MDT1) first, Head-1 (MGS + MDT0) last
+# Step 0 (added 2026-10-29): power the running VMs off first, so qemu closes its disks on
+# Lustre before the clients unmount (the computes were slow to power off with VMs running).
+# `just up` resumes them.
+
+- name: 0. Power off the running VMs
+  hosts: Rocky-Head-1
+  become: yes
+  tasks:
+    - name: onevm poweroff, then wait until no VM is running
+      shell: |
+        sudo -u oneadmin bash -c '
+          for v in $(onevm list -l ID,STAT --no-header </dev/null | awk "\$2==\"runn\"{print \$1}"); do
+            onevm poweroff $v </dev/null
+          done
+          for i in $(seq 1 36); do
+            n=$(onevm list -l STAT --no-header </dev/null | grep -c runn)
+            [ "$n" -eq 0 ] && break
+            sleep 5
+          done
+          echo "running VMs left: $n"'
+      register: vm_off
+      failed_when: false
+      changed_when: true
+    - debug:
+        msg: "{{ vm_off.stdout_lines | default([]) | last | default('oned not reachable, skipped') }}"
 
 - name: 1. Unmount the Lustre client everywhere (servers still up)
   hosts: cluster

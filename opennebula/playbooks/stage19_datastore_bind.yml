@@ -1,0 +1,71 @@
+---
+# Replaces the var-lib-one-datastores.mount unit of stage 13 with a retrying service.
+# Cold start 2026-10-29: on the computes the first lustre-startup attempt failed (servers not
+# ready yet; Restart=on-failure made the second one succeed), and because the mount unit had
+# Requires=lustre-startup its start job failed for good ("Dependency failed"), so
+# /var/lib/one/datastores stayed empty on all 8 computes and every VM deploy failed with
+# "Cannot access storage file ... disk.0". A mount unit cannot retry; a service can.
+# libvirtd/oned only Want the bind (Requires would take them down while it retries): a deploy
+# before the bind exists fails safely ("Cannot access storage file"), nothing runs on an empty dir.
+- name: Datastore bind mount as a retrying service
+  hosts: cluster
+  become: true
+  tasks:
+    - name: Bind script
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/one-datastore-bind
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          # Bind /mnt/lustre/one/datastores onto /var/lib/one/datastores once Lustre is there.
+          for i in $(seq 1 120); do
+            mountpoint -q /mnt/lustre && [ -d /mnt/lustre/one/datastores ] && break
+            sleep 5
+          done
+          mountpoint -q /mnt/lustre && [ -d /mnt/lustre/one/datastores ] || { echo "Lustre datastore not there"; exit 1; }
+          mountpoint -q /var/lib/one/datastores || mount --bind /mnt/lustre/one/datastores /var/lib/one/datastores
+
+    - name: Service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/one-datastore-bind.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=OpenNebula datastores on Lustre (bind mount, retries until Lustre is up)
+          DefaultDependencies=no
+          After=lustre-startup.service
+          Wants=lustre-startup.service
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/local/sbin/one-datastore-bind
+          ExecStop=-/usr/bin/umount /var/lib/one/datastores
+          Restart=on-failure
+          RestartSec=10
+          StartLimitIntervalSec=0
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Drop-ins for libvirtd and oned
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item }}.service.d/datastore.conf"
+        mode: "0644"
+        content: |
+          [Unit]
+          After=one-datastore-bind.service
+          Wants=one-datastore-bind.service
+      loop: "{{ ['libvirtd'] + (['opennebula'] if inventory_hostname == 'Rocky-Head-1' else []) }}"
+
+    - name: Retire the mount unit (the bind stays mounted, the service takes it over)
+      ansible.builtin.shell: |
+        systemctl disable var-lib-one-datastores.mount 2>/dev/null
+        rm -f /etc/systemd/system/var-lib-one-datastores.mount /etc/systemd/system/multi-user.target.wants/var-lib-one-datastores.mount
+        systemctl daemon-reload
+      changed_when: true
+
+    - name: Enable and start the service
+      ansible.builtin.systemd:
+        name: one-datastore-bind.service
+        state: started
+        enabled: true
+        daemon_reload: true

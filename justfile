@@ -18,9 +18,11 @@ deps:
 ping limit="":
     cd {{project}} && ansible {{ if limit == "" { "all" } else { limit } }} -m ping
 
-# Power on every node via IPMI
+# Power on every node via IPMI, wait for Lustre everywhere, restore Galera + oned, resume the VMs
 up:
     cd {{project}} && ansible-playbook playbooks/common/startup.yml
+    cd {{project}} && ansible-playbook playbooks/common/wait_cluster.yml
+    cd {{project}} && ansible-playbook playbooks/stage11_restore_stack.yml
 
 # Update packages on every node
 update limit="":
