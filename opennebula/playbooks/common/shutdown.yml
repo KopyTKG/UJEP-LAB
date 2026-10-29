@@ -19,11 +19,17 @@
           for v in $(onevm list -l ID,STAT --no-header </dev/null | awk "\$2==\"runn\"{print \$1}"); do
             onevm poweroff $v </dev/null
           done
-          for i in $(seq 1 36); do
-            n=$(onevm list -l STAT --no-header </dev/null | grep -c runn)
-            [ "$n" -eq 0 ] && break
-            sleep 5
-          done
+          left() { onevm list -l STAT --no-header </dev/null | grep -cE "runn|shut"; }
+          # wait for the ACPI shutdown to finish (state POWEROFF), not just for "not running":
+          # on 2026-10-29 the VMs sat in SHUTDOWN_POWEROFF when libvirt was stopped, never reached
+          # POWEROFF and the resume after the next start skipped them
+          for i in $(seq 1 18); do n=$(left); [ "$n" -eq 0 ] && break; sleep 5; done
+          if [ "$n" -ne 0 ]; then
+            for v in $(onevm list -l ID,STAT --no-header </dev/null | awk "\$2==\"runn\"||\$2==\"shut\"{print \$1}"); do
+              onevm poweroff --hard $v </dev/null
+            done
+            for i in $(seq 1 12); do n=$(left); [ "$n" -eq 0 ] && break; sleep 5; done
+          fi
           echo "running VMs left: $n"'
       register: vm_off
       failed_when: false
@@ -35,8 +41,23 @@
   hosts: cluster
   become: yes
   tasks:
-    - name: Unmount /mnt/lustre
-      command: timeout 120 umount -l /mnt/lustre
+    # A lazy `umount -l /mnt/lustre` leaves the datastore bind mount holding the Lustre client
+    # superblock; systemd then unmounts it at poweroff after the servers (on Head-1 even its own
+    # MDT) are gone and the shutdown hangs until the power is cut (Head-1, 2026-10-29, journal of
+    # the hung boot: "Unmounting /var/lib/one/datastores..." and never "Unmounted"). So release
+    # everything that holds files on Lustre and unmount for real while the servers still answer.
+    - name: Stop the services that hold files on Lustre
+      shell: systemctl stop opennebula-scheduler opennebula opennebula-hem libvirtd virtqemud.socket virtqemud 2>/dev/null; true
+      changed_when: false
+
+    - name: Unmount the datastore bind mount
+      command: timeout 120 umount /var/lib/one/datastores
+      register: bind_result
+      failed_when: false
+      changed_when: bind_result.rc == 0
+
+    - name: Unmount /mnt/lustre (lazy only as a fallback)
+      shell: timeout 120 umount /mnt/lustre || timeout 120 umount -l /mnt/lustre
       register: umount_result
       failed_when: false
       changed_when: umount_result.rc == 0
