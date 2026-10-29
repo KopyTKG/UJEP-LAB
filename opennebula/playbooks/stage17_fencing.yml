@@ -1,0 +1,141 @@
+---
+# Host fencing for OpenNebula's host_error hook (ft/host_error.rb).
+# The hook powers the dead host off over IPMI before it recreates its VMs; the stock
+# ft/fence_host.sh is a stub that exits 1 ("Fence host not configured"), so the hook
+# aborted with RC 1 and never recreated a VM (host-failure test, 2026-10-29).
+# Fencing matters on shared storage: a host that is only partitioned must not keep
+# writing a disk another host just started.
+# IPMI credentials come from the vault (ipmi_user per host, ipmi_pass) and end up in a
+# 0600 oneadmin file on the frontend; they never appear in task output.
+- name: Fencing script on the frontends
+  hosts: Rocky-Head-1
+  become: true
+  tasks:
+    - name: ipmitool
+      ansible.builtin.dnf:
+        name: ipmitool
+        state: present
+
+    - name: IPMI credentials for oneadmin only
+      ansible.builtin.copy:
+        dest: /var/lib/one/.fence_ipmi
+        owner: oneadmin
+        group: oneadmin
+        mode: "0600"
+        content: |
+          IPMI_USER={{ hostvars['Rocky-Compute-1'].ipmi_user }}
+          IPMI_PASSWORD={{ ipmi_pass }}
+      no_log: true
+
+    - name: fence_host.sh
+      ansible.builtin.copy:
+        dest: /var/lib/one/remotes/hooks/ft/fence_host.sh
+        owner: oneadmin
+        group: oneadmin
+        mode: "0750"
+        content: |
+          #!/bin/bash
+          # Power the host off over IPMI and wait until it reports off. Host template on stdin.
+          HOST_TEMPLATE=$(cat -)
+          XPATH=/var/lib/one/remotes/datastore/xpath.rb
+          FENCE_IP=$($XPATH -b "$HOST_TEMPLATE" /HOST/TEMPLATE/FENCE_IP)
+          [ -n "$FENCE_IP" ] || { echo "Fence ip not found"; exit 1; }
+          . /var/lib/one/.fence_ipmi
+          export IPMI_PASSWORD
+          ipmi() { ipmitool -I lanplus -H "$FENCE_IP" -U "$IPMI_USER" -E "$@"; }
+          for i in 1 2 3 4 5; do
+            ipmi chassis power off >/dev/null 2>&1
+            sleep 2
+            case "$(ipmi chassis power status 2>&1)" in
+              *"is off"*) echo "fenced $FENCE_IP"; exit 0 ;;
+            esac
+          done
+          echo "could not power off $FENCE_IP"
+          exit 1
+
+- name: FENCE_IP on every host
+  hosts: Rocky-Head-1
+  become: true
+  tasks:
+    - name: Set FENCE_IP (the IPMI address)
+      ansible.builtin.shell: |
+        sudo -u oneadmin bash -c 'onehost update {{ item }} --append </dev/null <<T
+        FENCE_IP="{{ hostvars[item].ipmi_host }}"
+        T'
+      loop: "{{ groups['cluster'] }}"
+      changed_when: true
+
+    # ft/host_error.rb reads its arguments from stdin; without ARGUMENTS_STDIN the hook fired
+    # on every host failure and died with "undefined method unpack1 for nil" (RC 1).
+    - name: host_error hook (recreate the VMs of a failed host, with fencing)
+      ansible.builtin.shell: |
+        sudo -u oneadmin bash -c '
+          cat > /tmp/host_error.tpl <<T
+        NAME = "host_error"
+        TYPE = state
+        COMMAND = "ft/host_error.rb"
+        ARGUMENTS = "\$TEMPLATE -r -p 2"
+        ARGUMENTS_STDIN = "yes"
+        STATE = ERROR
+        RESOURCE = HOST
+        T
+          id=$(onehook list -l ID,NAME --no-header </dev/null | awk "\$2==\"host_error\"{print \$1}")
+          if [ -n "$id" ]; then onehook update $id /tmp/host_error.tpl </dev/null; else onehook create /tmp/host_error.tpl </dev/null; fi'
+      changed_when: true
+
+    # After the hook recreates a VM, OpenNebula's cleanup runs `cancel` over ssh on the dead
+    # host and never finishes (VM stuck in CLEANUP_RESUBMIT). The host is fenced (powered off)
+    # at that point, so the step can be marked done. Only VMs whose host is in ERROR with a
+    # FENCE_IP are touched.
+    - name: one-ft-unstick
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/one-ft-unstick
+        mode: "0755"
+        content: |
+          #!/usr/bin/python3
+          import json, subprocess, time
+          def one(*a):
+              return subprocess.run(["sudo", "-u", "oneadmin", *a], capture_output=True, text=True, timeout=60).stdout
+          hosts = {h["ID"]: h for h in json.loads(one("onehost", "list", "-j"))["HOST_POOL"].get("HOST", []) if isinstance(h, dict)}
+          pool = json.loads(one("onevm", "list", "-j"))["VM_POOL"].get("VM", [])
+          pool = pool if isinstance(pool, list) else [pool]
+          for vm in pool:
+              if vm["STATE"] != "3" or vm["LCM_STATE"] != "15":      # ACTIVE / CLEANUP_RESUBMIT
+                  continue
+              hist = vm["HISTORY_RECORDS"]["HISTORY"]
+              hist = hist[-1] if isinstance(hist, list) else hist
+              host = hosts.get(hist["HID"])
+              if not host or host["STATE"] not in ("3", "5") or not host["TEMPLATE"].get("FENCE_IP"):
+                  continue                                             # host not in ERROR: normal cleanup
+              print("unstick VM", vm["ID"], "on fenced host", host["NAME"], flush=True)
+              one("onevm", "recover", "--success", vm["ID"])
+
+    - name: one-ft-unstick service and timer
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.name }}"
+        mode: "0644"
+        content: "{{ item.body }}"
+      loop:
+        - name: one-ft-unstick.service
+          body: |
+            [Unit]
+            Description=Finish the cleanup of VMs on fenced hosts
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/sbin/one-ft-unstick
+        - name: one-ft-unstick.timer
+          body: |
+            [Unit]
+            Description=Check for VMs stuck on fenced hosts every 30 s
+            [Timer]
+            OnBootSec=2min
+            OnUnitActiveSec=30s
+            [Install]
+            WantedBy=timers.target
+
+    - name: Enable the timer
+      ansible.builtin.systemd:
+        name: one-ft-unstick.timer
+        state: started
+        enabled: true
+        daemon_reload: true

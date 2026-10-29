@@ -1,0 +1,145 @@
+---
+# Dead-OST watchdog for the metadata servers.
+# Problem (host-failure test 2026-10-29): after an OSS dies the MDS keeps allocating new
+# file objects on its OSTs, so every create (here: OpenNebula's prolog `cp` into the
+# datastore) stalls until the node returns. The fix is to take the OSTs of a dead OSS out
+# of allocation on every MDT (`osp.<dev>.active=0`) and put them back when it returns.
+#
+# Rule, per OSS NID, every 10 s on each head:
+#   dead  = some OST import not FULL and `lctl ping` fails, for at least 30 s
+#   -> deactivate its OSTs (only ones this watchdog deactivated are ever reactivated)
+#   alive again (2 consecutive pings) -> reactivate
+#   more than 2 OSSes dead at once -> do nothing (looks like a network/MDS problem, not a node loss)
+# Scope: this is the MDS side (new objects). Clients still read from the OST until the
+# FLR mirror takes over, see thesis note 19.
+- name: Dead-OST watchdog
+  hosts: controller
+  become: true
+  tasks:
+    - name: Watchdog script
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/lustre-ost-watchdog
+        mode: "0755"
+        content: |
+          #!/usr/bin/python3
+          import collections, json, os, subprocess, sys, time
+          STATE = "/run/lustre-ost-watchdog.json"
+          DEAD_AFTER, MAX_DEAD, RECOVER_PINGS = 30, 2, 2
+          DRY = "--dry-run" in sys.argv
+
+          def lctl(*a, timeout=20):
+              try:
+                  r = subprocess.run(["lctl", *a], capture_output=True, text=True, timeout=timeout)
+                  return r.returncode, r.stdout
+              except (subprocess.TimeoutExpired, FileNotFoundError):
+                  return 1, ""
+
+          def log(msg):
+              print(msg, flush=True)
+
+          rc, out = lctl("dl")
+          if rc != 0:
+              sys.exit(0)                                   # Lustre not loaded yet
+          devs = [f[3] for f in (l.split() for l in out.splitlines())
+                  if len(f) > 3 and f[2] == "osp" and "-OST" in f[3]]
+          if not devs:
+              sys.exit(0)
+
+          try:
+              st = json.load(open(STATE))
+          except (OSError, ValueError):
+              st = {}
+          first_seen, deactivated, oks = st.get("first_seen", {}), st.get("deactivated", {}), st.get("oks", {})
+
+          info = {}                                         # dev -> (state, nid, active)
+          for d in devs:
+              imp = lctl("get_param", f"osp.{d}.import")[1]
+              state = nid = None
+              for line in imp.splitlines():
+                  s = line.strip()
+                  if s.startswith("state:"):
+                      state = s.split(":", 1)[1].strip()
+                  elif s.startswith("current_connection:"):
+                      nid = s.split(":", 1)[1].strip().strip('"')
+              active = lctl("get_param", "-n", f"osp.{d}.active")[1].strip()
+              if nid:
+                  info[d] = (state, nid, active)
+
+          by_nid = collections.defaultdict(list)
+          for d, (state, nid, active) in info.items():
+              by_nid[nid].append(d)
+
+          def alive(nid):
+              return lctl("ping", nid, timeout=15)[0] == 0
+
+          now = time.time()
+          dead = set()
+          for nid, ds in by_nid.items():
+              suspect = nid in deactivated or any(info[d][0] != "FULL" for d in ds)
+              if not suspect:
+                  first_seen.pop(nid, None)
+                  oks.pop(nid, None)
+                  continue
+              if alive(nid):
+                  first_seen.pop(nid, None)
+                  if nid in deactivated:
+                      oks[nid] = oks.get(nid, 0) + 1
+                      if oks[nid] >= RECOVER_PINGS:
+                          for d in deactivated[nid]:
+                              log(f"{nid} is back: reactivating {d}")
+                              if not DRY:
+                                  lctl("set_param", f"osp.{d}.active=1")
+                          deactivated.pop(nid)
+                          oks.pop(nid)
+              else:
+                  oks.pop(nid, None)
+                  dead.add(nid)
+
+          if len(dead) > MAX_DEAD:
+              log(f"{len(dead)} OSS look dead ({', '.join(sorted(dead))}): not touching anything")
+          else:
+              for nid in dead:
+                  first_seen.setdefault(nid, now)
+                  if nid not in deactivated and now - first_seen[nid] >= DEAD_AFTER:
+                      todo = [d for d in by_nid[nid] if info[d][2] == "1"]
+                      for d in todo:
+                          log(f"{nid} dead for {int(now - first_seen[nid])} s: deactivating {d}")
+                          if not DRY:
+                              lctl("set_param", f"osp.{d}.active=0")
+                      deactivated[nid] = todo
+
+          log("state: dead=%s deactivated=%s" % (sorted(dead), sorted(deactivated))) if (dead or deactivated or DRY) else None
+          if not DRY:
+              json.dump({"first_seen": first_seen, "deactivated": deactivated, "oks": oks}, open(STATE, "w"))
+
+    - name: Service and timer
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.name }}"
+        mode: "0644"
+        content: "{{ item.body }}"
+      loop:
+        - name: lustre-ost-watchdog.service
+          body: |
+            [Unit]
+            Description=Deactivate the OSTs of a dead OSS on this MDS, reactivate when it returns
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/sbin/lustre-ost-watchdog
+            TimeoutStartSec=120
+        - name: lustre-ost-watchdog.timer
+          body: |
+            [Unit]
+            Description=Dead-OST watchdog every 10 s
+            [Timer]
+            OnBootSec=3min
+            OnUnitInactiveSec=10s
+            AccuracySec=1s
+            [Install]
+            WantedBy=timers.target
+
+    - name: Enable the timer
+      ansible.builtin.systemd:
+        name: lustre-ost-watchdog.timer
+        state: started
+        enabled: true
+        daemon_reload: true

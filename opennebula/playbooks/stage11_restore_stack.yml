@@ -125,3 +125,10 @@
       retries: 20
       delay: 5
       changed_when: false
+
+    # opennebula-hem starts at boot while oned is still down ("Cannot get hook information",
+    # onehem.log) and never reloads, so every hook (host_error) is silently ignored.
+    - name: Restart the hook event manager now that oned answers
+      systemd:
+        name: opennebula-hem
+        state: restarted

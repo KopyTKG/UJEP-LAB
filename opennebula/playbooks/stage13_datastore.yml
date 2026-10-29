@@ -66,6 +66,10 @@
         content: |
           [Unit]
           Description=OpenNebula datastores on Lustre
+          # No default dependencies: a mount unit is otherwise ordered before local-fs.target, which
+          # closes a cycle with lustre-startup (After=network-online) and made systemd delete
+          # lustre-startup's network ordering (o2ib never came up, 2026-10-29).
+          DefaultDependencies=no
           After=lustre-startup.service
           Requires=lustre-startup.service
 
