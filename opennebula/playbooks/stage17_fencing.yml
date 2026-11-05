@@ -7,14 +7,21 @@
 # writing a disk another host just started.
 # IPMI credentials come from the vault (ipmi_user per host, ipmi_pass) and end up in a
 # 0600 oneadmin file on the frontend; they never appear in task output.
+# HA (stage 20): oned runs on three frontends and any of them can become the leader, so the
+# fence script, its credentials and the unstick timer exist on all of them; the hook definition and
+# FENCE_IP live in the (replicated) database and are set once, from whichever frontend leads.
 - name: Fencing script on the frontends
-  hosts: Rocky-Head-1
+  hosts: one_frontends
   become: true
   tasks:
     - name: ipmitool
       ansible.builtin.dnf:
         name: ipmitool
         state: present
+      retries: 3
+      delay: 15
+      register: ipmi_pkg
+      until: ipmi_pkg is succeeded
 
     - name: IPMI credentials for oneadmin only
       ansible.builtin.copy:
@@ -40,6 +47,15 @@
           XPATH=/var/lib/one/remotes/datastore/xpath.rb
           FENCE_IP=$($XPATH -b "$HOST_TEMPLATE" /HOST/TEMPLATE/FENCE_IP)
           [ -n "$FENCE_IP" ] || { echo "Fence ip not found"; exit 1; }
+          # Liveness veto: a host that still answers over ssh is not dead, its monitoring failed. On
+          # 2026-11-05, right after Head-1's MDT0 came back, the datastore probe failed on two healthy
+          # hosts ("mkdir: File exists") and they were flagged ERROR; fencing them would have powered off
+          # the hosts running v1 and v2. Refuse to fence (the hook then recreates nothing).
+          NAME=$($XPATH -b "$HOST_TEMPLATE" /HOST/NAME)
+          if SSH_AUTH_SOCK=/var/run/one/ssh-agent.sock ssh -o BatchMode=yes -o ConnectTimeout=5 "$NAME" true 2>/dev/null; then
+            echo "$NAME still answers over ssh, not fencing"
+            exit 1
+          fi
           . /var/lib/one/.fence_ipmi
           export IPMI_PASSWORD
           ipmi() { ipmitool -I lanplus -H "$FENCE_IP" -U "$IPMI_USER" -E "$@"; }
@@ -53,7 +69,7 @@
           echo "could not power off $FENCE_IP"
           exit 1
 
-- name: FENCE_IP on every host
+- name: FENCE_IP on every host and the hook (database state, set once)
   hosts: Rocky-Head-1
   become: true
   tasks:
@@ -83,6 +99,10 @@
           if [ -n "$id" ]; then onehook update $id /tmp/host_error.tpl </dev/null; else onehook create /tmp/host_error.tpl </dev/null; fi'
       changed_when: true
 
+- name: Unstick timer on every frontend (acts on the leader only)
+  hosts: one_frontends
+  become: true
+  tasks:
     # After the hook recreates a VM, OpenNebula's cleanup runs `cancel` over ssh on the dead
     # host and never finishes (VM stuck in CLEANUP_RESUBMIT). The host is fenced (powered off)
     # at that point, so the step can be marked done. Only VMs whose host is in ERROR with a
@@ -94,6 +114,9 @@
         content: |
           #!/usr/bin/python3
           import json, subprocess, time
+          # only the frontend that holds the virtual IP (the Raft leader) acts
+          if subprocess.run("ip -4 addr show | grep -q 192.168.1.248/", shell=True).returncode != 0:
+              raise SystemExit(0)
           def one(*a):
               return subprocess.run(["sudo", "-u", "oneadmin", *a], capture_output=True, text=True, timeout=60).stdout
           hosts = {h["ID"]: h for h in json.loads(one("onehost", "list", "-j"))["HOST_POOL"].get("HOST", []) if isinstance(h, dict)}

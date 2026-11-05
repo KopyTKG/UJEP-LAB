@@ -1,0 +1,60 @@
+---
+# Join one follower to the running Raft leader (Rocky-Head-1): live consistent dump of the leader's
+# database, load on the follower, start oned there. Used by stage20 with `target`.
+# The dump goes through a temporary file on the workstation that is removed again.
+- name: Dump the leader's database (consistent, the leader keeps running)
+  delegate_to: Rocky-Head-1
+  become: true
+  ansible.builtin.shell: mysqldump --single-transaction --databases opennebula > /root/one-ha-db.sql && chmod 600 /root/one-ha-db.sql
+  changed_when: true
+
+- name: Temporary directory on the workstation
+  delegate_to: localhost
+  become: false
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: oneha-db-
+  register: join_tmp
+
+- name: Carry the dump to the follower and load it
+  no_log: true
+  block:
+    - delegate_to: Rocky-Head-1
+      become: true
+      ansible.builtin.fetch:
+        src: /root/one-ha-db.sql
+        dest: "{{ join_tmp.path }}/db.sql"
+        flat: true
+    - delegate_to: "{{ target }}"
+      become: true
+      ansible.builtin.copy:
+        src: "{{ join_tmp.path }}/db.sql"
+        dest: /root/one-ha-db.sql
+        mode: "0600"
+    - delegate_to: "{{ target }}"
+      become: true
+      ansible.builtin.shell: mysql < /root/one-ha-db.sql
+
+- name: Remove the dump everywhere
+  become: true
+  ansible.builtin.file:
+    path: /root/one-ha-db.sql
+    state: absent
+  delegate_to: "{{ item }}"
+  loop: ["Rocky-Head-1", "{{ target }}"]
+
+- name: Remove the workstation copy
+  delegate_to: localhost
+  become: false
+  ansible.builtin.file:
+    path: "{{ join_tmp.path }}"
+    state: absent
+
+- name: Start oned on the follower and the services around it
+  delegate_to: "{{ target }}"
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: [opennebula, opennebula-scheduler, opennebula-fireedge, opennebula-flow, opennebula-gate]

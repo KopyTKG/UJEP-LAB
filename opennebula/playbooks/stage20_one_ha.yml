@@ -1,0 +1,342 @@
+---
+# OpenNebula frontend HA (Raft) on Rocky-Head-1, Rocky-Head-2 and Rocky-Compute-1.
+#
+# Why: oned ran on Head-1 only, so a Head-1 loss left the lab without management (no scheduler,
+# no host_error hook, no UI) until it was back (thesis note 19, 2026-11-05).
+# Raft needs three servers for a quorum, hence Compute-1 as the third voter.
+#
+# Database: OpenNebula's HA replicates through its own log (logdb), every frontend uses a LOCAL
+# database. The shared Galera cluster (stages 8-9) is therefore turned into three standalone
+# MariaDB instances: Galera leaves an identical copy of the database on every node, so the data
+# only has to be switched, not copied.
+#
+# Phases (run one at a time and check, `--tags`):
+#   prep  backups on Head-1, frontend packages on Head-2/Compute-1, firewall, secrets and /etc/one
+#   db    Galera -> standalone MariaDB on the three nodes (oned is down meanwhile)
+#   raft  oned.conf (local DB, server ids, VIP hooks), leader first, followers from a cold copy
+#
+# Secrets (oneadmin's ssh key, one_auth, one_key) travel through a temporary directory on the
+# workstation that is removed at the end of the play; they are never printed.
+
+- name: prep
+  hosts: one_frontends
+  become: true
+  tags: [prep]
+  vars:
+    frontend_packages:
+      - opennebula
+      - opennebula-fireedge
+      - opennebula-flow
+      - opennebula-gate
+      - opennebula-guacd
+      - opennebula-sunstone
+      - opennebula-tools
+  tasks:
+    - name: Backup on Head-1 (root only, stays on the host)
+      when: inventory_hostname == 'Rocky-Head-1'
+      ansible.builtin.shell: |
+        set -e
+        d=/root/ha-backup-$(date +%Y%m%d-%H%M)
+        install -d -m 0700 $d
+        mysqldump --single-transaction opennebula > $d/opennebula.sql
+        tar czpf $d/etc-one.tgz /etc/one
+        tar czpf $d/var-lib-one-dotfiles.tgz /var/lib/one/.one /var/lib/one/.ssh
+        chmod 600 $d/*
+        echo $d
+      register: backup
+      changed_when: true
+
+    - name: Frontend packages on the new frontends
+      when: inventory_hostname != 'Rocky-Head-1'
+      ansible.builtin.dnf:
+        name: "{{ frontend_packages }}"
+        state: present
+      retries: 3
+      delay: 15
+      register: pk
+      until: pk is succeeded
+
+    - name: Firewall for oned (Raft, XML-RPC), FireEdge and the monitoring agents
+      ansible.posix.firewalld:
+        zone: public
+        port: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: [2633/tcp, 9869/tcp, 4124/tcp, 4124/udp, 2616/tcp]
+
+    - name: Temporary directory on the workstation for the secrets
+      delegate_to: localhost
+      become: false
+      run_once: true
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: oneha-
+      register: tmpdir
+
+    - name: Archive oneadmin's secrets and /etc/one on Head-1
+      when: inventory_hostname == 'Rocky-Head-1'
+      ansible.builtin.shell: |
+        tar czpf /root/ha-secrets.tgz --numeric-owner /var/lib/one/.one /var/lib/one/.ssh /etc/one
+        chmod 600 /root/ha-secrets.tgz
+      changed_when: true
+
+    - name: Fetch the archive
+      when: inventory_hostname == 'Rocky-Head-1'
+      ansible.builtin.fetch:
+        src: /root/ha-secrets.tgz
+        dest: "{{ tmpdir.path }}/ha-secrets.tgz"
+        flat: true
+      no_log: true
+
+    - name: Put the archive on the new frontends and unpack it
+      when: inventory_hostname != 'Rocky-Head-1'
+      no_log: true
+      block:
+        - ansible.builtin.copy:
+            src: "{{ tmpdir.path }}/ha-secrets.tgz"
+            dest: /root/ha-secrets.tgz
+            mode: "0600"
+        - ansible.builtin.command: tar xzpf /root/ha-secrets.tgz --numeric-owner -C /
+        - ansible.builtin.file:
+            path: /root/ha-secrets.tgz
+            state: absent
+
+    - name: Remove the archive from Head-1 and the workstation
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop:
+        - { path: /root/ha-secrets.tgz }
+      when: inventory_hostname == 'Rocky-Head-1'
+
+    - name: Remove the workstation temp directory
+      delegate_to: localhost
+      become: false
+      run_once: true
+      ansible.builtin.file:
+        path: "{{ tmpdir.path }}"
+        state: absent
+
+    # `onehost sync` pushes the LOCAL /var/lib/one/remotes of whichever frontend leads. The only
+    # local customisation is kvmrc (MIGRATE_OPTIONS=--unsafe, needed for live migration on Lustre,
+    # stage 14); a frontend with the package default would silently take it away from the hosts.
+    - name: kvmrc (live migration on Lustre) on every frontend
+      block:
+        - when: inventory_hostname == 'Rocky-Head-1'
+          ansible.builtin.fetch:
+            src: /var/lib/one/remotes/etc/vmm/kvm/kvmrc
+            dest: /tmp/oneha-kvmrc
+            flat: true
+        - when: inventory_hostname != 'Rocky-Head-1'
+          ansible.builtin.copy:
+            src: /tmp/oneha-kvmrc
+            dest: /var/lib/one/remotes/etc/vmm/kvm/kvmrc
+            owner: oneadmin
+            group: oneadmin
+            mode: preserve
+
+    - name: Fence script, its credentials and the failure helpers (stage 17) on every frontend
+      ansible.builtin.debug:
+        msg: "run stage17_fencing.yml and the unstick/watchdog stages against one_frontends after the raft phase"
+
+- name: db - Galera to standalone MariaDB
+  hosts: one_frontends
+  become: true
+  tags: [db]
+  tasks:
+    - name: Stop OpenNebula on Head-1 (no writer while the database is switched)
+      when: inventory_hostname == 'Rocky-Head-1'
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop: [opennebula-scheduler, opennebula-fireedge, opennebula-flow, opennebula-gate, opennebula-sunstone, opennebula]
+
+    - name: Row counts before (Galera, all nodes must agree)
+      ansible.builtin.shell: >
+        mysql -N -e "select concat('vm=',(select count(*) from opennebula.vm_pool),
+        ' host=',(select count(*) from opennebula.host_pool),
+        ' logdb=',(select count(*) from opennebula.logdb))"
+      register: before
+      changed_when: false
+
+    - name: The three copies are identical
+      run_once: true
+      ansible.builtin.assert:
+        that: groups['one_frontends'] | map('extract', hostvars, ['before', 'stdout']) | unique | length == 1
+        fail_msg: "the three databases differ, stop here: {{ groups['one_frontends'] | map('extract', hostvars, ['before', 'stdout']) | list }}"
+
+    - name: Stop MariaDB (Galera) one node at a time
+      ansible.builtin.systemd:
+        name: mariadb
+        state: stopped
+      throttle: 1
+
+    - name: Galera off, the node runs on its own
+      ansible.builtin.lineinfile:
+        path: /etc/my.cnf.d/galera.cnf
+        regexp: '^wsrep_on\s*='
+        line: wsrep_on = OFF
+
+    # The Galera database VIP (192.168.1.249, stage 9) has no user any more.
+    - name: HAProxy and keepalived of the database VIP are retired
+      when: inventory_hostname in ['Rocky-Head-1', 'Rocky-Head-2']
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop: [haproxy, keepalived]
+
+    - name: Start MariaDB standalone
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: true
+
+    - name: Row counts after
+      ansible.builtin.shell: >
+        mysql -N -e "select concat('vm=',(select count(*) from opennebula.vm_pool),
+        ' host=',(select count(*) from opennebula.host_pool),
+        ' logdb=',(select count(*) from opennebula.logdb))"
+      register: after
+      changed_when: false
+      failed_when: after.stdout != before.stdout
+
+- name: raft - oned.conf, leader, followers
+  hosts: one_frontends
+  become: true
+  tags: [raft]
+  vars:
+    vip_cidr: 192.168.1.248/24
+    vip_iface: eno1
+    server_ids: { Rocky-Head-1: 0, Rocky-Head-2: 1, Rocky-Compute-1: 2 }
+    server_names: { Rocky-Head-1: head1, Rocky-Head-2: head2, Rocky-Compute-1: compute1 }
+  tasks:
+    - name: Services stopped everywhere while oned.conf changes
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop: [opennebula-scheduler, opennebula-fireedge, opennebula-flow, opennebula-gate, opennebula-sunstone, opennebula]
+
+    - name: oned uses the local database (unix socket)
+      ansible.builtin.replace:
+        path: /etc/one/oned.conf
+        regexp: '(DB = \[ BACKEND = "mysql",\s+SERVER\s+=\s+")[^"]*(",\s+PORT\s+=\s+)\d+'
+        replace: '\g<1>localhost\g<2>0'
+
+    - name: This server's id in the zone
+      ansible.builtin.replace:
+        path: /etc/one/oned.conf
+        regexp: '(FEDERATION = \[\s+MODE\s+=\s+"STANDALONE",\s+ZONE_ID\s+=\s+0,\s+SERVER_ID\s+=\s+)-?\d+'
+        replace: '\g<1>{{ server_ids[inventory_hostname] }}'
+
+    - name: Leader and follower hooks (the leader holds the virtual IP)
+      ansible.builtin.blockinfile:
+        path: /etc/one/oned.conf
+        marker: "# {mark} ANSIBLE stage20 raft hooks"
+        block: |
+          RAFT_LEADER_HOOK = [
+              COMMAND = "raft/vip.sh",
+              ARGUMENTS = "leader {{ vip_iface }} {{ vip_cidr }}"
+          ]
+          RAFT_FOLLOWER_HOOK = [
+              COMMAND = "raft/vip.sh",
+              ARGUMENTS = "follower {{ vip_iface }} {{ vip_cidr }}"
+          ]
+
+    # The agents on the hosts report to this address; "auto" is the address of whichever frontend
+    # started them, so after a leader change they reported to a dead oned and, with the host_error
+    # hook, healthy hosts would have been fenced (found in the failover test, 2026-11-05).
+    - name: Monitoring agents report to the virtual IP
+      ansible.builtin.replace:
+        path: /etc/one/monitord.conf
+        regexp: '^(\s*MONITOR_ADDRESS\s*=\s*)"[^"]*"'
+        replace: '\g<1>"{{ vip_cidr | split("/") | first }}"'
+
+    - name: The CLI, FireEdge and the scripts talk to the leader through the virtual IP
+      ansible.builtin.copy:
+        dest: /var/lib/one/.one/one_endpoint
+        content: "http://{{ vip_cidr | split('/') | first }}:2633/RPC2\n"
+        owner: oneadmin
+        group: oneadmin
+        mode: "0600"
+
+    - name: Leader first (Head-1)
+      when: inventory_hostname == 'Rocky-Head-1'
+      ansible.builtin.systemd:
+        name: opennebula
+        state: started
+
+    - name: Wait for the leader to answer on its own address
+      when: inventory_hostname == 'Rocky-Head-1'
+      become_user: oneadmin
+      environment:
+        ONE_XMLRPC: "http://{{ ansible_host }}:2633/RPC2"
+      ansible.builtin.command: oneuser list
+      register: ol
+      until: ol.rc == 0
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Wait for the leader to answer on its own address
+      when: inventory_hostname == 'Rocky-Head-1'
+      become_user: oneadmin
+      environment:
+        ONE_XMLRPC: "http://{{ ansible_host }}:2633/RPC2"
+      ansible.builtin.command: oneuser list
+      register: ol2
+      until: ol2.rc == 0
+      retries: 30
+      delay: 5
+      changed_when: false
+
+- name: raft - servers join one at a time
+  hosts: Rocky-Head-1
+  become: true
+  tags: [raft]
+  vars:
+    followers:
+      - { host: Rocky-Head-2, name: head2 }
+      - { host: Rocky-Compute-1, name: compute1 }
+  tasks:
+    # Order matters. While the leader is alone the quorum is one, so registering head1 and head2
+    # commits. Registering a third server needs head2 to be running (quorum two of two) and a
+    # follower needs a copy of the leader's database before it starts, hence: register head1
+    # and head2, copy + start head2, register compute1, copy + start compute1.
+    - name: Register head1 and head2 (leader alone)
+      become_user: oneadmin
+      environment:
+        ONE_XMLRPC: "http://{{ ansible_host }}:2633/RPC2"
+      ansible.builtin.shell: |
+        set -e
+        onezone show 0 | grep -qE ' head1 ' || onezone server-add 0 --name head1 --rpc http://{{ hostvars['Rocky-Head-1'].ansible_host }}:2633/RPC2
+        onezone show 0 | grep -qE ' head2 ' || onezone server-add 0 --name head2 --rpc http://{{ hostvars['Rocky-Head-2'].ansible_host }}:2633/RPC2
+      changed_when: true
+
+    - name: head2 joins
+      ansible.builtin.include_tasks: tasks/one_ha_join.yml
+      vars:
+        target: Rocky-Head-2
+
+    - name: Register compute1 (head2 is up, so the change can commit)
+      become_user: oneadmin
+      environment:
+        ONE_XMLRPC: "http://{{ ansible_host }}:2633/RPC2"
+      ansible.builtin.shell: |
+        onezone show 0 | grep -qE ' compute1 ' || onezone server-add 0 --name compute1 --rpc http://{{ hostvars['Rocky-Compute-1'].ansible_host }}:2633/RPC2
+      changed_when: true
+
+    - name: compute1 joins
+      ansible.builtin.include_tasks: tasks/one_ha_join.yml
+      vars:
+        target: Rocky-Compute-1
+
+    - name: Raft state (one leader, two followers)
+      become_user: oneadmin
+      ansible.builtin.shell: onezone show 0 | sed -n '/SYNC STATUS/,$p'
+      register: raft
+      retries: 12
+      delay: 5
+      until: raft.stdout is search('leader') and (raft.stdout | regex_findall('follower') | length == 2)
+      changed_when: false
