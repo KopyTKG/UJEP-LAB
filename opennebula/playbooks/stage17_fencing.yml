@@ -83,14 +83,17 @@
 
     # ft/host_error.rb reads its arguments from stdin; without ARGUMENTS_STDIN the hook fired
     # on every host failure and died with "undefined method unpack1 for nil" (RC 1).
-    - name: host_error hook (recreate the VMs of a failed host, with fencing)
+    # -m (reschedule) keeps the VM's disk on the shared datastore; -r (recreate) redeploys from the
+    # image and the VM's data is lost (measured 2026-11-05: a marker file written in the guest before
+    # the host failure was gone after the recreate).
+    - name: host_error hook (reschedule the VMs of a failed host, with fencing)
       ansible.builtin.shell: |
         sudo -u oneadmin bash -c '
           cat > /tmp/host_error.tpl <<T
         NAME = "host_error"
         TYPE = state
         COMMAND = "ft/host_error.rb"
-        ARGUMENTS = "\$TEMPLATE -r -p 2"
+        ARGUMENTS = "\$TEMPLATE -m -p 2"
         ARGUMENTS_STDIN = "yes"
         STATE = ERROR
         RESOURCE = HOST

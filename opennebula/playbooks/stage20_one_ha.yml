@@ -340,3 +340,77 @@
       delay: 5
       until: raft.stdout is search('leader') and (raft.stdout | regex_findall('follower') | length == 2)
       changed_when: false
+
+# A leader cut off from the others does not step down by itself (partition test 2026-11-05: the old
+# leader kept calling itself leader and kept the virtual IP while the other two elected a new leader,
+# so two nodes held the same IP for as long as the partition lasted). This guard runs on every
+# frontend: holding the VIP without reaching any other frontend for 3 checks (about 15 s) means
+# being in the minority, so it releases the VIP and stops its scheduler; once a majority is reachable
+# again the scheduler is started. oned itself cannot commit anything without a majority.
+- name: VIP guard (minority side releases the virtual IP)
+  hosts: one_frontends
+  become: true
+  tags: [guard]
+  vars:
+    vip: 192.168.1.248
+  tasks:
+    - name: Guard script
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/one-vip-guard
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          VIP={{ vip }}
+          IFACE=eno1
+          PEERS="{% for n in groups['one_frontends'] if n != inventory_hostname %}{{ hostvars[n].ansible_host }} {% endfor %}"
+          STATE=/run/one-vip-guard.fail
+          reach() { for p in $PEERS; do timeout 2 bash -c "echo > /dev/tcp/$p/2633" 2>/dev/null && return 0; done; return 1; }
+          if reach; then
+            rm -f $STATE
+            # majority visible again: the scheduler runs everywhere (it only acts on the leader's oned)
+            if [ -f /run/one-vip-guard.stopped ]; then
+              systemctl start opennebula-scheduler && rm -f /run/one-vip-guard.stopped
+              logger -t one-vip-guard "majority reachable again, scheduler started"
+            fi
+            exit 0
+          fi
+          n=$(( $(cat $STATE 2>/dev/null || echo 0) + 1 )); echo $n > $STATE
+          if [ $n -ge 3 ] && ip -4 addr show $IFACE | grep -q "$VIP/"; then
+            ip addr del $VIP/24 dev $IFACE
+            logger -t one-vip-guard "no other frontend reachable for $n checks: released $VIP"
+          fi
+          if [ $n -ge 3 ] && systemctl is-active --quiet opennebula-scheduler; then
+            systemctl stop opennebula-scheduler && touch /run/one-vip-guard.stopped
+            logger -t one-vip-guard "minority: scheduler stopped"
+          fi
+
+    - name: Service and timer
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.name }}"
+        mode: "0644"
+        content: "{{ item.body }}"
+      loop:
+        - name: one-vip-guard.service
+          body: |
+            [Unit]
+            Description=Release the OpenNebula virtual IP when no other frontend is reachable
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/sbin/one-vip-guard
+        - name: one-vip-guard.timer
+          body: |
+            [Unit]
+            Description=VIP guard every 5 s
+            [Timer]
+            OnBootSec=1min
+            OnUnitInactiveSec=5s
+            AccuracySec=1s
+            [Install]
+            WantedBy=timers.target
+
+    - name: Enable the timer
+      ansible.builtin.systemd:
+        name: one-vip-guard.timer
+        state: started
+        enabled: true
+        daemon_reload: true
